@@ -28,12 +28,14 @@ def load_subject(subject: str, seed_path: Path | None = None) -> int:
             generator = c.get("generator")
             card = c.get("card", {})
             mode = "generator" if generator else "recall"
+            distractors = card.get("distractors")
             conn.execute(
                 """
                 INSERT OR REPLACE INTO concept
                     (id, subject, name, category, mode, generator_json,
-                     card_front, card_back, theory_md, exam_weight)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     card_question, card_answer, card_distractors,
+                     theory_md, exam_weight)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     c["id"],
@@ -42,8 +44,9 @@ def load_subject(subject: str, seed_path: Path | None = None) -> int:
                     c.get("category"),
                     mode,
                     json.dumps(generator) if generator else None,
-                    card.get("front"),
-                    card.get("back"),
+                    card.get("question"),
+                    card.get("answer"),
+                    json.dumps(distractors) if distractors else None,
                     c.get("theory_md"),
                     c.get("exam_weight", 1),
                 ),

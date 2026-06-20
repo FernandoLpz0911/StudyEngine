@@ -1,29 +1,31 @@
-"""Recall mode: present a concept as a flashcard, self-graded into FSRS.
+"""Recall mode as objective multiple-choice — no self-rating.
 
-Recall concepts (proofs, econ, conceptual DB topics) have no closed-form answer,
-so there is nothing to auto-grade. The learner sees the prompt, recalls, reveals
-the answer, then rates honestly — the rating feeds the same FSRS scheduler that
-generator subjects use.
+A recall concept stores a question, one correct answer, and distractors. It is
+served as a shuffled multiple-choice item and graded the same way as a generator
+problem: the chosen option either equals the correct one or it does not.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from engine.db.dao import Concept
+import numpy as np
 
-# Self-rating → FSRS Rating value (1 Again, 2 Hard, 3 Good, 4 Easy).
-RECALL_GRADES: dict[str, int] = {"again": 1, "hard": 2, "good": 3, "easy": 4}
+from engine.db.dao import Concept
 
 
 @dataclass
-class Flashcard:
+class RecallQuestion:
     concept_id: str
-    front: str
-    back: str
+    question: str
+    choices: list[str]
+    correct: str
 
 
-def as_flashcard(concept: Concept) -> Flashcard:
-    """Build a flashcard from a recall concept, falling back to its name/theory."""
-    front = concept.card_front or f"Explain: {concept.name}"
-    back = concept.card_back or (concept.theory_md or "(no answer recorded)")
-    return Flashcard(concept_id=concept.id, front=front, back=back)
+def as_question(concept: Concept, rng: np.random.Generator) -> RecallQuestion:
+    """Build a shuffled multiple-choice item from a recall concept."""
+    answer = concept.card_answer or concept.name
+    options = [answer, *concept.card_distractors]
+    order = rng.permutation(len(options))
+    choices = [options[i] for i in order]
+    question = concept.card_question or f"Recall: {concept.name}"
+    return RecallQuestion(concept.id, question, choices, answer)

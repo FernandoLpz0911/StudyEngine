@@ -5,8 +5,9 @@ CREATE TABLE IF NOT EXISTS concept (
     category        TEXT,
     mode            TEXT NOT NULL,          -- 'generator' | 'recall'
     generator_json  TEXT,                   -- {kind, params} for generator concepts
-    card_front      TEXT,                   -- prompt for recall concepts
-    card_back       TEXT,                   -- answer for recall concepts
+    card_question   TEXT,                   -- recall prompt (objective, multiple-choice)
+    card_answer     TEXT,                   -- the one correct option
+    card_distractors TEXT,                  -- JSON array of wrong options
     theory_md       TEXT,
     exam_weight     INTEGER NOT NULL DEFAULT 1
 );
@@ -48,6 +49,7 @@ CREATE TABLE IF NOT EXISTS interaction (
     user_answer     TEXT,
     is_correct      INTEGER,
     grade           INTEGER,
+    elapsed_ms      INTEGER,
     shown_at        TEXT NOT NULL,
     answered_at     TEXT
 );

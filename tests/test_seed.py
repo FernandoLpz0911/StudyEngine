@@ -26,9 +26,12 @@ class TestSeed:
         for c in dao.get_concepts("diffeq"):
             assert c.generator and "kind" in c.generator
 
-    def test_recall_concepts_have_cards(self, db):
-        for c in dao.get_concepts("proofs"):
-            assert c.card_front and c.card_back
+    def test_recall_concepts_have_objective_cards(self, db):
+        for subject in ("proofs", "econ", "databases"):
+            for c in dao.get_concepts(subject):
+                assert c.card_question and c.card_answer
+                assert len(c.card_distractors) >= 2
+                assert c.card_answer not in c.card_distractors
 
     def test_prerequisites_reference_real_concepts(self, db):
         for subject in SUBJECTS:

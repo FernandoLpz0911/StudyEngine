@@ -1,80 +1,101 @@
 """Interactive study loop: python -m engine.cli.study --subject diffeq [--n 10].
 
-Drives the shared FSRS scheduler for one subject. Generator concepts serve an
-auto-graded problem with a worked solution; recall concepts serve a self-graded
-flashcard. Progress persists in the SQLite database between runs.
+Every item is objectively auto-graded — generator problems against their computed
+answer, recall concepts against the correct multiple-choice option. There is no
+self-rating: correctness plus response time alone derive the FSRS grade. Progress
+persists in the SQLite database between runs.
 """
 from __future__ import annotations
 
 import argparse
+import json
+import time
+from dataclasses import dataclass
+
+import numpy as np
 
 import engine.subjects  # noqa: F401  (registers the problem generators)
 from engine.db import dao
 from engine.db.seed import load_subject
 from engine.generation.base import generate, pick_ask, random_seed
-from engine.grading import grade_answer
-from engine.recall.cards import as_flashcard
+from engine.grading import derive_grade, grade_answer
+from engine.recall.cards import as_question
 from engine.scheduler import policy, store
 from engine.subjects import SUBJECTS
 from engine.subjects.diffeq.solve import solve as diffeq_solve
 
 LETTERS = ["a", "b", "c", "d"]
+GRADE_LABEL = {1: "Again", 2: "Hard", 3: "Good", 4: "Easy"}
+
+
+@dataclass
+class StudyItem:
+    kind: str
+    question: str
+    choices: list[str]
+    correct: str
+    explain: list[str]
+    seed: int
+    params: dict
+
+
+def _build_item(concept, rng: np.random.Generator) -> StudyItem:
+    if concept.mode == "generator" and concept.generator:
+        spec = concept.generator
+        ask = pick_ask(spec["params"]["ask"])
+        seed = random_seed()
+        problem = generate(spec["kind"], ask, spec["params"], seed)
+        correct = f"{problem.correct_answer:.3f}"
+        explain = diffeq_solve(spec["kind"], ask, problem.params).steps
+        return StudyItem(
+            f"{spec['kind']}:{ask}", problem.statement, problem.choices or [],
+            correct, explain, seed, problem.params,
+        )
+    question = as_question(concept, rng)
+    return StudyItem(
+        "recall", question.question, question.choices, question.correct,
+        [f"Correct answer: {question.correct}"], 0, {},
+    )
+
+
+def _is_correct(raw: str, item: StudyItem) -> bool:
+    raw = raw.strip().lower()
+    if raw in LETTERS and LETTERS.index(raw) < len(item.choices):
+        return item.choices[LETTERS.index(raw)] == item.correct
+    return grade_answer(raw, item.correct)
 
 
 def _prompt(text: str) -> str:
     try:
         return input(text)
     except EOFError:
-        return "quit"
+        return ""
 
 
-def _serve_generator(concept, session_id: int) -> None:
-    spec = concept.generator
-    ask = pick_ask(spec["params"]["ask"])
-    seed = random_seed()
-    problem = generate(spec["kind"], ask, spec["params"], seed)
-    correct = f"{problem.correct_answer:.3f}"
-
+def _run_item(concept, session_id: int, rng: np.random.Generator) -> None:
+    item = _build_item(concept, rng)
     item_id = dao.log_shown(
-        session_id, concept.id, concept.subject, f"{spec['kind']}:{ask}",
-        seed=seed, params_json=_json(problem.params), correct_answer=correct,
+        session_id, concept.id, concept.subject, item.kind,
+        seed=item.seed, params_json=json.dumps(item.params), correct_answer=item.correct,
     )
 
-    print(f"\n[{concept.name}]  {problem.statement}")
-    for letter, choice in zip(LETTERS, problem.choices or [], strict=False):
+    print(f"\n[{concept.name}]  {item.question}")
+    for letter, choice in zip(LETTERS, item.choices, strict=False):
         print(f"   {letter}) {choice}")
-    raw = _prompt("Your answer (letter or value, Enter to reveal): ").strip().lower()
 
-    chosen = problem.choices[LETTERS.index(raw)] if raw in LETTERS and problem.choices else raw
-    is_correct = grade_answer(chosen, correct) if chosen else False
+    start = time.monotonic()
+    raw = _prompt("Your answer (letter): ")
+    elapsed_ms = int((time.monotonic() - start) * 1000)
 
-    print("✓ Correct!" if is_correct else f"✗ Answer: {correct}")
-    for step in diffeq_solve(spec["kind"], ask, problem.params).steps:
+    is_correct = _is_correct(raw, item)
+    grade = derive_grade(is_correct, elapsed_ms)
+    verdict = "✓ Correct" if is_correct else f"✗ Incorrect — answer: {item.correct}"
+    print(f"{verdict}   [{GRADE_LABEL[grade]}, {elapsed_ms / 1000:.1f}s]")
+    for step in item.explain:
         print(f"   · {step}")
 
-    dao.log_answered(item_id, chosen or None, is_correct, grade=3 if is_correct else 1)
-    _reschedule(concept.id, 3 if is_correct else 1)
-
-
-def _serve_recall(concept, session_id: int) -> None:
-    card = as_flashcard(concept)
-    item_id = dao.log_shown(session_id, concept.id, concept.subject, "recall")
-    print(f"\n[{concept.name}]  {card.front}")
-    _prompt("(press Enter to reveal) ")
-    print(f"   → {card.back}")
-    raw = _prompt("Rate recall — (a)gain (h)ard (g)ood (e)asy: ").strip().lower()
-    grade = {"a": 1, "h": 2, "g": 3, "e": 4}.get(raw[:1], 3)
-    dao.log_answered(item_id, None, None, grade=grade)
-    _reschedule(concept.id, grade)
-
-
-def _reschedule(concept_id: str, grade: int) -> None:
-    store.save(store.apply_rating(store.get_or_create(concept_id), grade))
-
-
-def _json(params: dict) -> str:
-    import json
-    return json.dumps(params)
+    dao.log_answered(item_id, raw or None, is_correct, grade, elapsed_ms)
+    store.save(store.apply_rating(store.get_or_create(concept.id), grade))
 
 
 def run(subject: str, n: int) -> None:
@@ -84,6 +105,7 @@ def run(subject: str, n: int) -> None:
     load_subject(subject)
     session_id = dao.create_session(subject)
     info = SUBJECTS[subject]
+    rng = np.random.default_rng()
     print(f"\n=== {info.title} ===\n{info.blurb}")
 
     for i in range(n):
@@ -93,11 +115,7 @@ def run(subject: str, n: int) -> None:
             break
         tag = "NEW" if selection.reason == "new" else "review"
         print(f"\n--- item {i + 1}/{n}  ({tag}) ---", end="")
-        concept = selection.concept
-        if concept.mode == "generator" and concept.generator:
-            _serve_generator(concept, session_id)
-        else:
-            _serve_recall(concept, session_id)
+        _run_item(selection.concept, session_id, rng)
 
     dao.close_session(session_id)
     stats = dao.subject_stats(subject)

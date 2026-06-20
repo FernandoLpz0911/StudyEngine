@@ -7,8 +7,13 @@
       "category": "core",
       "exam_weight": 3,
       "card": {
-        "front": "What is the central Freakonomics claim about incentives, and the three types?",
-        "back": "People respond to incentives, often in unintended ways. Three types: economic (money), social (reputation/approval), and moral (conscience). Designing incentives badly invites gaming."
+        "question": "Freakonomics groups incentives into which three types?",
+        "answer": "Economic, social, and moral",
+        "distractors": [
+          "Fixed, variable, and marginal",
+          "Positive, negative, and neutral",
+          "Short-run, long-run, and permanent"
+        ]
       }
     },
     {
@@ -17,8 +22,13 @@
       "category": "core",
       "exam_weight": 3,
       "card": {
-        "front": "Define opportunity cost.",
-        "back": "The value of the next-best alternative given up when a choice is made. The true cost of anything is what you forgo to get it — not just the price paid."
+        "question": "The opportunity cost of a choice is:",
+        "answer": "The value of the next-best alternative forgone",
+        "distractors": [
+          "The money price you pay",
+          "The total value of all alternatives forgone",
+          "The sunk cost already incurred"
+        ]
       }
     },
     {
@@ -28,8 +38,13 @@
       "exam_weight": 3,
       "prerequisites": ["econ.opportunity_cost"],
       "card": {
-        "front": "What does 'thinking at the margin' mean?",
-        "back": "Decisions compare marginal benefit vs marginal cost of one more unit, not totals/averages. Act when MB > MC; stop where MB = MC."
+        "question": "Thinking at the margin means deciding based on:",
+        "answer": "The benefit and cost of one more unit",
+        "distractors": [
+          "Total benefit versus total cost",
+          "Average cost per unit",
+          "The sunk cost already spent"
+        ]
       }
     },
     {
@@ -38,8 +53,13 @@
       "category": "method",
       "exam_weight": 3,
       "card": {
-        "front": "Why doesn't correlation imply causation, and what can explain a spurious correlation?",
-        "back": "Two variables can move together due to reverse causation or a confounder (a third variable driving both). Establishing causation needs experiments or natural experiments / instruments."
+        "question": "A spurious correlation between A and B is best explained by:",
+        "answer": "A confounding variable that drives both",
+        "distractors": [
+          "A directly causing B",
+          "B directly causing A",
+          "A properly randomized experiment"
+        ]
       }
     },
     {
@@ -49,8 +69,13 @@
       "exam_weight": 2,
       "prerequisites": ["econ.incentives"],
       "card": {
-        "front": "Define moral hazard with an example.",
-        "back": "When a party takes more risk because it doesn't bear the full cost. Example: insured drivers driving less carefully; hidden actions after a contract."
+        "question": "Moral hazard arises from:",
+        "answer": "Hidden action after a deal, when a party doesn't bear the full risk",
+        "distractors": [
+          "Hidden information before a deal",
+          "Two parties having identical information",
+          "A binding price ceiling"
+        ]
       }
     },
     {
@@ -60,8 +85,13 @@
       "exam_weight": 2,
       "prerequisites": ["econ.incentives"],
       "card": {
-        "front": "Define adverse selection and how it differs from moral hazard.",
-        "back": "Adverse selection: hidden information before a deal (the riskiest buy insurance). Moral hazard: hidden action after the deal. Selection is about who participates; hazard is about behavior change."
+        "question": "Adverse selection differs from moral hazard in that it involves:",
+        "answer": "Hidden information before the deal (who chooses to participate)",
+        "distractors": [
+          "Hidden action after the deal",
+          "Perfectly symmetric information",
+          "Government price regulation"
+        ]
       }
     },
     {
@@ -71,8 +101,13 @@
       "exam_weight": 3,
       "prerequisites": ["econ.moral_hazard"],
       "card": {
-        "front": "What is information asymmetry, and how do experts exploit it?",
-        "back": "One party knows more than the other. Experts (agents, realtors) may exploit an information edge to serve their own incentives — e.g. recommending unnecessary services."
+        "question": "Information asymmetry lets an expert (e.g. an agent):",
+        "answer": "Exploit knowing more than the client to serve their own incentives",
+        "distractors": [
+          "Always act in the client's best interest",
+          "Eliminate moral hazard entirely",
+          "Guarantee an efficient market outcome"
+        ]
       }
     },
     {
@@ -82,8 +117,13 @@
       "exam_weight": 2,
       "prerequisites": ["econ.incentives"],
       "card": {
-        "front": "Give the Freakonomics-style logic of an unintended consequence.",
-        "back": "A well-meant rule changes incentives, producing a perverse outcome — e.g. a daycare fine for late pickup increases lateness by reframing it as a cheap price rather than a moral breach."
+        "question": "The daycare late-pickup fine increased lateness because it:",
+        "answer": "Reframed a moral breach as a small price worth paying",
+        "distractors": [
+          "Was priced too high for parents to afford",
+          "Eliminated the daycare's operating costs",
+          "Made parents arrive earlier on average"
+        ]
       }
     }
   ]

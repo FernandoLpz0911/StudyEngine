@@ -7,9 +7,14 @@ subject plugs in as one of two modes:
 - **Generator mode** — problems are produced algorithmically with closed-form
   answers and auto-graded, with a deterministic worked solution (no LLM). Used by
   **MATH 220 Differential Equations** (and ready for CS 480 normalization/SQL).
-- **Recall mode** — flashcards (prompt → answer) self-graded into the same FSRS
-  scheduler. Used by **MATH 250 Proofs**, **ECON 111 Freakonomics**, and the
-  conceptual **CS 480** topics (ACID, 2PL, recovery, …).
+- **Recall mode** — objective **multiple-choice** items (one correct option,
+  curated distractors), auto-graded. Used by **MATH 250 Proofs**, **ECON 111
+  Freakonomics**, and the conceptual **CS 480** topics (ACID, 2PL, recovery, …).
+
+**Grading is purely data-based — there is no self-rating anywhere.** Every item is
+either right or wrong from a computed key, and the four-level FSRS rating (Again /
+Hard / Good / Easy) is *derived* from correctness plus measured response time, never
+chosen by feel.
 
 ## Courses included
 
@@ -33,9 +38,11 @@ python -m engine.cli.study --subject databases
 python -m engine.cli.study --subject econ
 ```
 
-In generator mode, answer with a letter (`a`–`d`) or type the value; you get the
-worked solution either way. In recall mode, reveal the answer then rate yourself
-`a`/`h`/`g`/`e` (again/hard/good/easy) — the rating schedules the next review.
+Answer every item by picking a letter (`a`–`d`); generator problems also accept a
+typed numeric value. You get the worked solution (generator) or the correct option
+(recall) either way. The scheduler then derives the FSRS grade from whether you were
+right and how quickly — fast+correct → Easy, slow+correct → Hard, wrong → Again.
+Tune the thresholds with `GRADE_FAST_MS` / `GRADE_SLOW_MS`.
 
 ## How it picks what to study
 
@@ -47,7 +54,8 @@ highest-weighted concept whose prerequisites you've already seen.
 
 Edit the seed file for a subject under `data/subjects/<key>/concept_graph.seed.json`.
 A concept is either a generator (`"generator": {"kind": ..., "params": {...}}`)
-or a recall card (`"card": {"front": ..., "back": ...}`), with optional
+or a recall card
+(`"card": {"question": ..., "answer": ..., "distractors": [...]}`), with optional
 `prerequisites` and `exam_weight`. Re-running the CLI re-seeds concepts without
 wiping your review history.
 

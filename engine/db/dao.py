@@ -18,8 +18,9 @@ class Concept:
     category: str | None
     mode: str  # "generator" | "recall"
     generator: dict | None = None
-    card_front: str | None = None
-    card_back: str | None = None
+    card_question: str | None = None
+    card_answer: str | None = None
+    card_distractors: list[str] = field(default_factory=list)
     theory_md: str | None = None
     exam_weight: int = 1
     prerequisites: list[str] = field(default_factory=list)
@@ -33,8 +34,9 @@ def _row_to_concept(row, prereqs: list[str]) -> Concept:
         category=row["category"],
         mode=row["mode"],
         generator=json.loads(row["generator_json"]) if row["generator_json"] else None,
-        card_front=row["card_front"],
-        card_back=row["card_back"],
+        card_question=row["card_question"],
+        card_answer=row["card_answer"],
+        card_distractors=json.loads(row["card_distractors"]) if row["card_distractors"] else [],
         theory_md=row["theory_md"],
         exam_weight=row["exam_weight"],
         prerequisites=prereqs,
@@ -115,20 +117,26 @@ def log_shown(
 
 
 def log_answered(
-    item_id: int, user_answer: str | None, is_correct: bool | None, grade: int
+    item_id: int,
+    user_answer: str | None,
+    is_correct: bool | None,
+    grade: int,
+    elapsed_ms: int = 0,
 ) -> None:
     now = datetime.now(UTC).isoformat()
     with get_connection() as conn:
         conn.execute(
             """
             UPDATE interaction
-            SET user_answer = ?, is_correct = ?, grade = ?, answered_at = ?
+            SET user_answer = ?, is_correct = ?, grade = ?,
+                elapsed_ms = ?, answered_at = ?
             WHERE id = ?
             """,
             (
                 user_answer,
                 int(is_correct) if is_correct is not None else None,
                 grade,
+                elapsed_ms,
                 now,
                 item_id,
             ),

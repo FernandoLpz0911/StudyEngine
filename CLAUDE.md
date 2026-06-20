@@ -10,7 +10,12 @@ courses, each plugged in as a **subject module** in one of two modes:
 
 - **generator** — algorithmic problems with closed-form answers, auto-graded, with
   a deterministic worked solution. No LLM in the loop.
-- **recall** — flashcards (front/back) self-graded into the same FSRS scheduler.
+- **recall** — objective multiple-choice items (question + correct answer +
+  distractors), auto-graded against the key.
+
+**Grading is data-based only — no self-rating.** Correctness comes from a computed
+key; the FSRS grade is derived from correctness + response time
+(`engine/grading.derive_grade`).
 
 Sibling project `../LearningModel` is the single-subject ancestor (SOA Exam P);
 this generalizes its architecture to many subjects.
@@ -61,8 +66,9 @@ tests/                  answer-key correctness, FSRS, policy, seed, recall
 
 ## Adding a subject
 
-- recall: add `data/subjects/<key>/concept_graph.seed.json` with `card` nodes and
-  register it in `engine/subjects/__init__.py` SUBJECTS.
+- recall: add `data/subjects/<key>/concept_graph.seed.json` with `card` nodes
+  (`question`, `answer`, `distractors`) and register it in
+  `engine/subjects/__init__.py` SUBJECTS.
 - generator: also add `engine/subjects/<key>/generators.py` (`@register("kind")`)
   and `solve.py`, import it in `engine/subjects/__init__.py`, and point concepts at
   the kinds. Mirror `engine/subjects/diffeq/`.

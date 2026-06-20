@@ -7,8 +7,13 @@
       "category": "logic",
       "exam_weight": 3,
       "card": {
-        "front": "For P ⇒ Q, write the converse, inverse, and contrapositive, and say which is logically equivalent.",
-        "back": "Converse: Q ⇒ P. Inverse: ¬P ⇒ ¬Q. Contrapositive: ¬Q ⇒ ¬P. The contrapositive is logically equivalent to P ⇒ Q; the converse and inverse are not (they are equivalent to each other)."
+        "question": "Which statement is logically equivalent to P ⇒ Q?",
+        "answer": "¬Q ⇒ ¬P (the contrapositive)",
+        "distractors": [
+          "Q ⇒ P (the converse)",
+          "¬P ⇒ ¬Q (the inverse)",
+          "P ∧ ¬Q"
+        ]
       }
     },
     {
@@ -18,8 +23,13 @@
       "exam_weight": 3,
       "prerequisites": ["proofs.implication"],
       "card": {
-        "front": "Negate: ∀x ∃y, P(x,y).",
-        "back": "∃x ∀y, ¬P(x,y). Negation flips each quantifier (∀↔∃) and negates the predicate."
+        "question": "The negation of  ∀x ∃y, P(x,y)  is:",
+        "answer": "∃x ∀y, ¬P(x,y)",
+        "distractors": [
+          "∀x ∃y, ¬P(x,y)",
+          "∃x ∃y, ¬P(x,y)",
+          "∀x ∀y, ¬P(x,y)"
+        ]
       }
     },
     {
@@ -29,8 +39,13 @@
       "exam_weight": 3,
       "prerequisites": ["proofs.implication"],
       "card": {
-        "front": "Outline a direct proof that 'if n is even then n² is even.'",
-        "back": "Assume n even: n = 2k for some integer k. Then n² = 4k² = 2(2k²), which is 2×(integer), hence even. ∎"
+        "question": "In a direct proof that 'n even ⇒ n² even', you start by writing:",
+        "answer": "n = 2k for some integer k",
+        "distractors": [
+          "Assume n² is odd",
+          "Suppose n is odd, so n = 2k + 1",
+          "Assume √2 = a/b"
+        ]
       }
     },
     {
@@ -40,8 +55,13 @@
       "exam_weight": 3,
       "prerequisites": ["proofs.implication"],
       "card": {
-        "front": "When is contrapositive proof useful, and how do you prove 'if n² is even then n is even' with it?",
-        "back": "Useful when the contrapositive's hypothesis is easier to use. Prove ¬Q ⇒ ¬P: assume n is odd (n = 2k+1); then n² = 4k²+4k+1 = 2(2k²+2k)+1 is odd. So n² even ⇒ n even. ∎"
+        "question": "To prove 'n² even ⇒ n even' by contrapositive, you instead prove:",
+        "answer": "n odd ⇒ n² odd",
+        "distractors": [
+          "n even ⇒ n² even",
+          "n² odd ⇒ n odd",
+          "Assume n² even and n odd, then derive a contradiction"
+        ]
       }
     },
     {
@@ -51,8 +71,13 @@
       "exam_weight": 3,
       "prerequisites": ["proofs.direct"],
       "card": {
-        "front": "Sketch the contradiction proof that √2 is irrational.",
-        "back": "Assume √2 = a/b in lowest terms. Then 2b² = a², so a² is even ⇒ a even ⇒ a = 2c ⇒ 2b² = 4c² ⇒ b² even ⇒ b even. But then a,b share factor 2, contradicting lowest terms. ∎"
+        "question": "A proof by contradiction that √2 is irrational begins by assuming:",
+        "answer": "√2 = a/b in lowest terms",
+        "distractors": [
+          "√2 is irrational",
+          "a and b are both even",
+          "√2 = a/b where a and b share a common factor"
+        ]
       }
     },
     {
@@ -62,19 +87,29 @@
       "exam_weight": 3,
       "prerequisites": ["proofs.direct"],
       "card": {
-        "front": "State the two steps of induction and prove 1+2+…+n = n(n+1)/2.",
-        "back": "Base: n=1 gives 1 = 1·2/2 ✓. Step: assume true for n; then 1+…+n+(n+1) = n(n+1)/2 + (n+1) = (n+1)(n+2)/2. ✓ So it holds for all n ≥ 1. ∎"
+        "question": "The inductive step of a proof by induction establishes:",
+        "answer": "If the statement holds for n, then it holds for n + 1",
+        "distractors": [
+          "The statement holds for the base case n = 1",
+          "The statement holds for all n at once",
+          "The statement fails for some n"
+        ]
       }
     },
     {
       "id": "proofs.sets",
-      "name": "Set Operations & Proofs",
+      "name": "Set Equality & Subset Proofs",
       "category": "sets",
       "exam_weight": 2,
       "prerequisites": ["proofs.quantifiers"],
       "card": {
-        "front": "How do you prove two sets A = B, and prove A ⊆ B?",
-        "back": "A = B by double inclusion: show A ⊆ B and B ⊆ A. To show A ⊆ B, take an arbitrary x ∈ A and derive x ∈ B."
+        "question": "The standard way to prove two sets A = B is to:",
+        "answer": "Show A ⊆ B and B ⊆ A (double inclusion)",
+        "distractors": [
+          "Show A and B have the same number of elements",
+          "Exhibit a bijection between A and B",
+          "Show A ∩ B = A"
+        ]
       }
     },
     {
@@ -84,8 +119,13 @@
       "exam_weight": 3,
       "prerequisites": ["proofs.quantifiers"],
       "card": {
-        "front": "Define injective, surjective, and bijective, with the proof obligation for each.",
-        "back": "Injective: f(a)=f(b) ⇒ a=b (prove by assuming f(a)=f(b)). Surjective: ∀y ∃x, f(x)=y (exhibit a preimage). Bijective: both — gives an inverse function."
+        "question": "To prove a function f is injective, you assume:",
+        "answer": "f(a) = f(b) and derive a = b",
+        "distractors": [
+          "For every y there exists x with f(x) = y",
+          "a = b and derive f(a) = f(b)",
+          "f has an inverse, so it must be injective"
+        ]
       }
     }
   ]
