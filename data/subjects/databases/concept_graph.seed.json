@@ -178,6 +178,22 @@
       "exam_weight": 3,
       "prerequisites": ["db.bcnf"],
       "generator": { "kind": "bcnf_check", "params": { "ask": ["violation_count"] } }
+    },
+    {
+      "id": "db.prime_attributes_calc",
+      "name": "Count Prime Attributes",
+      "category": "design",
+      "exam_weight": 2,
+      "prerequisites": ["db.functional_dependencies"],
+      "generator": { "kind": "prime_attributes", "params": { "ask": ["count"] } }
+    },
+    {
+      "id": "db.superkey_count_calc",
+      "name": "Identify Superkeys",
+      "category": "design",
+      "exam_weight": 2,
+      "prerequisites": ["db.keys"],
+      "generator": { "kind": "superkey_count", "params": { "ask": ["count"] } }
     }
   ]
 }

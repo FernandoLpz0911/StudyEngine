@@ -18,6 +18,8 @@ def _braced(attrs: frozenset[str]) -> str:
 @register_solver("fd_closure")
 @register_solver("candidate_keys")
 @register_solver("bcnf_check")
+@register_solver("prime_attributes")
+@register_solver("superkey_count")
 def worked_steps(kind: str, ask: str, params: dict) -> list[str]:
     fds = _parse_fds(params)
 
@@ -38,6 +40,24 @@ def worked_steps(kind: str, ask: str, params: dict) -> list[str]:
             "A candidate key is a minimal attribute set whose closure is all of R.",
             f"Minimal keys: {listed}.",
             f"So R has {len(keys)} candidate key(s).",
+        ]
+
+    if kind == "prime_attributes":
+        keys = fd.candidate_keys(ALL_ATTRS, fds)
+        prime = set().union(*keys) if keys else set()
+        return [
+            "A prime attribute belongs to at least one candidate key.",
+            f"Candidate keys: {', '.join(_braced(k) for k in keys) or 'none'}.",
+            f"Prime attributes: {_braced(frozenset(prime))} — {len(prime)} of them.",
+        ]
+
+    if kind == "superkey_count":
+        sets = [frozenset(s) for s in params["sets"]]
+        supers = [s for s in sets if fd.is_superkey(s, ALL_ATTRS, fds)]
+        return [
+            "A set is a superkey when its closure is all of R(A,B,C,D).",
+            f"Superkeys among them: {', '.join(_braced(s) for s in supers) or 'none'}.",
+            f"Count = {len(supers)}.",
         ]
 
     violations = fd.bcnf_violations(ALL_ATTRS, fds)

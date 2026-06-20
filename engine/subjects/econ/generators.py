@@ -9,7 +9,10 @@ import numpy as np
 
 from engine.generation.base import Problem, make_int_choices, make_mc_choices, register
 
-FAMILIES = ["opportunity_cost", "marginal_net", "expected_value"]
+FAMILIES = [
+    "opportunity_cost", "marginal_net", "expected_value",
+    "percent_change", "roi", "elasticity",
+]
 
 
 @register("econ_decision")
@@ -45,6 +48,53 @@ def gen_econ_decision(ask: str, params: dict, seed: int) -> Problem:
         choices = make_int_choices(answer, rng, lo=0, hi=mb + mc, prefer=prefer)
         return Problem("econ_decision", family, statement, float(answer), choices,
                        params={"mb": mb, "mc": mc}, seed=seed)
+
+    if family == "percent_change":
+        old = int(rng.integers(20, 100))
+        new = old + int(rng.choice([-1, 1])) * int(rng.integers(5, 40))
+        answer = round((new - old) / old * 100, 2)
+        statement = (
+            f"A quantity changes from {old} to {new}. What is the percentage "
+            f"change? Round to 2 decimals."
+        )
+        wrongs = [
+            round((new - old) / new * 100, 2),
+            float(new - old),
+            round((old - new) / old * 100, 2),
+        ]
+        return Problem("econ_decision", family, statement, round(answer, 2),
+                       make_mc_choices(answer, wrongs, rng),
+                       params={"old": old, "new": new}, seed=seed)
+
+    if family == "roi":
+        cost = int(rng.integers(20, 100))
+        gain = int(rng.integers(10, 160))
+        answer = round((gain - cost) / cost * 100, 2)
+        statement = (
+            f"An investment costs ${cost} and returns ${gain}. What is the "
+            f"return on investment (ROI) as a percentage? Round to 2 decimals."
+        )
+        wrongs = [
+            round(gain / cost * 100, 2),
+            round((gain - cost) / gain * 100, 2),
+            float(gain - cost),
+        ]
+        return Problem("econ_decision", family, statement, round(answer, 2),
+                       make_mc_choices(answer, wrongs, rng),
+                       params={"cost": cost, "gain": gain}, seed=seed)
+
+    if family == "elasticity":
+        dq = int(rng.choice([-1, 1])) * int(rng.integers(5, 30))
+        dp = int(rng.choice([-1, 1])) * int(rng.integers(5, 30))
+        answer = round(abs(dq / dp), 2)
+        statement = (
+            f"Quantity demanded changes {dq}% when price changes {dp}%. What is "
+            f"the (magnitude of) price elasticity of demand? Round to 2 decimals."
+        )
+        wrongs = [round(abs(dp / dq), 2), round(dq / dp, 2), float(abs(dq))]
+        return Problem("econ_decision", family, statement, round(answer, 2),
+                       make_mc_choices(answer, wrongs, rng),
+                       params={"dq": dq, "dp": dp}, seed=seed)
 
     pct = int(rng.integers(10, 90))
     win = int(rng.integers(2, 20)) * 10

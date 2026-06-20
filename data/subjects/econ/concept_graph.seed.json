@@ -134,7 +134,12 @@
       "prerequisites": ["econ.marginal"],
       "generator": {
         "kind": "econ_decision",
-        "params": { "ask": ["opportunity_cost", "marginal_net", "expected_value"] }
+        "params": {
+          "ask": [
+            "opportunity_cost", "marginal_net", "expected_value",
+            "percent_change", "roi", "elasticity"
+          ]
+        }
       }
     }
   ]

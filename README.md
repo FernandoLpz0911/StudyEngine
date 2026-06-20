@@ -22,10 +22,10 @@ chosen by feel.
 
 | Subject key | Course | Mode | Status |
 |---|---|---|---|
-| `diffeq` | MATH 220 Differential Equations | generator | 4 generators (separable, 1st-order linear, 2nd-order roots, Laplace) |
-| `databases` | CS 480 Database Systems | generator + recall | FD generators (closure size, candidate-key count, BCNF violations) + concept cards |
-| `proofs` | MATH 250 Intro to Advanced Maths | generator + recall | set-counting generators (inclusion–exclusion, power sets) + technique cards |
-| `econ` | ECON 111 Freakonomics | generator + recall | decision generators (opportunity cost, marginal, expected value) + concept cards |
+| `diffeq` | MATH 220 Differential Equations | generator | 8 generators: separable, 1st-order linear, 2nd-order roots, Laplace + inverse, Newton cooling, integrating factor, Euler's method |
+| `databases` | CS 480 Database Systems | generator + recall | FD generators (closure, candidate keys, BCNF, prime attributes, superkeys) + concept cards |
+| `proofs` | MATH 250 Intro to Advanced Maths | generator + recall | counting/logic generators (inclusion–exclusion 2- & 3-set, power sets, Cartesian, function counts, truth tables) + technique cards |
+| `econ` | ECON 111 Freakonomics | generator + recall | decision generators (opportunity cost, margin, expected value, % change, ROI, elasticity) + concept cards |
 
 ## Quick start
 

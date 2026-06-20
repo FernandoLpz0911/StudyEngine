@@ -134,7 +134,26 @@
       "category": "sets",
       "exam_weight": 2,
       "prerequisites": ["proofs.sets"],
-      "generator": { "kind": "set_counting", "params": { "ask": ["union2", "powerset"] } }
+      "generator": {
+        "kind": "set_counting",
+        "params": { "ask": ["union2", "powerset", "cartesian", "union3"] }
+      }
+    },
+    {
+      "id": "proofs.truth_table",
+      "name": "Truth Tables",
+      "category": "logic",
+      "exam_weight": 2,
+      "prerequisites": ["proofs.implication"],
+      "generator": { "kind": "truth_table", "params": { "ask": ["true_rows"] } }
+    },
+    {
+      "id": "proofs.function_count",
+      "name": "Counting Functions",
+      "category": "functions",
+      "exam_weight": 2,
+      "prerequisites": ["proofs.functions"],
+      "generator": { "kind": "function_count", "params": { "ask": ["count"] } }
     }
   ]
 }

@@ -35,6 +35,42 @@
       "prerequisites": ["diffeq.first_order_linear"],
       "generator": { "kind": "laplace_transform", "params": { "ask": ["exp", "cos", "power"] } },
       "theory_md": "L{e^{at}} = 1/(s−a), L{cos wt} = s/(s²+w²), L{t^n} = n!/s^{n+1}. Laplace transforms turn linear ODEs into algebra in s, then invert."
+    },
+    {
+      "id": "diffeq.newton_cooling",
+      "name": "Newton's Law of Cooling",
+      "category": "first_order",
+      "exam_weight": 2,
+      "prerequisites": ["diffeq.first_order_linear"],
+      "generator": { "kind": "newton_cooling", "params": { "ask": ["temperature"] } },
+      "theory_md": "T(t) = Ts + (T0 − Ts)·e^{−kt}: an applied first-order linear ODE; temperature decays exponentially toward the ambient Ts."
+    },
+    {
+      "id": "diffeq.integrating_factor",
+      "name": "Integrating Factor",
+      "category": "first_order",
+      "exam_weight": 2,
+      "prerequisites": ["diffeq.first_order_linear"],
+      "generator": { "kind": "integrating_factor", "params": { "ask": ["factor_value"] } },
+      "theory_md": "For y' + a·y = b, multiply by μ(t) = e^{∫a dt} so the left side becomes (μy)'. With constant a, μ(t) = e^{at}."
+    },
+    {
+      "id": "diffeq.euler_method",
+      "name": "Euler's Method (Numerical)",
+      "category": "numerical",
+      "exam_weight": 2,
+      "prerequisites": ["diffeq.separable"],
+      "generator": { "kind": "euler_method", "params": { "ask": ["two_step"] } },
+      "theory_md": "Euler steps: y_{n+1} = y_n + h·f(x_n, y_n). A first-order numerical approximation to the solution curve."
+    },
+    {
+      "id": "diffeq.laplace_inverse",
+      "name": "Inverse Laplace Transforms",
+      "category": "transforms",
+      "exam_weight": 3,
+      "prerequisites": ["diffeq.laplace"],
+      "generator": { "kind": "laplace_inverse", "params": { "ask": ["exp", "sin", "cos"] } },
+      "theory_md": "Invert F(s) back to f(t): 1/(s−a)→e^{at}, 1/(s²+w²)→sin(wt)/w, s/(s²+w²)→cos(wt)."
     }
   ]
 }

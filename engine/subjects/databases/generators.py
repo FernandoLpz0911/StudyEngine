@@ -6,6 +6,8 @@ then asks a question whose numeric answer is computed by engine.subjects.databas
 """
 from __future__ import annotations
 
+from itertools import combinations
+
 import numpy as np
 
 from engine.generation.base import Problem, make_int_choices, register
@@ -91,4 +93,46 @@ def gen_bcnf_check(ask: str, params: dict, seed: int) -> Problem:
         "bcnf_check", "violation_count", statement, float(answer),
         make_int_choices(answer, rng, lo=0, hi=len(fds)),
         params={"fds": _fds_param(fds)}, seed=seed,
+    )
+
+
+@register("prime_attributes")
+def gen_prime_attributes(ask: str, params: dict, seed: int) -> Problem:
+    """Count prime attributes — those appearing in at least one candidate key."""
+    rng = np.random.default_rng(seed)
+    all_attrs, fds = _random_schema(rng)
+    keys = fd.candidate_keys(all_attrs, fds)
+    prime = set().union(*keys) if keys else set()
+    answer = len(prime)
+    statement = (
+        f"Relation R(A, B, C, D) with functional dependencies: {fd.render_fds(fds)}. "
+        f"How many prime attributes does R have (attributes that appear in at "
+        f"least one candidate key)?"
+    )
+    return Problem(
+        "prime_attributes", "count", statement, float(answer),
+        make_int_choices(answer, rng, lo=0, hi=4, prefer=(4, 4 - answer)),
+        params={"fds": _fds_param(fds)}, seed=seed,
+    )
+
+
+@register("superkey_count")
+def gen_superkey_count(ask: str, params: dict, seed: int) -> Problem:
+    """Given four attribute sets, count how many are superkeys."""
+    rng = np.random.default_rng(seed)
+    all_attrs, fds = _random_schema(rng)
+    subsets = [frozenset(c) for size in (1, 2) for c in combinations(ATTRS, size)]
+    chosen_idx = rng.choice(len(subsets), size=4, replace=False)
+    chosen = [subsets[i] for i in chosen_idx]
+    answer = sum(fd.is_superkey(s, all_attrs, fds) for s in chosen)
+
+    listed = ", ".join("{" + "".join(sorted(s)) + "}" for s in chosen)
+    statement = (
+        f"Relation R(A, B, C, D) with functional dependencies: {fd.render_fds(fds)}. "
+        f"Of these attribute sets — {listed} — how many are superkeys?"
+    )
+    return Problem(
+        "superkey_count", "count", statement, float(answer),
+        make_int_choices(answer, rng, lo=0, hi=4),
+        params={"fds": _fds_param(fds), "sets": [sorted(s) for s in chosen]}, seed=seed,
     )

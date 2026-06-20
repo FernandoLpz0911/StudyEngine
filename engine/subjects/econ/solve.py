@@ -19,6 +19,25 @@ def worked_steps(kind: str, ask: str, params: dict) -> list[str]:
             "Decide at the margin: net benefit = marginal benefit − marginal cost.",
             f"= ${mb} − ${mc} = ${mb - mc}.",
         ]
+    if "old" in params:
+        old, new = params["old"], params["new"]
+        return [
+            "Percentage change = (new − old) / old × 100.",
+            f"= ({new} − {old}) / {old} × 100 = {round((new - old) / old * 100, 2)}%.",
+        ]
+    if "cost" in params:
+        cost, gain = params["cost"], params["gain"]
+        return [
+            "ROI = (gain − cost) / cost × 100.",
+            f"= ({gain} − {cost}) / {cost} × 100 = {round((gain - cost) / cost * 100, 2)}%.",
+        ]
+    if "dq" in params:
+        dq, dp = params["dq"], params["dp"]
+        return [
+            "Price elasticity (magnitude) = |%ΔQ / %ΔP|.",
+            f"= |{dq} / {dp}| = {round(abs(dq / dp), 2)}.",
+        ]
+
     pct, win = params["pct"], params["win"]
     ev = round(pct / 100 * win, 2)
     return [

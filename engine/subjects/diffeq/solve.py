@@ -22,21 +22,29 @@ class Solved:
 @register_solver("first_order_linear")
 @register_solver("second_order_homog")
 @register_solver("laplace_transform")
+@register_solver("newton_cooling")
+@register_solver("integrating_factor")
+@register_solver("euler_method")
+@register_solver("laplace_inverse")
 def worked_steps(kind: str, ask: str, params: dict) -> list[str]:
     """Adapter so the central solver registry can reach the diffeq solutions."""
     return solve(kind, ask, params).steps
 
 
 def solve(kind: str, ask: str, params: dict) -> Solved:
-    if kind == "separable_growth":
-        return _separable_growth(params)
-    if kind == "first_order_linear":
-        return _first_order_linear(ask, params)
-    if kind == "second_order_homog":
-        return _second_order_homog(ask, params)
-    if kind == "laplace_transform":
-        return _laplace_transform(ask, params)
-    raise ValueError(f"No solver for kind '{kind}'")
+    dispatch = {
+        "separable_growth": lambda: _separable_growth(params),
+        "first_order_linear": lambda: _first_order_linear(ask, params),
+        "second_order_homog": lambda: _second_order_homog(ask, params),
+        "laplace_transform": lambda: _laplace_transform(ask, params),
+        "newton_cooling": lambda: _newton_cooling(params),
+        "integrating_factor": lambda: _integrating_factor(params),
+        "euler_method": lambda: _euler_method(params),
+        "laplace_inverse": lambda: _laplace_inverse(params),
+    }
+    if kind not in dispatch:
+        raise ValueError(f"No solver for kind '{kind}'")
+    return dispatch[kind]()
 
 
 def _separable_growth(p: dict) -> Solved:
@@ -106,5 +114,66 @@ def _laplace_transform(ask: str, p: dict) -> Solved:
         steps = [
             f"L{{t^{n}}} = {n}!/s^{n + 1} = {math.factorial(n)}/s^{n + 1}.",
             f"Substitute s = {s0}: {math.factorial(n)}/{s0}^{n + 1} = {round(answer, 3)}.",
+        ]
+    return Solved(steps, round(answer, 3))
+
+
+def _newton_cooling(p: dict) -> Solved:
+    ts, t0, k, t1 = p["ts"], p["t0"], p["k"], p["t1"]
+    answer = ts + (t0 - ts) * math.exp(-k * t1)
+    steps = [
+        "Newton's law of cooling: T(t) = Ts + (T0 − Ts)·e^(−kt).",
+        f"Here Ts = {ts}, T0 = {t0}, k = {k}.",
+        f"T({t1}) = {ts} + ({t0} − {ts})·e^(−{k}·{t1}) = {round(answer, 3)}.",
+    ]
+    return Solved(steps, round(answer, 3))
+
+
+def _integrating_factor(p: dict) -> Solved:
+    a, t0 = p["a"], p["t0"]
+    answer = math.exp(a * t0)
+    steps = [
+        f"For y' + {a}·y = b, the integrating factor is μ(t) = e^(∫{a} dt) = e^({a}t).",
+        f"Evaluate at t = {t0}: e^({a}·{t0}) = {round(answer, 3)}.",
+    ]
+    return Solved(steps, round(answer, 3))
+
+
+def _euler_method(p: dict) -> Solved:
+    a, b, y0, h = p["a"], p["b"], p["y0"], p["h"]
+    y1 = y0 + h * (a * 0.0 + b * y0)
+    y2 = y1 + h * (a * h + b * y1)
+    steps = [
+        f"Euler: y_{{n+1}} = y_n + h·f(x_n, y_n), with f(x,y) = {a}x + {b}y, h = {h}.",
+        f"Step 1 (x=0): y1 = {y0} + {h}·({a}·0 + {b}·{y0}) = {round(y1, 3)}.",
+        f"Step 2 (x={h}): y2 = {round(y1, 3)} + {h}·({a}·{h} + {b}·{round(y1, 3)}) "
+        f"= {round(y2, 3)}.",
+    ]
+    return Solved(steps, round(y2, 3))
+
+
+def _laplace_inverse(p: dict) -> Solved:
+    t0 = p["t0"]
+    family = p.get("family")
+    if family == "exp":
+        a = p["a"]
+        answer = math.exp(a * t0)
+        steps = [
+            f"1/(s − {a}) is the transform of e^({a}t).",
+            f"Evaluate at t = {t0}: e^({a}·{t0}) = {round(answer, 3)}.",
+        ]
+    elif family == "sin":
+        w = p["w"]
+        answer = math.sin(w * t0) / w
+        steps = [
+            f"1/(s² + {w**2}) inverts to sin({w}t)/{w}.",
+            f"Evaluate at t = {t0}: sin({w}·{t0})/{w} = {round(answer, 3)} (radians).",
+        ]
+    else:
+        w = p["w"]
+        answer = math.cos(w * t0)
+        steps = [
+            f"s/(s² + {w**2}) inverts to cos({w}t).",
+            f"Evaluate at t = {t0}: cos({w}·{t0}) = {round(answer, 3)} (radians).",
         ]
     return Solved(steps, round(answer, 3))
