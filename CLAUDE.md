@@ -1,0 +1,68 @@
+# CLAUDE.md — Project Context for Claude Code
+
+> Read at the start of every session. Keep current.
+
+## What this is
+
+A **multi-subject adaptive study engine**. One shared core (FSRS spaced repetition
++ a prerequisite concept graph + SQLite persistence) serves several university
+courses, each plugged in as a **subject module** in one of two modes:
+
+- **generator** — algorithmic problems with closed-form answers, auto-graded, with
+  a deterministic worked solution. No LLM in the loop.
+- **recall** — flashcards (front/back) self-graded into the same FSRS scheduler.
+
+Sibling project `../LearningModel` is the single-subject ancestor (SOA Exam P);
+this generalizes its architecture to many subjects.
+
+## Subjects
+
+| key | course | mode |
+|---|---|---|
+| `diffeq` | MATH 220 Differential Equations | generator (built out) |
+| `databases` | CS 480 Database Systems | recall (+ future generators for FD/SQL) |
+| `proofs` | MATH 250 Intro to Advanced Maths | recall |
+| `econ` | ECON 111 Freakonomics | recall |
+
+## Hard constraints
+
+- **Local-first.** Pure Python + SQLite; no cloud services, no LLM in the core.
+- **Answers are computed, never improvised.** A generator and its worked solution
+  (`engine/subjects/<key>/solve.py`) share one closed-form computation, so the
+  shown solution cannot diverge from the graded answer.
+- **Reproducibility.** Generators take an explicit `seed`; the seed and params are
+  logged with every interaction.
+
+## Layout
+
+```
+engine/
+  config.py             runtime config (env-overridable)
+  db/                   connection (closing ctx-manager), schema.sql, dao, seed
+  scheduler/            fsrs_core (pure), store (py-fsrs), policy (next concept)
+  generation/base.py    Problem + @register registry + make_mc_choices
+  subjects/             registry (SUBJECTS) + per-subject generators/solve
+    diffeq/             generators.py, solve.py   ← template for generator subjects
+  recall/cards.py       flashcard model for recall subjects
+  grading.py            numeric/string answer grading
+  cli/study.py          interactive study loop (python -m engine.cli.study)
+data/subjects/<key>/concept_graph.seed.json   concept graph + content per subject
+tests/                  answer-key correctness, FSRS, policy, seed, recall
+```
+
+## Conventions
+
+- Type hints everywhere; `ruff` (line-length 100) clean; `pytest` green.
+- **Tests first for math:** any new generator needs an answer-key test that
+  independently recomputes the answer across many seeds (see `tests/test_diffeq.py`).
+- Pure functions for the math (FSRS curve, generator answers) so they're unit-testable.
+- No section-divider comments; prefer self-documenting names. Keep comments for the
+  *why* (derivations, non-obvious choices).
+
+## Adding a subject
+
+- recall: add `data/subjects/<key>/concept_graph.seed.json` with `card` nodes and
+  register it in `engine/subjects/__init__.py` SUBJECTS.
+- generator: also add `engine/subjects/<key>/generators.py` (`@register("kind")`)
+  and `solve.py`, import it in `engine/subjects/__init__.py`, and point concepts at
+  the kinds. Mirror `engine/subjects/diffeq/`.

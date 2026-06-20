@@ -1,0 +1,92 @@
+{
+  "subject": "proofs",
+  "concepts": [
+    {
+      "id": "proofs.implication",
+      "name": "Implication, Converse, Contrapositive",
+      "category": "logic",
+      "exam_weight": 3,
+      "card": {
+        "front": "For P ⇒ Q, write the converse, inverse, and contrapositive, and say which is logically equivalent.",
+        "back": "Converse: Q ⇒ P. Inverse: ¬P ⇒ ¬Q. Contrapositive: ¬Q ⇒ ¬P. The contrapositive is logically equivalent to P ⇒ Q; the converse and inverse are not (they are equivalent to each other)."
+      }
+    },
+    {
+      "id": "proofs.quantifiers",
+      "name": "Quantifiers & Negation",
+      "category": "logic",
+      "exam_weight": 3,
+      "prerequisites": ["proofs.implication"],
+      "card": {
+        "front": "Negate: ∀x ∃y, P(x,y).",
+        "back": "∃x ∀y, ¬P(x,y). Negation flips each quantifier (∀↔∃) and negates the predicate."
+      }
+    },
+    {
+      "id": "proofs.direct",
+      "name": "Direct Proof",
+      "category": "techniques",
+      "exam_weight": 3,
+      "prerequisites": ["proofs.implication"],
+      "card": {
+        "front": "Outline a direct proof that 'if n is even then n² is even.'",
+        "back": "Assume n even: n = 2k for some integer k. Then n² = 4k² = 2(2k²), which is 2×(integer), hence even. ∎"
+      }
+    },
+    {
+      "id": "proofs.contrapositive",
+      "name": "Proof by Contrapositive",
+      "category": "techniques",
+      "exam_weight": 3,
+      "prerequisites": ["proofs.implication"],
+      "card": {
+        "front": "When is contrapositive proof useful, and how do you prove 'if n² is even then n is even' with it?",
+        "back": "Useful when the contrapositive's hypothesis is easier to use. Prove ¬Q ⇒ ¬P: assume n is odd (n = 2k+1); then n² = 4k²+4k+1 = 2(2k²+2k)+1 is odd. So n² even ⇒ n even. ∎"
+      }
+    },
+    {
+      "id": "proofs.contradiction",
+      "name": "Proof by Contradiction",
+      "category": "techniques",
+      "exam_weight": 3,
+      "prerequisites": ["proofs.direct"],
+      "card": {
+        "front": "Sketch the contradiction proof that √2 is irrational.",
+        "back": "Assume √2 = a/b in lowest terms. Then 2b² = a², so a² is even ⇒ a even ⇒ a = 2c ⇒ 2b² = 4c² ⇒ b² even ⇒ b even. But then a,b share factor 2, contradicting lowest terms. ∎"
+      }
+    },
+    {
+      "id": "proofs.induction",
+      "name": "Mathematical Induction",
+      "category": "techniques",
+      "exam_weight": 3,
+      "prerequisites": ["proofs.direct"],
+      "card": {
+        "front": "State the two steps of induction and prove 1+2+…+n = n(n+1)/2.",
+        "back": "Base: n=1 gives 1 = 1·2/2 ✓. Step: assume true for n; then 1+…+n+(n+1) = n(n+1)/2 + (n+1) = (n+1)(n+2)/2. ✓ So it holds for all n ≥ 1. ∎"
+      }
+    },
+    {
+      "id": "proofs.sets",
+      "name": "Set Operations & Proofs",
+      "category": "sets",
+      "exam_weight": 2,
+      "prerequisites": ["proofs.quantifiers"],
+      "card": {
+        "front": "How do you prove two sets A = B, and prove A ⊆ B?",
+        "back": "A = B by double inclusion: show A ⊆ B and B ⊆ A. To show A ⊆ B, take an arbitrary x ∈ A and derive x ∈ B."
+      }
+    },
+    {
+      "id": "proofs.functions",
+      "name": "Injective / Surjective / Bijective",
+      "category": "functions",
+      "exam_weight": 3,
+      "prerequisites": ["proofs.quantifiers"],
+      "card": {
+        "front": "Define injective, surjective, and bijective, with the proof obligation for each.",
+        "back": "Injective: f(a)=f(b) ⇒ a=b (prove by assuming f(a)=f(b)). Surjective: ∀y ∃x, f(x)=y (exhibit a preimage). Bijective: both — gives an inverse function."
+      }
+    }
+  ]
+}

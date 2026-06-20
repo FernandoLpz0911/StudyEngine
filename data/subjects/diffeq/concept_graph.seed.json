@@ -1,0 +1,40 @@
+{
+  "subject": "diffeq",
+  "concepts": [
+    {
+      "id": "diffeq.separable",
+      "name": "Separable & Growth/Decay",
+      "category": "first_order",
+      "exam_weight": 3,
+      "generator": { "kind": "separable_growth", "params": { "ask": ["value"] } },
+      "theory_md": "dy/dt = k·y separates to dy/y = k dt; integrate to ln|y| = kt + C, so y = y0·e^{kt}. Positive k grows, negative k decays."
+    },
+    {
+      "id": "diffeq.first_order_linear",
+      "name": "First-Order Linear ODEs",
+      "category": "first_order",
+      "exam_weight": 3,
+      "prerequisites": ["diffeq.separable"],
+      "generator": { "kind": "first_order_linear", "params": { "ask": ["value", "equilibrium"] } },
+      "theory_md": "y' + a·y = b. The solution is the equilibrium b/a plus a decaying transient (y0 − b/a)·e^{-at}. In general, multiply by the integrating factor e^{∫a dt}."
+    },
+    {
+      "id": "diffeq.second_order",
+      "name": "2nd-Order Linear, Constant Coefficients",
+      "category": "second_order",
+      "exam_weight": 3,
+      "prerequisites": ["diffeq.first_order_linear"],
+      "generator": { "kind": "second_order_homog", "params": { "ask": ["larger_root", "smaller_root"] } },
+      "theory_md": "y'' + p·y' + q·y = 0 gives the characteristic equation r² + p·r + q = 0. Real distinct roots r1, r2 → y = c1·e^{r1 t} + c2·e^{r2 t}."
+    },
+    {
+      "id": "diffeq.laplace",
+      "name": "Laplace Transforms",
+      "category": "transforms",
+      "exam_weight": 3,
+      "prerequisites": ["diffeq.first_order_linear"],
+      "generator": { "kind": "laplace_transform", "params": { "ask": ["exp", "cos", "power"] } },
+      "theory_md": "L{e^{at}} = 1/(s−a), L{cos wt} = s/(s²+w²), L{t^n} = n!/s^{n+1}. Laplace transforms turn linear ODEs into algebra in s, then invert."
+    }
+  ]
+}

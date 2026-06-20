@@ -1,0 +1,4 @@
+fsrs>=4.0.0
+numpy>=1.26
+pytest>=8.0
+ruff>=0.6

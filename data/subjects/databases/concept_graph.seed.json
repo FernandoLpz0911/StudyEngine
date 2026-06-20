@@ -1,0 +1,113 @@
+{
+  "subject": "databases",
+  "concepts": [
+    {
+      "id": "db.relational_model",
+      "name": "Relational Model",
+      "category": "foundations",
+      "exam_weight": 2,
+      "card": {
+        "front": "What is a relation, and what are its key structural properties?",
+        "back": "A relation is a set of tuples over named, typed attributes (a table). Properties: no duplicate tuples (it's a set), no tuple ordering, no attribute ordering, and each cell is atomic (1NF)."
+      }
+    },
+    {
+      "id": "db.keys",
+      "name": "Keys (Super/Candidate/Primary)",
+      "category": "foundations",
+      "exam_weight": 2,
+      "prerequisites": ["db.relational_model"],
+      "card": {
+        "front": "Define superkey, candidate key, and primary key.",
+        "back": "Superkey: an attribute set that uniquely identifies a tuple. Candidate key: a minimal superkey (no removable attribute). Primary key: the chosen candidate key; cannot be NULL."
+      }
+    },
+    {
+      "id": "db.functional_dependencies",
+      "name": "Functional Dependencies",
+      "category": "design",
+      "exam_weight": 3,
+      "prerequisites": ["db.keys"],
+      "card": {
+        "front": "What does the functional dependency X → Y mean, and what is Armstrong's reflexivity/augmentation/transitivity?",
+        "back": "X → Y: tuples agreeing on X must agree on Y. Armstrong axioms — Reflexivity: if Y ⊆ X then X → Y. Augmentation: X → Y ⇒ XZ → YZ. Transitivity: X → Y and Y → Z ⇒ X → Z."
+      }
+    },
+    {
+      "id": "db.normalization_3nf",
+      "name": "Normalization: 1NF → 3NF",
+      "category": "design",
+      "exam_weight": 3,
+      "prerequisites": ["db.functional_dependencies"],
+      "card": {
+        "front": "State 1NF, 2NF, and 3NF.",
+        "back": "1NF: atomic attributes. 2NF: 1NF + no non-prime attribute is partially dependent on a candidate key. 3NF: 2NF + no transitive dependency of a non-prime attribute on a key (every non-prime attribute depends only on keys)."
+      }
+    },
+    {
+      "id": "db.bcnf",
+      "name": "BCNF",
+      "category": "design",
+      "exam_weight": 2,
+      "prerequisites": ["db.normalization_3nf"],
+      "card": {
+        "front": "What is BCNF, and how does it differ from 3NF?",
+        "back": "BCNF: for every non-trivial FD X → Y, X is a superkey. Stricter than 3NF (3NF allows X non-superkey if Y is a prime attribute). BCNF removes all redundancy from FDs but may not be dependency-preserving."
+      }
+    },
+    {
+      "id": "db.sql_select_join",
+      "name": "SQL: SELECT / JOIN",
+      "category": "querying",
+      "exam_weight": 3,
+      "prerequisites": ["db.relational_model"],
+      "card": {
+        "front": "Difference between INNER, LEFT, and FULL OUTER JOIN.",
+        "back": "INNER: only matching rows from both sides. LEFT: all left rows + matches (NULLs for unmatched right). FULL OUTER: all rows from both, NULLs where no match."
+      }
+    },
+    {
+      "id": "db.relational_algebra",
+      "name": "Relational Algebra",
+      "category": "querying",
+      "exam_weight": 2,
+      "prerequisites": ["db.relational_model"],
+      "card": {
+        "front": "Name the core relational-algebra operators and their SQL analogues.",
+        "back": "σ selection (WHERE), π projection (SELECT cols), ⋈ join (JOIN), × Cartesian product (FROM a,b), ∪/∩/− set ops (UNION/INTERSECT/EXCEPT), ρ rename (AS)."
+      }
+    },
+    {
+      "id": "db.acid",
+      "name": "ACID Transactions",
+      "category": "transactions",
+      "exam_weight": 3,
+      "card": {
+        "front": "What do A, C, I, D stand for in transactions?",
+        "back": "Atomicity: all-or-nothing. Consistency: each transaction moves the DB between valid states. Isolation: concurrent transactions appear serial. Durability: committed effects survive crashes."
+      }
+    },
+    {
+      "id": "db.concurrency_2pl",
+      "name": "Concurrency Control (2PL)",
+      "category": "transactions",
+      "exam_weight": 3,
+      "prerequisites": ["db.acid"],
+      "card": {
+        "front": "What is two-phase locking (2PL), and what does it guarantee?",
+        "back": "2PL: a transaction acquires locks in a growing phase and releases in a shrinking phase (no acquire after first release). Guarantees conflict-serializability. Strict 2PL holds exclusive locks until commit to also avoid cascading aborts."
+      }
+    },
+    {
+      "id": "db.recovery_wal",
+      "name": "Recovery (WAL / ARIES)",
+      "category": "transactions",
+      "exam_weight": 2,
+      "prerequisites": ["db.acid"],
+      "card": {
+        "front": "State the write-ahead logging (WAL) rule and the three ARIES recovery phases.",
+        "back": "WAL: the log record for a change must reach stable storage before the data page does. ARIES phases: Analysis (find dirty pages / active txns), Redo (replay history), Undo (roll back losers)."
+      }
+    }
+  ]
+}

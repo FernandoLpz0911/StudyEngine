@@ -1,0 +1,90 @@
+{
+  "subject": "econ",
+  "concepts": [
+    {
+      "id": "econ.incentives",
+      "name": "Incentives",
+      "category": "core",
+      "exam_weight": 3,
+      "card": {
+        "front": "What is the central Freakonomics claim about incentives, and the three types?",
+        "back": "People respond to incentives, often in unintended ways. Three types: economic (money), social (reputation/approval), and moral (conscience). Designing incentives badly invites gaming."
+      }
+    },
+    {
+      "id": "econ.opportunity_cost",
+      "name": "Opportunity Cost",
+      "category": "core",
+      "exam_weight": 3,
+      "card": {
+        "front": "Define opportunity cost.",
+        "back": "The value of the next-best alternative given up when a choice is made. The true cost of anything is what you forgo to get it — not just the price paid."
+      }
+    },
+    {
+      "id": "econ.marginal",
+      "name": "Thinking at the Margin",
+      "category": "core",
+      "exam_weight": 3,
+      "prerequisites": ["econ.opportunity_cost"],
+      "card": {
+        "front": "What does 'thinking at the margin' mean?",
+        "back": "Decisions compare marginal benefit vs marginal cost of one more unit, not totals/averages. Act when MB > MC; stop where MB = MC."
+      }
+    },
+    {
+      "id": "econ.correlation_causation",
+      "name": "Correlation vs Causation",
+      "category": "method",
+      "exam_weight": 3,
+      "card": {
+        "front": "Why doesn't correlation imply causation, and what can explain a spurious correlation?",
+        "back": "Two variables can move together due to reverse causation or a confounder (a third variable driving both). Establishing causation needs experiments or natural experiments / instruments."
+      }
+    },
+    {
+      "id": "econ.moral_hazard",
+      "name": "Moral Hazard",
+      "category": "information",
+      "exam_weight": 2,
+      "prerequisites": ["econ.incentives"],
+      "card": {
+        "front": "Define moral hazard with an example.",
+        "back": "When a party takes more risk because it doesn't bear the full cost. Example: insured drivers driving less carefully; hidden actions after a contract."
+      }
+    },
+    {
+      "id": "econ.adverse_selection",
+      "name": "Adverse Selection",
+      "category": "information",
+      "exam_weight": 2,
+      "prerequisites": ["econ.incentives"],
+      "card": {
+        "front": "Define adverse selection and how it differs from moral hazard.",
+        "back": "Adverse selection: hidden information before a deal (the riskiest buy insurance). Moral hazard: hidden action after the deal. Selection is about who participates; hazard is about behavior change."
+      }
+    },
+    {
+      "id": "econ.information_asymmetry",
+      "name": "Information Asymmetry",
+      "category": "information",
+      "exam_weight": 3,
+      "prerequisites": ["econ.moral_hazard"],
+      "card": {
+        "front": "What is information asymmetry, and how do experts exploit it?",
+        "back": "One party knows more than the other. Experts (agents, realtors) may exploit an information edge to serve their own incentives — e.g. recommending unnecessary services."
+      }
+    },
+    {
+      "id": "econ.unintended_consequences",
+      "name": "Unintended Consequences",
+      "category": "core",
+      "exam_weight": 2,
+      "prerequisites": ["econ.incentives"],
+      "card": {
+        "front": "Give the Freakonomics-style logic of an unintended consequence.",
+        "back": "A well-meant rule changes incentives, producing a perverse outcome — e.g. a daycare fine for late pickup increases lateness by reframing it as a cheap price rather than a moral breach."
+      }
+    }
+  ]
+}
