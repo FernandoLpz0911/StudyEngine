@@ -127,6 +127,14 @@
           "f has an inverse, so it must be injective"
         ]
       }
+    },
+    {
+      "id": "proofs.set_counting",
+      "name": "Set Counting (Inclusion–Exclusion, Power Sets)",
+      "category": "sets",
+      "exam_weight": 2,
+      "prerequisites": ["proofs.sets"],
+      "generator": { "kind": "set_counting", "params": { "ask": ["union2", "powerset"] } }
     }
   ]
 }

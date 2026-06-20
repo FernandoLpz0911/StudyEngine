@@ -125,6 +125,17 @@
           "Made parents arrive earlier on average"
         ]
       }
+    },
+    {
+      "id": "econ.decisions",
+      "name": "Decision Math (Opportunity Cost, Margin, EV)",
+      "category": "core",
+      "exam_weight": 3,
+      "prerequisites": ["econ.marginal"],
+      "generator": {
+        "kind": "econ_decision",
+        "params": { "ask": ["opportunity_cost", "marginal_net", "expected_value"] }
+      }
     }
   ]
 }

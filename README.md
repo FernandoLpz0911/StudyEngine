@@ -5,11 +5,13 @@ scheduling** + a **concept graph** with prerequisites — drives every course. E
 subject plugs in as one of two modes:
 
 - **Generator mode** — problems are produced algorithmically with closed-form
-  answers and auto-graded, with a deterministic worked solution (no LLM). Used by
-  **MATH 220 Differential Equations** (and ready for CS 480 normalization/SQL).
+  answers and auto-graded, with a deterministic worked solution (no LLM). Every
+  subject uses it for its computational parts: ODEs/Laplace (MATH 220), functional
+  dependencies and normalization (CS 480), set counting (MATH 250), and decision
+  math — opportunity cost / margin / expected value (ECON 111).
 - **Recall mode** — objective **multiple-choice** items (one correct option,
-  curated distractors), auto-graded. Used by **MATH 250 Proofs**, **ECON 111
-  Freakonomics**, and the conceptual **CS 480** topics (ACID, 2PL, recovery, …).
+  curated distractors), auto-graded. Carries the conceptual topics that have no
+  closed-form answer: proof techniques, ACID/2PL/recovery, economic intuitions.
 
 **Grading is purely data-based — there is no self-rating anywhere.** Every item is
 either right or wrong from a computed key, and the four-level FSRS rating (Again /
@@ -20,10 +22,10 @@ chosen by feel.
 
 | Subject key | Course | Mode | Status |
 |---|---|---|---|
-| `diffeq` | MATH 220 Differential Equations | generator | **full** — 4 generators, worked solutions |
-| `databases` | CS 480 Database Systems | recall | starter cards (FD/normalization/SQL/ACID/2PL/WAL) |
-| `proofs` | MATH 250 Intro to Advanced Maths | recall | starter cards (logic, techniques, sets, functions) |
-| `econ` | ECON 111 Freakonomics | recall | starter cards (incentives, marginal, causation, …) |
+| `diffeq` | MATH 220 Differential Equations | generator | 4 generators (separable, 1st-order linear, 2nd-order roots, Laplace) |
+| `databases` | CS 480 Database Systems | generator + recall | FD generators (closure size, candidate-key count, BCNF violations) + concept cards |
+| `proofs` | MATH 250 Intro to Advanced Maths | generator + recall | set-counting generators (inclusion–exclusion, power sets) + technique cards |
+| `econ` | ECON 111 Freakonomics | generator + recall | decision generators (opportunity cost, marginal, expected value) + concept cards |
 
 ## Quick start
 

@@ -45,10 +45,18 @@ as spaced-repetition recall, still benefiting from FSRS scheduling and the conce
 graph. CS 480 is deliberately split: conceptual topics as recall now, with SQL and
 normalization generators as a natural next step (they're auto-checkable).
 
+## Worked-solution dispatch
+
+Generator subjects register a solver under each `kind` with
+`engine.feedback.solve.register_solver`; the CLI calls `worked_solution(kind, ask,
+params)` and gets the right subject's steps without knowing the subject. The
+`make_int_choices` helper builds clean integer option sets for count-style answers
+(closure size, key counts, set cardinalities) with pedagogically chosen distractors.
+
 ## Next steps (not yet built)
 
-- CS 480 generators: functional-dependency closure / normalization problems, and SQL
-  queries graded by executing against an in-memory SQLite.
+- CS 480 SQL generators graded by executing the user's query against an in-memory
+  SQLite (the FD/normalization generators are done).
 - Optional DKT knowledge-tracing per subject (port from `../LearningModel`) once
   enough interaction history accrues.
 - Readiness/analytics + a web UI (the ancestor has a React dashboard to adapt).

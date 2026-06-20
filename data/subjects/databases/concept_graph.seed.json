@@ -154,6 +154,30 @@
           "Undo information is written after the redo pass"
         ]
       }
+    },
+    {
+      "id": "db.fd_closure_calc",
+      "name": "Compute Attribute Closure",
+      "category": "design",
+      "exam_weight": 3,
+      "prerequisites": ["db.functional_dependencies"],
+      "generator": { "kind": "fd_closure", "params": { "ask": ["closure_size"] } }
+    },
+    {
+      "id": "db.candidate_keys_calc",
+      "name": "Count Candidate Keys",
+      "category": "design",
+      "exam_weight": 3,
+      "prerequisites": ["db.functional_dependencies"],
+      "generator": { "kind": "candidate_keys", "params": { "ask": ["count"] } }
+    },
+    {
+      "id": "db.bcnf_calc",
+      "name": "Detect BCNF Violations",
+      "category": "design",
+      "exam_weight": 3,
+      "prerequisites": ["db.bcnf"],
+      "generator": { "kind": "bcnf_check", "params": { "ask": ["violation_count"] } }
     }
   ]
 }

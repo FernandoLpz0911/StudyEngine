@@ -24,10 +24,13 @@ this generalizes its architecture to many subjects.
 
 | key | course | mode |
 |---|---|---|
-| `diffeq` | MATH 220 Differential Equations | generator (built out) |
-| `databases` | CS 480 Database Systems | recall (+ future generators for FD/SQL) |
-| `proofs` | MATH 250 Intro to Advanced Maths | recall |
-| `econ` | ECON 111 Freakonomics | recall |
+| `diffeq` | MATH 220 Differential Equations | generator |
+| `databases` | CS 480 Database Systems | generator (FD/normalization) + recall |
+| `proofs` | MATH 250 Intro to Advanced Maths | generator (set counting) + recall |
+| `econ` | ECON 111 Freakonomics | generator (decision math) + recall |
+
+Generator subjects register both a `generators.py` (kinds) and a `solve.py`
+(worked-solution steps) via the central `engine.feedback.solve` registry.
 
 ## Hard constraints
 

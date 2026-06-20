@@ -2,12 +2,8 @@
 from engine.db import dao
 from engine.subjects import SUBJECTS
 
-EXPECTED_MODE = {
-    "diffeq": "generator",
-    "databases": "recall",
-    "proofs": "recall",
-    "econ": "recall",
-}
+# Every subject now has generator concepts; the three recall subjects are mixed.
+MIXED_SUBJECTS = ("databases", "proofs", "econ")
 
 
 class TestSeed:
@@ -18,20 +14,27 @@ class TestSeed:
         for subject in SUBJECTS:
             assert len(dao.get_concepts(subject)) >= 4
 
-    def test_modes_match_expectation(self, db):
-        for subject, mode in EXPECTED_MODE.items():
-            assert all(c.mode == mode for c in dao.get_concepts(subject))
+    def test_diffeq_is_all_generator(self, db):
+        assert all(c.mode == "generator" for c in dao.get_concepts("diffeq"))
+
+    def test_mixed_subjects_have_both_modes(self, db):
+        for subject in MIXED_SUBJECTS:
+            modes = {c.mode for c in dao.get_concepts(subject)}
+            assert modes == {"generator", "recall"}
 
     def test_generator_concepts_have_specs(self, db):
-        for c in dao.get_concepts("diffeq"):
-            assert c.generator and "kind" in c.generator
+        for subject in SUBJECTS:
+            for c in dao.get_concepts(subject):
+                if c.mode == "generator":
+                    assert c.generator and "kind" in c.generator
 
     def test_recall_concepts_have_objective_cards(self, db):
-        for subject in ("proofs", "econ", "databases"):
+        for subject in SUBJECTS:
             for c in dao.get_concepts(subject):
-                assert c.card_question and c.card_answer
-                assert len(c.card_distractors) >= 2
-                assert c.card_answer not in c.card_distractors
+                if c.mode == "recall":
+                    assert c.card_question and c.card_answer
+                    assert len(c.card_distractors) >= 2
+                    assert c.card_answer not in c.card_distractors
 
     def test_prerequisites_reference_real_concepts(self, db):
         for subject in SUBJECTS:

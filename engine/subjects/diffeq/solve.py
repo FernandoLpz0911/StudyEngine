@@ -9,11 +9,22 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from engine.feedback.solve import register_solver
+
 
 @dataclass
 class Solved:
     steps: list[str]
     answer: float
+
+
+@register_solver("separable_growth")
+@register_solver("first_order_linear")
+@register_solver("second_order_homog")
+@register_solver("laplace_transform")
+def worked_steps(kind: str, ask: str, params: dict) -> list[str]:
+    """Adapter so the central solver registry can reach the diffeq solutions."""
+    return solve(kind, ask, params).steps
 
 
 def solve(kind: str, ask: str, params: dict) -> Solved:

@@ -17,12 +17,12 @@ import numpy as np
 import engine.subjects  # noqa: F401  (registers the problem generators)
 from engine.db import dao
 from engine.db.seed import load_subject
+from engine.feedback.solve import worked_solution
 from engine.generation.base import generate, pick_ask, random_seed
 from engine.grading import derive_grade, grade_answer
 from engine.recall.cards import as_question
 from engine.scheduler import policy, store
 from engine.subjects import SUBJECTS
-from engine.subjects.diffeq.solve import solve as diffeq_solve
 
 LETTERS = ["a", "b", "c", "d"]
 GRADE_LABEL = {1: "Again", 2: "Hard", 3: "Good", 4: "Easy"}
@@ -46,7 +46,7 @@ def _build_item(concept, rng: np.random.Generator) -> StudyItem:
         seed = random_seed()
         problem = generate(spec["kind"], ask, spec["params"], seed)
         correct = f"{problem.correct_answer:.3f}"
-        explain = diffeq_solve(spec["kind"], ask, problem.params).steps
+        explain = worked_solution(spec["kind"], ask, problem.params)
         return StudyItem(
             f"{spec['kind']}:{ask}", problem.statement, problem.choices or [],
             correct, explain, seed, problem.params,

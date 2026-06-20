@@ -84,5 +84,32 @@ def make_mc_choices(
     return [options[i] for i in order]
 
 
+def make_int_choices(
+    correct: int,
+    rng: np.random.Generator,
+    lo: int = 0,
+    hi: int = 8,
+    prefer: tuple[int, ...] = (),
+) -> list[str]:
+    """Four distinct integer options (including `correct`), formatted like the answer.
+
+    `prefer` lists pedagogically chosen distractors (common wrong counts) tried
+    first; any remaining slots are padded with random integers in [lo, hi]. Used
+    for count-style questions where non-integer distractors would look wrong.
+    """
+    options = [correct]
+    for wrong in prefer:
+        if wrong not in options and len(options) < 4:
+            options.append(wrong)
+    guard = 0
+    while len(options) < 4 and guard < 300:
+        guard += 1
+        candidate = int(rng.integers(lo, hi + 1))
+        if candidate not in options:
+            options.append(candidate)
+    rng.shuffle(options)
+    return [f"{value:.3f}" for value in options]
+
+
 def random_seed() -> int:
     return secrets.randbelow(2**31)
