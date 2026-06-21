@@ -26,6 +26,7 @@ chosen by feel.
 | `databases` | CS 480 Database Systems | generator + recall | FD generators (closure, candidate keys, BCNF, prime attributes, superkeys) + concept cards |
 | `proofs` | MATH 250 Intro to Advanced Maths | generator + recall | counting/logic generators (inclusion–exclusion 2- & 3-set, power sets, Cartesian, function counts, truth tables) + technique cards |
 | `econ` | ECON 111 Freakonomics | generator + recall | decision generators (opportunity cost, margin, expected value, % change, ROI, elasticity) + concept cards |
+| `examfm` | Exam FM (Financial Mathematics) | generator + recall | compound interest (FV/PV/effective rate), annuities, perpetuity, loan payment + concept cards |
 
 ## Quick start
 
@@ -33,12 +34,23 @@ chosen by feel.
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# Study a subject (progress persists in data/app.db between runs):
+# Default: one interleaved session across ALL subjects (global spaced repetition).
+# Weakest-first, subjects interleaved, warm-up/cool-down confidence builders.
+python -m engine.cli.study --n 12
+
+# Focus / cram mode: drill a single subject before a specific exam.
 python -m engine.cli.study --subject diffeq --n 10
-python -m engine.cli.study --subject proofs --n 10
-python -m engine.cli.study --subject databases
-python -m engine.cli.study --subject econ
+python -m engine.cli.study --subject examfm
+
+# Progress map: readiness per subject (add --subject X for per-concept mastery).
+python -m engine.cli.dashboard
+python -m engine.cli.dashboard --subject databases
 ```
+
+Progress persists in `data/app.db` between runs. The unified session is the point:
+the scheduler sees your whole course load at once and serves the most critical
+review on any given day, across every subject — see `docs/ROADMAP.md` for the full
+vision (Exam P port, knowledge-tracing, the "unfogging" knowledge map).
 
 Answer every item by picking a letter (`a`–`d`); generator problems also accept a
 typed numeric value. You get the worked solution (generator) or the correct option

@@ -1,0 +1,60 @@
+# StudyEngine Roadmap
+
+Goal: one unified "central nervous system" for the whole degree — every exam and
+course in a single app with global spaced repetition, interleaving, and a
+motivating progress map. Built on cognitive-science principles (interleaved
+practice, the 85% rule, endowed progress, the Zeigarnik effect).
+
+## Done
+
+- **Shared engine** — FSRS scheduling, prerequisite concept graph, SQLite, two
+  modes (generator / objective multiple-choice recall). No self-rating: grade is
+  derived from correctness + response time.
+- **Subjects** — MATH 220 Diff Eq, CS 480 Databases, MATH 250 Proofs,
+  ECON 111 Econ, **Exam FM**. 19 generator kinds, all property-tested.
+- **Global interleaved mode** (`engine.cli.study`, default) — weakest-first across
+  all subjects, interleaving (down-weights the last subject), warm-up/cool-down
+  confidence builders, dopamine pacing toward ~85% success. `--subject X` =
+  focus/cram mode.
+- **Progress dashboard** (`engine.cli.dashboard`) — data-based readiness per
+  subject and per concept (accuracy × FSRS retention × rep-confidence).
+
+## Next (high value)
+
+1. **Port Exam P from `../LearningModel`.** Bring the probability generators
+   (combinatorics, conditional/Bayes, distributions, expectation/variance, MGFs,
+   transforms, joint/marginal, CLT, order statistics) in as a `examp` subject with
+   worked solutions. Large + the author's live exam — do it carefully, one
+   generator family at a time with answer-key tests. **Top priority.**
+
+2. **Knowledge-graph hierarchy + endowed progress.** Add a `domain` tag
+   (Domain → Course/subject → Module/category → KC/concept) so the dashboard groups
+   Actuarial / Mathematics / Computer Science / Economics. Add an
+   `ENDOWED_BASELINE` so a freshly added syllabus shows ~10% familiarity (seeded
+   from prerequisite mastery) instead of 0% — "never start at zero."
+
+3. **Global DKT.** Port the PyTorch LSTM knowledge-tracing model from
+   `../LearningModel`, trained on the *global* interaction log across all subjects,
+   to predict P(correct) per concept and sharpen weak-concept selection once enough
+   history exists. Until the gate is met, FSRS drives selection (already true).
+
+## Later (needs a real UI — CLI can't express these well)
+
+4. **Knowledge-map visualization (the "unfogging" map).** Render the concept graph
+   as nodes that brighten with mastery and dim as the forgetting curve decays
+   (Zeigarnik "repair your map" itch). The dashboard's per-concept mastery already
+   provides the data.
+
+5. **Engagement mechanics.** Variable-reward animations on milestones, "juicy"
+   micro-interactions, the IKEA effect (let the user attach a one-line mnemonic to
+   a missed item and resurface it), frictionless "Start Daily Optimization" button.
+
+6. **Analog bridge / cross-platform.** "Paper mode" for heavy problems (dim screen
+   → solve on paper → reveal → objective self-check), and a Flutter/web client over
+   the same engine with synced global state.
+
+## Notes
+
+- `../LearningModel` (Exam P, with DKT + a React dashboard) is the single-subject
+  ancestor; this repo generalizes it. The plan above folds its Exam P content and
+  DKT into the unified app rather than running two tools.
