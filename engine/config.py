@@ -17,3 +17,10 @@ SUBJECTS_DIR: str = os.getenv("SUBJECTS_DIR", "data/subjects")
 # under FAST_MS is graded Easy, over SLOW_MS is graded Hard, otherwise Good.
 GRADE_FAST_MS: int = int(os.getenv("GRADE_FAST_MS", "8000"))
 GRADE_SLOW_MS: int = int(os.getenv("GRADE_SLOW_MS", "30000"))
+
+# Mastery for the progress dashboard: full rep-confidence is reached at
+# MASTERY_TARGET_REPS reviews; a concept counts as "mastered" at/above
+# MASTERY_THRESHOLD. Accuracy is measured over the last MASTERY_ACCURACY_WINDOW.
+MASTERY_TARGET_REPS: int = int(os.getenv("MASTERY_TARGET_REPS", "3"))
+MASTERY_THRESHOLD: float = float(os.getenv("MASTERY_THRESHOLD", "0.8"))
+MASTERY_ACCURACY_WINDOW: int = int(os.getenv("MASTERY_ACCURACY_WINDOW", "20"))
