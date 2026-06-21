@@ -16,7 +16,7 @@ import numpy as np
 
 import engine.subjects  # noqa: F401  (registers the problem generators)
 from engine.db import dao
-from engine.db.seed import load_subject
+from engine.db.seed import load_all, load_subject
 from engine.feedback.solve import worked_solution
 from engine.generation.base import generate, pick_ask, random_seed
 from engine.grading import derive_grade, grade_answer
@@ -72,7 +72,7 @@ def _prompt(text: str) -> str:
         return ""
 
 
-def _run_item(concept, session_id: int, rng: np.random.Generator) -> None:
+def _run_item(concept, session_id: int, rng: np.random.Generator) -> bool:
     item = _build_item(concept, rng)
     item_id = dao.log_shown(
         session_id, concept.id, concept.subject, item.kind,
@@ -96,6 +96,7 @@ def _run_item(concept, session_id: int, rng: np.random.Generator) -> None:
 
     dao.log_answered(item_id, raw or None, is_correct, grade, elapsed_ms)
     store.save(store.apply_rating(store.get_or_create(concept.id), grade))
+    return is_correct
 
 
 def run(subject: str, n: int) -> None:
@@ -125,12 +126,59 @@ def run(subject: str, n: int) -> None:
     )
 
 
+def run_global(n: int) -> None:
+    """Interleaved spaced repetition across every subject — the unified default.
+
+    Pulls the weakest due item from any subject, down-weighting the subject just
+    studied so the queue interleaves. Opens and closes with confidence builders,
+    and slips one in after two misses in a row to pace toward ~85% success.
+    """
+    from engine.config import GLOBAL_COOLDOWN, GLOBAL_WARMUP
+
+    load_all()
+    session_id = dao.create_session("global")
+    rng = np.random.default_rng()
+    subjects = list(SUBJECTS)
+    print("\n=== StudyEngine — Global Interleaved Session ===")
+    print("Weakest-first across all subjects, interleaved. Start optimizing.")
+
+    last_subject: str | None = None
+    recent: list[bool] = []
+    touched: set[str] = set()
+    for i in range(n):
+        warm_or_cool = i < GLOBAL_WARMUP or i >= n - GLOBAL_COOLDOWN
+        stalling = recent[-2:] == [False, False]
+        mode = "confidence" if (warm_or_cool or stalling) else "weak"
+        selection = policy.select_global(subjects, avoid_subject=last_subject, mode=mode)
+        if selection is None:
+            print("\nNothing available yet — study a single subject to open new concepts.")
+            break
+        concept = selection.concept
+        label = SUBJECTS[concept.subject].title.split("—")[0].strip()
+        is_builder = mode == "confidence" and selection.reason == "review"
+        builder = " · confidence builder" if is_builder else ""
+        print(f"\n--- item {i + 1}/{n}  [{label}]{builder} ---", end="")
+        recent.append(_run_item(concept, session_id, rng))
+        last_subject = concept.subject
+        touched.add(concept.subject)
+
+    dao.close_session(session_id)
+    print(f"\nSession done — {len(recent)} items across {len(touched)} subject(s).")
+    print("Run `python -m engine.cli.dashboard` to see your map light up.")
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Study one subject with FSRS scheduling.")
-    parser.add_argument("--subject", required=True, choices=list(SUBJECTS))
-    parser.add_argument("--n", type=int, default=10, help="number of items this session")
+    parser = argparse.ArgumentParser(description="Study with FSRS scheduling.")
+    parser.add_argument("--subject", choices=list(SUBJECTS), default=None,
+                        help="study one subject (focus/cram mode)")
+    parser.add_argument("--all", action="store_true",
+                        help="interleaved global session across all subjects (default)")
+    parser.add_argument("--n", type=int, default=12, help="items this session")
     args = parser.parse_args()
-    run(args.subject, args.n)
+    if args.subject and not args.all:
+        run(args.subject, args.n)
+    else:
+        run_global(args.n)
 
 
 if __name__ == "__main__":

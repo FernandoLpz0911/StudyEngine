@@ -51,6 +51,56 @@ def select_next(subject: str) -> Selection | None:
     return None
 
 
+def select_global(
+    subjects: list[str],
+    avoid_subject: str | None = None,
+    mode: str = "weak",
+) -> Selection | None:
+    """Pick the next item across all subjects — interleaved global spaced repetition.
+
+    mode="weak": prioritise the most-forgotten / lowest-mastery due review, weighted
+    by exam weight (or a new concept when nothing is due). mode="confidence": pick
+    the due review you are most likely to answer correctly — a warm-up / cool-down
+    confidence builder. `avoid_subject` is down-weighted so consecutive items come
+    from different subjects.
+    """
+    from engine.analytics.readiness import concept_mastery
+    from engine.config import INTERLEAVE_PENALTY
+
+    now = datetime.now(UTC)
+    reviews: list[Concept] = []
+    frontier: list[Concept] = []
+    for subject in subjects:
+        concepts = dao.get_concepts(subject)
+        states = {c.id: store.get_or_create(c.id) for c in concepts}
+        introduced = {cid: cs.reps >= 1 for cid, cs in states.items()}
+        for concept in concepts:
+            if not all(introduced.get(p, False) for p in concept.prerequisites):
+                continue
+            cs = states[concept.id]
+            if cs.reps == 0:
+                frontier.append(concept)
+            elif cs.due is not None and cs.due <= now:
+                reviews.append(concept)
+
+    def penalty(concept: Concept) -> float:
+        return INTERLEAVE_PENALTY if concept.subject == avoid_subject else 1.0
+
+    if reviews:
+        def review_key(concept: Concept) -> float:
+            mastery = concept_mastery(concept.id, now)
+            if mode == "confidence":
+                return mastery * penalty(concept)
+            return (1.0 - mastery) * concept.exam_weight * penalty(concept)
+
+        return Selection(max(reviews, key=review_key), "review")
+    if frontier:
+        return Selection(
+            max(frontier, key=lambda c: c.exam_weight * penalty(c)), "new"
+        )
+    return None
+
+
 def _urgency(cs: CardState, now: datetime) -> float:
     """1 - retrievability, so the most-forgotten overdue card ranks highest."""
     if cs.stability is None or cs.stability <= 0 or cs.due is None:
