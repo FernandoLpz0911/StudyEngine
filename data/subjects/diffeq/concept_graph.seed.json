@@ -1,5 +1,6 @@
 {
   "subject": "diffeq",
+  "domain": "Mathematics",
   "concepts": [
     {
       "id": "diffeq.separable",

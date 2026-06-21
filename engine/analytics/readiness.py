@@ -12,6 +12,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from engine.config import (
+    ENDOWED_BASELINE,
     MASTERY_ACCURACY_WINDOW,
     MASTERY_TARGET_REPS,
     MASTERY_THRESHOLD,
@@ -64,6 +65,9 @@ def subject_readiness(subject: str) -> dict:
     for concept in concepts:
         cs = store.get_or_create(concept.id)
         mastery = concept_mastery(concept.id, now)
+        # Endowed progress: the displayed value never drops below the baseline,
+        # so the map glows faintly from the start rather than reading 0%.
+        displayed = max(mastery, ENDOWED_BASELINE)
         due = (
             cs.reps > 0
             and cs.due is not None
@@ -74,16 +78,18 @@ def subject_readiness(subject: str) -> dict:
             "name": concept.name,
             "mode": concept.mode,
             "mastery": round(mastery, 3),
+            "displayed": round(displayed, 3),
             "reps": cs.reps,
             "due": due,
         })
         weight_sum += concept.exam_weight
-        weighted_mastery += concept.exam_weight * mastery
+        weighted_mastery += concept.exam_weight * displayed
 
     readiness = weighted_mastery / weight_sum if weight_sum else 0.0
     stats = dao.subject_stats(subject)
     return {
         "subject": subject,
+        "domain": concepts[0].domain if concepts else None,
         "readiness": round(readiness, 3),
         "n_concepts": len(concepts),
         "seen": sum(1 for r in rows if r["reps"] > 0),

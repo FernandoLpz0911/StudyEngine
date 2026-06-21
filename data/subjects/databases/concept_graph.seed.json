@@ -1,5 +1,6 @@
 {
   "subject": "databases",
+  "domain": "Computer Science",
   "concepts": [
     {
       "id": "db.relational_model",

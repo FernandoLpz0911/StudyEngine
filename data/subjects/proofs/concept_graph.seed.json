@@ -1,5 +1,6 @@
 {
   "subject": "proofs",
+  "domain": "Mathematics",
   "concepts": [
     {
       "id": "proofs.implication",

@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS concept (
     id              TEXT PRIMARY KEY,
     subject         TEXT NOT NULL,
+    domain          TEXT,                   -- e.g. Actuarial / Mathematics / CS
     name            TEXT NOT NULL,
     category        TEXT,
     mode            TEXT NOT NULL,          -- 'generator' | 'recall'

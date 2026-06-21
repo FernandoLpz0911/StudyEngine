@@ -17,6 +17,7 @@ class Concept:
     name: str
     category: str | None
     mode: str  # "generator" | "recall"
+    domain: str | None = None
     generator: dict | None = None
     card_question: str | None = None
     card_answer: str | None = None
@@ -33,6 +34,7 @@ def _row_to_concept(row, prereqs: list[str]) -> Concept:
         name=row["name"],
         category=row["category"],
         mode=row["mode"],
+        domain=row["domain"] if "domain" in row.keys() else None,
         generator=json.loads(row["generator_json"]) if row["generator_json"] else None,
         card_question=row["card_question"],
         card_answer=row["card_answer"],

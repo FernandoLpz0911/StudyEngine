@@ -42,9 +42,11 @@ def _simulate_correct(concept_id: str, subject: str, rounds: int = 3) -> None:
 
 
 class TestSubjectReadiness:
-    def test_fresh_subject_zero(self, db):
+    def test_fresh_subject_shows_endowed_baseline(self, db):
+        from engine.config import ENDOWED_BASELINE
+
         s = subject_readiness("diffeq")
-        assert s["readiness"] == 0.0
+        assert s["readiness"] == ENDOWED_BASELINE  # never starts at 0%
         assert s["seen"] == 0
         assert s["mastered"] == 0
         assert s["n_concepts"] >= 4

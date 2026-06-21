@@ -25,6 +25,11 @@ MASTERY_TARGET_REPS: int = int(os.getenv("MASTERY_TARGET_REPS", "3"))
 MASTERY_THRESHOLD: float = float(os.getenv("MASTERY_THRESHOLD", "0.8"))
 MASTERY_ACCURACY_WINDOW: int = int(os.getenv("MASTERY_ACCURACY_WINDOW", "20"))
 
+# Endowed progress: every concept shows at least this much "familiarity" so a
+# freshly added syllabus never reads 0% (motivation — you start partway up the
+# hill). Real mastery and the "mastered" count still use measured signals only.
+ENDOWED_BASELINE: float = float(os.getenv("ENDOWED_BASELINE", "0.1"))
+
 # Global interleaved sessions: down-weight a candidate from the subject just
 # studied so consecutive items come from different subjects (interleaving). Each
 # session opens with WARMUP and closes with COOLDOWN "confidence builders" (items

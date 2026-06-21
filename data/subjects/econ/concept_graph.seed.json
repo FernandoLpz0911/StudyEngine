@@ -1,5 +1,6 @@
 {
   "subject": "econ",
+  "domain": "Economics",
   "concepts": [
     {
       "id": "econ.incentives",

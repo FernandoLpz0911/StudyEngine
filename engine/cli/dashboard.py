@@ -53,7 +53,35 @@ def _print_concepts(s: dict) -> None:
         )
 
 
-def run(subject: str | None) -> None:
+def _glyph(mastery: float) -> str:
+    if mastery >= 0.8:
+        return "█"
+    if mastery >= 0.5:
+        return "▓"
+    if mastery >= 0.2:
+        return "▒"
+    return "░"
+
+
+def _by_domain(subjects: list[dict]) -> dict[str, list[dict]]:
+    grouped: dict[str, list[dict]] = {}
+    for s in subjects:
+        grouped.setdefault(s.get("domain") or "Other", []).append(s)
+    return grouped
+
+
+def _render_map(progress: dict) -> None:
+    print("=== Knowledge Map  (░ foggy · ▒ · ▓ · █ mastered) ===")
+    print(_dkt_status_line())
+    for domain in sorted(_by_domain(progress["subjects"])):
+        print(f"\n{domain}")
+        for s in _by_domain(progress["subjects"])[domain]:
+            glyphs = "".join(_glyph(c["displayed"]) for c in s["concepts"])
+            short = SUBJECTS[s["subject"]].title.split("—")[-1].strip()
+            print(f"  {glyphs}  {short} ({_pct(s['readiness'])})")
+
+
+def run(subject: str | None = None, show_map: bool = False) -> None:
     load_all()
     if subject:
         if subject not in SUBJECTS:
@@ -65,22 +93,29 @@ def run(subject: str | None) -> None:
         return
 
     progress = overall_progress(list(SUBJECTS))
+    if show_map:
+        _render_map(progress)
+        return
+
     print("=== StudyEngine — Progress Dashboard ===")
     print(
         f"Combined readiness: [{_bar(progress['combined_readiness'])}] "
         f"{_pct(progress['combined_readiness'])}"
     )
     print(_dkt_status_line())
-    for s in progress["subjects"]:
-        _print_subject_summary(s)
-    print("\nRun with --subject <key> for per-concept detail.")
+    for domain in sorted(_by_domain(progress["subjects"])):
+        print(f"\n=== {domain} ===")
+        for s in _by_domain(progress["subjects"])[domain]:
+            _print_subject_summary(s)
+    print("\n--subject <key> for per-concept detail · --map for the knowledge map.")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Show study progress / readiness.")
     parser.add_argument("--subject", choices=list(SUBJECTS), default=None)
+    parser.add_argument("--map", action="store_true", help="render the knowledge map")
     args = parser.parse_args()
-    run(args.subject)
+    run(args.subject, args.map)
 
 
 if __name__ == "__main__":

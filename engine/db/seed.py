@@ -21,6 +21,7 @@ def load_subject(subject: str, seed_path: Path | None = None) -> int:
     path = seed_path or Path(SUBJECTS_DIR) / subject / "concept_graph.seed.json"
     data = json.loads(path.read_text())
     concepts = data["concepts"]
+    domain = data.get("domain")
 
     init_db()
     with get_connection() as conn:
@@ -32,14 +33,15 @@ def load_subject(subject: str, seed_path: Path | None = None) -> int:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO concept
-                    (id, subject, name, category, mode, generator_json,
+                    (id, subject, domain, name, category, mode, generator_json,
                      card_question, card_answer, card_distractors,
                      theory_md, exam_weight)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     c["id"],
                     subject,
+                    c.get("domain", domain),
                     c["name"],
                     c.get("category"),
                     mode,
