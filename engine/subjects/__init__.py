@@ -32,6 +32,10 @@ SUBJECTS: dict[str, SubjectInfo] = {
         "econ", "ECON 111 — Freakonomics",
         "Recall mode: incentives, concepts, and case studies.",
     ),
+    "examfm": SubjectInfo(
+        "examfm", "Exam FM — Financial Mathematics",
+        "Generator mode: compound interest, annuities, perpetuities, loans.",
+    ),
 }
 
 from engine.subjects.databases import generators as _db_gen  # noqa: E402, F401
@@ -40,5 +44,7 @@ from engine.subjects.diffeq import generators as _diffeq_gen  # noqa: E402, F401
 from engine.subjects.diffeq import solve as _diffeq_solve  # noqa: E402, F401
 from engine.subjects.econ import generators as _econ_gen  # noqa: E402, F401
 from engine.subjects.econ import solve as _econ_solve  # noqa: E402, F401
+from engine.subjects.examfm import generators as _fm_gen  # noqa: E402, F401
+from engine.subjects.examfm import solve as _fm_solve  # noqa: E402, F401
 from engine.subjects.proofs import generators as _proofs_gen  # noqa: E402, F401
 from engine.subjects.proofs import solve as _proofs_solve  # noqa: E402, F401

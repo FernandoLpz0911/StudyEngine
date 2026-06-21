@@ -1,0 +1,75 @@
+{
+  "subject": "examfm",
+  "domain": "actuarial",
+  "concepts": [
+    {
+      "id": "fm.tvm_concept",
+      "name": "Time Value of Money",
+      "category": "interest_theory",
+      "exam_weight": 2,
+      "card": {
+        "question": "The time value of money principle says that:",
+        "answer": "a dollar today is worth more than a dollar later because it can earn interest",
+        "distractors": [
+          "a dollar later is worth more because of inflation",
+          "money has the same value regardless of timing",
+          "interest only matters for loans, not investments"
+        ]
+      }
+    },
+    {
+      "id": "fm.nominal_effective",
+      "name": "Nominal vs Effective Rates",
+      "category": "interest_theory",
+      "exam_weight": 3,
+      "prerequisites": ["fm.tvm_concept"],
+      "card": {
+        "question": "How does a nominal annual rate i^(m) (compounded m times) relate to the effective annual rate i?",
+        "answer": "i = (1 + i^(m)/m)^m − 1",
+        "distractors": [
+          "i = i^(m)/m",
+          "i = i^(m) × m",
+          "i = (1 + i^(m))^m − 1"
+        ]
+      }
+    },
+    {
+      "id": "fm.annuity_types",
+      "name": "Annuity-Immediate vs Annuity-Due",
+      "category": "annuities",
+      "exam_weight": 2,
+      "prerequisites": ["fm.tvm_concept"],
+      "card": {
+        "question": "In an annuity-due (versus annuity-immediate), payments are made:",
+        "answer": "at the beginning of each period",
+        "distractors": [
+          "at the end of each period",
+          "only once, at the start",
+          "at the midpoint of each period"
+        ]
+      }
+    },
+    {
+      "id": "fm.compound",
+      "name": "Compound Interest (FV / PV / Effective Rate)",
+      "category": "interest_theory",
+      "exam_weight": 3,
+      "prerequisites": ["fm.nominal_effective"],
+      "generator": {
+        "kind": "fm_compound",
+        "params": { "ask": ["future_value", "present_value", "effective_rate"] }
+      }
+    },
+    {
+      "id": "fm.annuities",
+      "name": "Annuities, Perpetuities & Loans",
+      "category": "annuities",
+      "exam_weight": 3,
+      "prerequisites": ["fm.compound", "fm.annuity_types"],
+      "generator": {
+        "kind": "fm_annuity",
+        "params": { "ask": ["annuity_pv", "annuity_fv", "perpetuity", "loan_payment"] }
+      }
+    }
+  ]
+}
