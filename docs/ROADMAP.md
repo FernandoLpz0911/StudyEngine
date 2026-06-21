@@ -19,6 +19,10 @@ practice, the 85% rule, endowed progress, the Zeigarnik effect).
   focus/cram mode.
 - **Progress dashboard** (`engine.cli.dashboard`) — data-based readiness per
   subject and per concept (accuracy × FSRS retention × rep-confidence).
+- **Global DKT** (`engine.cli.train`) — one PyTorch LSTM trained on the whole
+  cross-subject interaction log; once it clears the gate (interactions + AUC) it
+  predicts P(correct) per concept and drives weak-concept selection in global
+  sessions. FSRS drives until then.
 
 ## Next (high value)
 
@@ -28,10 +32,9 @@ practice, the 85% rule, endowed progress, the Zeigarnik effect).
    `ENDOWED_BASELINE` so a freshly added syllabus shows ~10% familiarity (seeded
    from prerequisite mastery) instead of 0% — "never start at zero."
 
-2. **Global DKT.** Port the PyTorch LSTM knowledge-tracing model from
-   `../LearningModel`, trained on the *global* interaction log across all subjects,
-   to predict P(correct) per concept and sharpen weak-concept selection once enough
-   history exists. Until the gate is met, FSRS drives selection (already true).
+2. **DKT pretraining on synthetic data** (optional). Port LearningModel's synthetic
+   warm-up so the model is useful before the real-interaction gate is met — a
+   cold-start boost. FSRS already covers this window, so it is a nicety.
 
 ## Later (needs a real UI — CLI can't express these well)
 

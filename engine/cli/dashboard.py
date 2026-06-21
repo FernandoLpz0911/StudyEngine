@@ -21,6 +21,17 @@ def _pct(fraction: float) -> str:
     return f"{round(fraction * 100):3d}%"
 
 
+def _dkt_status_line() -> str:
+    from engine.config import DKT_MIN_INTERACTIONS
+    from engine.db import dao
+    from engine.tracing import infer
+
+    if infer.dkt_is_active():
+        return "DKT: active — the global model is driving selection."
+    n = dao.count_answered_interactions()
+    return f"DKT: warming up — {n}/{DKT_MIN_INTERACTIONS} interactions until it activates."
+
+
 def _print_subject_summary(s: dict) -> None:
     title = SUBJECTS[s["subject"]].title if s["subject"] in SUBJECTS else s["subject"]
     print(f"\n{title}")
@@ -59,6 +70,7 @@ def run(subject: str | None) -> None:
         f"Combined readiness: [{_bar(progress['combined_readiness'])}] "
         f"{_pct(progress['combined_readiness'])}"
     )
+    print(_dkt_status_line())
     for s in progress["subjects"]:
         _print_subject_summary(s)
     print("\nRun with --subject <key> for per-concept detail.")

@@ -32,3 +32,9 @@ MASTERY_ACCURACY_WINDOW: int = int(os.getenv("MASTERY_ACCURACY_WINDOW", "20"))
 INTERLEAVE_PENALTY: float = float(os.getenv("INTERLEAVE_PENALTY", "0.5"))
 GLOBAL_WARMUP: int = int(os.getenv("GLOBAL_WARMUP", "2"))
 GLOBAL_COOLDOWN: int = int(os.getenv("GLOBAL_COOLDOWN", "2"))
+
+# Global DKT (deep knowledge tracing): the trained model drives weak-concept
+# selection only once it clears both gates — enough graded interactions and a
+# validation AUC that beats this floor. Below the gate, FSRS retention drives it.
+DKT_MIN_INTERACTIONS: int = int(os.getenv("DKT_MIN_INTERACTIONS", "300"))
+DKT_MIN_AUC: float = float(os.getenv("DKT_MIN_AUC", "0.70"))

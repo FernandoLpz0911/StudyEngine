@@ -142,14 +142,26 @@ def run_global(n: int) -> None:
     print("\n=== StudyEngine — Global Interleaved Session ===")
     print("Weakest-first across all subjects, interleaved. Start optimizing.")
 
+    from engine.tracing import infer
+    dkt_active = infer.dkt_is_active()
+    p_correct = (
+        infer.predict(dao.get_interaction_history_timed()) if dkt_active else None
+    )
+    if dkt_active:
+        print("DKT active — selection driven by the trained global model.")
+
     last_subject: str | None = None
     recent: list[bool] = []
     touched: set[str] = set()
     for i in range(n):
+        if dkt_active and i > 0 and i % 5 == 0:
+            p_correct = infer.predict(dao.get_interaction_history_timed())
         warm_or_cool = i < GLOBAL_WARMUP or i >= n - GLOBAL_COOLDOWN
         stalling = recent[-2:] == [False, False]
         mode = "confidence" if (warm_or_cool or stalling) else "weak"
-        selection = policy.select_global(subjects, avoid_subject=last_subject, mode=mode)
+        selection = policy.select_global(
+            subjects, avoid_subject=last_subject, mode=mode, p_correct=p_correct
+        )
         if selection is None:
             print("\nNothing available yet — study a single subject to open new concepts.")
             break

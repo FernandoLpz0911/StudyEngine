@@ -175,3 +175,47 @@ def subject_stats(subject: str) -> dict:
         "correct": correct,
         "accuracy": round(correct / total, 3) if total else 0.0,
     }
+
+
+def all_concept_ids() -> list[str]:
+    """Every concept id across all subjects, sorted (the global DKT index order)."""
+    with get_connection() as conn:
+        rows = conn.execute("SELECT id FROM concept ORDER BY id").fetchall()
+    return [r["id"] for r in rows]
+
+
+def count_answered_interactions() -> int:
+    """Total graded interactions across all subjects (for the DKT activation gate)."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM interaction WHERE is_correct IS NOT NULL"
+        ).fetchone()
+    return row["n"] if row else 0
+
+
+def get_interaction_history_timed(
+    limit: int = 1000,
+) -> list[tuple[str, bool, float]]:
+    """Recent (concept_id, is_correct, time_days) across all subjects, oldest first.
+
+    time_days is shown_at as days-since-epoch (falls back to sequence position),
+    feeding the DKT model's recall-lag features. The interleaved global history is
+    exactly the cross-domain sequence the model trains and predicts on.
+    """
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT concept_id, is_correct, shown_at FROM interaction
+            WHERE is_correct IS NOT NULL
+            ORDER BY id DESC LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    history: list[tuple[str, bool, float]] = []
+    for position, row in enumerate(reversed(rows)):
+        try:
+            t = datetime.fromisoformat(row["shown_at"]).timestamp() / 86400.0
+        except (ValueError, TypeError):
+            t = float(position)
+        history.append((row["concept_id"], bool(row["is_correct"]), t))
+    return history

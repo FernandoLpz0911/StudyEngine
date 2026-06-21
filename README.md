@@ -46,6 +46,10 @@ python -m engine.cli.study --subject examfm
 # Progress map: readiness per subject (add --subject X for per-concept mastery).
 python -m engine.cli.dashboard
 python -m engine.cli.dashboard --subject databases
+
+# Train the global knowledge-tracing model on your whole interaction log.
+# Once it clears the gate, it drives weak-concept selection in global sessions.
+python -m engine.cli.train
 ```
 
 Progress persists in `data/app.db` between runs. The unified session is the point:

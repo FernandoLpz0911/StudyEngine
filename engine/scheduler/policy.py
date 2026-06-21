@@ -55,6 +55,7 @@ def select_global(
     subjects: list[str],
     avoid_subject: str | None = None,
     mode: str = "weak",
+    p_correct: dict[str, float] | None = None,
 ) -> Selection | None:
     """Pick the next item across all subjects — interleaved global spaced repetition.
 
@@ -63,11 +64,19 @@ def select_global(
     the due review you are most likely to answer correctly — a warm-up / cool-down
     confidence builder. `avoid_subject` is down-weighted so consecutive items come
     from different subjects.
+
+    When `p_correct` is given (DKT predictions per concept), it replaces the FSRS
+    mastery estimate for ranking — so the trained global model drives selection.
     """
     from engine.analytics.readiness import concept_mastery
     from engine.config import INTERLEAVE_PENALTY
 
     now = datetime.now(UTC)
+
+    def mastery_of(concept: Concept) -> float:
+        if p_correct is not None:
+            return p_correct.get(concept.id, 0.5)
+        return concept_mastery(concept.id, now)
     reviews: list[Concept] = []
     frontier: list[Concept] = []
     for subject in subjects:
@@ -88,7 +97,7 @@ def select_global(
 
     if reviews:
         def review_key(concept: Concept) -> float:
-            mastery = concept_mastery(concept.id, now)
+            mastery = mastery_of(concept)
             if mode == "confidence":
                 return mastery * penalty(concept)
             return (1.0 - mastery) * concept.exam_weight * penalty(concept)
