@@ -1,0 +1,1034 @@
+{
+  "subject": "examp",
+  "domain": "actuarial",
+  "concepts": [
+    {
+      "id": "gp.set_theory",
+      "name": "Set theory & Venn diagrams",
+      "category": "general",
+      "exam_weight": 2,
+      "prerequisites": [],
+      "theory_md": "Unions, intersections, complements, De Morgan's laws, inclusion-exclusion.",
+      "generator": {
+        "kind": "set_inclusion_exclusion",
+        "params": {
+          "n_sets": [
+            2,
+            3
+          ],
+          "ask": [
+            "union_prob",
+            "complement_prob"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gp.combinatorics",
+      "name": "Combinatorics",
+      "category": "general",
+      "exam_weight": 2,
+      "prerequisites": [],
+      "theory_md": "Permutations, combinations, multinomial coefficients.",
+      "generator": {
+        "kind": "combinatorics",
+        "params": {
+          "n": [
+            4,
+            12
+          ],
+          "r": [
+            2,
+            6
+          ],
+          "ask": [
+            "nCr",
+            "nPr",
+            "multinomial"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gp.axioms",
+      "name": "Probability axioms & sample spaces",
+      "category": "general",
+      "exam_weight": 2,
+      "prerequisites": [
+        "gp.set_theory"
+      ],
+      "theory_md": "Kolmogorov axioms, addition rule P(A∪B)=P(A)+P(B)-P(A∩B).",
+      "generator": {
+        "kind": "addition_rule",
+        "params": {
+          "ask": [
+            "union_prob",
+            "either_or"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gp.conditional",
+      "name": "Conditional probability",
+      "category": "general",
+      "exam_weight": 3,
+      "prerequisites": [
+        "gp.axioms"
+      ],
+      "theory_md": "P(A|B)=P(A∩B)/P(B); multiplication rule.",
+      "generator": {
+        "kind": "conditional",
+        "params": {
+          "ask": [
+            "cond_prob",
+            "joint_from_cond"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gp.independence",
+      "name": "Independence of events",
+      "category": "general",
+      "exam_weight": 2,
+      "prerequisites": [
+        "gp.conditional"
+      ],
+      "theory_md": "A,B independent iff P(A∩B)=P(A)P(B). Check before multiplying.",
+      "generator": {
+        "kind": "independence",
+        "params": {
+          "ask": [
+            "is_independent",
+            "joint_indep"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gp.bayes",
+      "name": "Bayes' theorem & total probability",
+      "category": "general",
+      "exam_weight": 3,
+      "prerequisites": [
+        "gp.conditional",
+        "gp.independence"
+      ],
+      "theory_md": "Law of total probability; posterior = likelihood×prior / evidence. Heavily tested.",
+      "generator": {
+        "kind": "bayes",
+        "params": {
+          "n_hypotheses": [
+            2,
+            3
+          ],
+          "ask": [
+            "posterior"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gp.counting_prob",
+      "name": "Counting-based probability",
+      "category": "general",
+      "exam_weight": 2,
+      "prerequisites": [
+        "gp.combinatorics",
+        "gp.axioms"
+      ],
+      "theory_md": "Equally-likely outcomes; probability as favorable/total counts.",
+      "generator": {
+        "kind": "counting_prob",
+        "params": {
+          "ask": [
+            "draw_prob",
+            "arrangement_prob"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.rv_basics",
+      "name": "Random variables (PMF/PDF/CDF)",
+      "category": "univariate",
+      "exam_weight": 3,
+      "prerequisites": [
+        "gp.axioms"
+      ],
+      "theory_md": "Discrete PMF vs continuous PDF; CDF F(x)=P(X≤x); valid-density normalization.",
+      "generator": {
+        "kind": "density_basics",
+        "params": {
+          "ask": [
+            "normalize_constant",
+            "cdf_from_pdf",
+            "prob_interval"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.expectation",
+      "name": "Expected value",
+      "category": "univariate",
+      "exam_weight": 3,
+      "prerequisites": [
+        "uv.rv_basics"
+      ],
+      "theory_md": "E[X]=Σx p(x) or ∫x f(x)dx; linearity E[aX+b]=aE[X]+b; LOTUS E[g(X)].",
+      "generator": {
+        "kind": "expectation_generic",
+        "params": {
+          "ask": [
+            "mean",
+            "lotus"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.variance",
+      "name": "Variance & standard deviation",
+      "category": "univariate",
+      "exam_weight": 3,
+      "prerequisites": [
+        "uv.expectation"
+      ],
+      "theory_md": "Var(X)=E[X²]-(E[X])²; Var(aX+b)=a²Var(X).",
+      "generator": {
+        "kind": "variance_generic",
+        "params": {
+          "ask": [
+            "variance",
+            "sd"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.moments",
+      "name": "Higher moments",
+      "category": "univariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "uv.variance"
+      ],
+      "theory_md": "Raw vs central moments; skewness, kurtosis (lightly tested).",
+      "generator": {
+        "kind": "moments",
+        "params": {
+          "mu": [
+            1.0,
+            6.0
+          ],
+          "sigma2": [
+            0.5,
+            5.0
+          ],
+          "ask": [
+            "ex_squared",
+            "variance_from_moments"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.mgf",
+      "name": "Moment generating functions",
+      "category": "univariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "uv.moments"
+      ],
+      "theory_md": "M(t)=E[e^{tX}]; M'(0)=E[X], M''(0)=E[X²]; uniquely determines distribution.",
+      "generator": {
+        "kind": "mgf",
+        "params": {
+          "ask": [
+            "moment_from_mgf",
+            "identify_dist_from_mgf"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.transformations",
+      "name": "Transformations of a random variable",
+      "category": "univariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "uv.rv_basics",
+        "uv.expectation"
+      ],
+      "theory_md": "CDF method and change-of-variables f_Y(y)=f_X(x)|dx/dy|.",
+      "generator": {
+        "kind": "transformation_univariate",
+        "params": {
+          "ask": [
+            "pdf_of_transform",
+            "cdf_method"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.percentiles",
+      "name": "Percentiles, median, mode",
+      "category": "univariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "uv.rv_basics"
+      ],
+      "theory_md": "Solve F(x_p)=p for percentile x_p; mode maximizes density.",
+      "generator": {
+        "kind": "percentile",
+        "params": {
+          "ask": [
+            "percentile",
+            "median"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.bernoulli",
+      "name": "Bernoulli distribution",
+      "category": "univariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "uv.rv_basics"
+      ],
+      "theory_md": "Single trial; mean p, variance p(1-p). Building block of binomial.",
+      "generator": {
+        "kind": "bernoulli",
+        "params": {
+          "p": [
+            0.1,
+            0.9
+          ],
+          "ask": [
+            "mean",
+            "variance"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.binomial",
+      "name": "Binomial distribution",
+      "category": "univariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "gp.combinatorics",
+        "uv.expectation",
+        "uv.variance",
+        "uv.bernoulli"
+      ],
+      "theory_md": "Sum of n iid Bernoulli; mean np, variance np(1-p).",
+      "generator": {
+        "kind": "binomial",
+        "params": {
+          "n": [
+            5,
+            25
+          ],
+          "p": [
+            0.1,
+            0.9
+          ],
+          "ask": [
+            "pmf_eq",
+            "cdf_le",
+            "cdf_ge",
+            "mean",
+            "variance"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.geometric",
+      "name": "Geometric distribution",
+      "category": "univariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "uv.expectation",
+        "uv.variance"
+      ],
+      "theory_md": "Trials until first success (support 1,2,...); mean 1/p, variance (1-p)/p². Memoryless.",
+      "generator": {
+        "kind": "geometric",
+        "params": {
+          "p": [
+            0.1,
+            0.6
+          ],
+          "convention": "trials",
+          "ask": [
+            "pmf_eq",
+            "cdf_ge",
+            "mean",
+            "variance"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.negbinomial",
+      "name": "Negative binomial distribution",
+      "category": "univariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "uv.geometric",
+        "uv.binomial"
+      ],
+      "theory_md": "Trials until r-th success; mean r/p, variance r(1-p)/p².",
+      "generator": {
+        "kind": "negbinomial",
+        "params": {
+          "r": [
+            2,
+            6
+          ],
+          "p": [
+            0.2,
+            0.6
+          ],
+          "ask": [
+            "pmf_eq",
+            "mean",
+            "variance"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.hypergeometric",
+      "name": "Hypergeometric distribution",
+      "category": "univariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "gp.combinatorics",
+        "uv.expectation"
+      ],
+      "theory_md": "Sampling without replacement; mean n·K/N. Contrast with binomial.",
+      "generator": {
+        "kind": "hypergeometric",
+        "params": {
+          "N": [
+            10,
+            40
+          ],
+          "K": [
+            3,
+            20
+          ],
+          "n": [
+            2,
+            8
+          ],
+          "ask": [
+            "pmf_eq",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.poisson",
+      "name": "Poisson distribution",
+      "category": "univariate",
+      "exam_weight": 3,
+      "prerequisites": [
+        "uv.expectation",
+        "uv.variance",
+        "uv.mgf"
+      ],
+      "theory_md": "Counts in fixed interval; mean = variance = λ; MGF exp(λ(e^t-1)). Binomial limit.",
+      "generator": {
+        "kind": "poisson",
+        "params": {
+          "lam": [
+            0.5,
+            8.0
+          ],
+          "ask": [
+            "pmf_eq",
+            "cdf_le",
+            "cdf_ge",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.discrete_uniform",
+      "name": "Discrete uniform distribution",
+      "category": "univariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "uv.expectation",
+        "uv.variance"
+      ],
+      "theory_md": "Equally likely on {1..n}; mean (n+1)/2, variance (n²-1)/12.",
+      "generator": {
+        "kind": "discrete_uniform",
+        "params": {
+          "n": [
+            4,
+            12
+          ],
+          "ask": [
+            "mean",
+            "variance",
+            "pmf_eq"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.continuous_uniform",
+      "name": "Continuous uniform distribution",
+      "category": "univariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "uv.rv_basics",
+        "uv.expectation"
+      ],
+      "theory_md": "U(a,b); mean (a+b)/2, variance (b-a)²/12; flat density 1/(b-a).",
+      "generator": {
+        "kind": "continuous_uniform",
+        "params": {
+          "a": [
+            0,
+            5
+          ],
+          "b": [
+            6,
+            12
+          ],
+          "ask": [
+            "prob_interval",
+            "mean",
+            "variance",
+            "percentile"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.exponential",
+      "name": "Exponential distribution",
+      "category": "univariate",
+      "exam_weight": 3,
+      "prerequisites": [
+        "uv.expectation",
+        "uv.variance",
+        "uv.transformations"
+      ],
+      "theory_md": "Rate λ; mean 1/λ, variance 1/λ²; S(t)=e^{-λt}; memoryless. Heavily tested.",
+      "generator": {
+        "kind": "exponential",
+        "params": {
+          "lam": [
+            0.2,
+            3.0
+          ],
+          "ask": [
+            "survival",
+            "prob_interval",
+            "mean",
+            "percentile",
+            "memoryless"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.gamma",
+      "name": "Gamma distribution",
+      "category": "univariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "uv.exponential",
+        "uv.mgf"
+      ],
+      "theory_md": "Shape α, scale θ; mean αθ, variance αθ²; sum of α iid exponentials when α integer.",
+      "generator": {
+        "kind": "gamma",
+        "params": {
+          "alpha": [
+            1.0,
+            5.0
+          ],
+          "theta": [
+            0.5,
+            3.0
+          ],
+          "ask": [
+            "mean",
+            "variance",
+            "prob_interval"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.normal",
+      "name": "Normal distribution",
+      "category": "univariate",
+      "exam_weight": 3,
+      "prerequisites": [
+        "uv.expectation",
+        "uv.variance",
+        "uv.mgf"
+      ],
+      "theory_md": "N(μ,σ²); standardize Z=(X-μ)/σ; MGF exp(μt+σ²t²/2). Core of CLT problems.",
+      "generator": {
+        "kind": "normal",
+        "params": {
+          "mu": [
+            -5,
+            20
+          ],
+          "sigma": [
+            1,
+            8
+          ],
+          "ask": [
+            "prob_interval",
+            "survival",
+            "percentile",
+            "standardize"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.beta",
+      "name": "Beta distribution",
+      "category": "univariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "uv.rv_basics",
+        "uv.expectation"
+      ],
+      "theory_md": "Support (0,1); mean α/(α+β). Lightly tested.",
+      "generator": {
+        "kind": "beta",
+        "params": {
+          "alpha": [
+            1,
+            5
+          ],
+          "beta": [
+            1,
+            5
+          ],
+          "ask": [
+            "mean",
+            "prob_interval"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.lognormal",
+      "name": "Lognormal distribution",
+      "category": "univariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "uv.normal",
+        "uv.transformations"
+      ],
+      "theory_md": "ln X ~ N(μ,σ²); mean e^{μ+σ²/2}, variance (e^{σ²}-1)e^{2μ+σ²}.",
+      "generator": {
+        "kind": "lognormal",
+        "params": {
+          "mu": [
+            0,
+            2
+          ],
+          "sigma": [
+            0.2,
+            1.0
+          ],
+          "ask": [
+            "mean",
+            "prob_interval"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.chisquare",
+      "name": "Chi-square distribution",
+      "category": "univariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "uv.gamma",
+        "uv.normal"
+      ],
+      "theory_md": "Gamma special case; k degrees of freedom; mean k, variance 2k.",
+      "generator": {
+        "kind": "chisquare",
+        "params": {
+          "k": [
+            1,
+            10
+          ],
+          "ask": [
+            "mean",
+            "variance"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.pareto",
+      "name": "Pareto distribution",
+      "category": "univariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "uv.rv_basics",
+        "uv.expectation"
+      ],
+      "theory_md": "Heavy-tailed; moments depend on shape α. Use SOA distribution tables for exact moment formulas.",
+      "generator": {
+        "kind": "pareto",
+        "params": {
+          "alpha": [
+            2.0,
+            5.0
+          ],
+          "theta": [
+            1.0,
+            5.0
+          ],
+          "ask": [
+            "mean",
+            "survival",
+            "prob_interval"
+          ]
+        }
+      }
+    },
+    {
+      "id": "uv.weibull",
+      "name": "Weibull distribution",
+      "category": "univariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "uv.exponential",
+        "uv.transformations"
+      ],
+      "theory_md": "Generalizes exponential; reliability/survival modeling. Use SOA tables for moments.",
+      "generator": {
+        "kind": "weibull",
+        "params": {
+          "alpha": [
+            1.0,
+            4.0
+          ],
+          "theta": [
+            1.0,
+            5.0
+          ],
+          "ask": [
+            "survival",
+            "cdf",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.joint",
+      "name": "Joint distributions",
+      "category": "multivariate",
+      "exam_weight": 3,
+      "prerequisites": [
+        "uv.rv_basics"
+      ],
+      "theory_md": "Joint PMF/PDF f(x,y); double sums/integrals; normalization over the region.",
+      "generator": {
+        "kind": "joint_basics",
+        "params": {
+          "ask": [
+            "normalize_constant",
+            "joint_prob_region"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.marginal",
+      "name": "Marginal distributions",
+      "category": "multivariate",
+      "exam_weight": 3,
+      "prerequisites": [
+        "mv.joint"
+      ],
+      "theory_md": "Integrate/sum out the other variable: f_X(x)=∫f(x,y)dy.",
+      "generator": {
+        "kind": "marginal",
+        "params": {
+          "ask": [
+            "marginal_pdf",
+            "marginal_prob"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.conditional_dist",
+      "name": "Conditional distributions",
+      "category": "multivariate",
+      "exam_weight": 3,
+      "prerequisites": [
+        "mv.marginal",
+        "gp.conditional"
+      ],
+      "theory_md": "f_{Y|X}(y|x)=f(x,y)/f_X(x).",
+      "generator": {
+        "kind": "conditional_dist",
+        "params": {
+          "ask": [
+            "cond_pdf",
+            "cond_prob"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.independence_rv",
+      "name": "Independence of random variables",
+      "category": "multivariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "mv.conditional_dist",
+        "gp.independence"
+      ],
+      "theory_md": "X,Y independent iff f(x,y)=f_X(x)f_Y(y) (factorable, rectangular support).",
+      "generator": {
+        "kind": "independence_rv",
+        "params": {
+          "ask": [
+            "is_independent"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.covariance",
+      "name": "Covariance",
+      "category": "multivariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "mv.joint",
+        "uv.expectation"
+      ],
+      "theory_md": "Cov(X,Y)=E[XY]-E[X]E[Y]; Var(X+Y)=Var X+Var Y+2Cov.",
+      "generator": {
+        "kind": "covariance",
+        "params": {
+          "ask": [
+            "covariance",
+            "var_of_sum"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.correlation",
+      "name": "Correlation coefficient",
+      "category": "multivariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "mv.covariance",
+        "uv.variance"
+      ],
+      "theory_md": "ρ=Cov(X,Y)/(σ_X σ_Y), in [-1,1]; zero correlation ≠ independence.",
+      "generator": {
+        "kind": "correlation",
+        "params": {
+          "ask": [
+            "correlation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.expectation_joint",
+      "name": "Expectation over several RVs",
+      "category": "multivariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "mv.joint",
+        "uv.expectation"
+      ],
+      "theory_md": "E[g(X,Y)]=∬g(x,y)f(x,y); E[X+Y]=E[X]+E[Y] always.",
+      "generator": {
+        "kind": "expectation_joint",
+        "params": {
+          "ask": [
+            "E_XY",
+            "E_sum"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.conditional_expectation",
+      "name": "Conditional expectation",
+      "category": "multivariate",
+      "exam_weight": 3,
+      "prerequisites": [
+        "mv.conditional_dist",
+        "uv.expectation"
+      ],
+      "theory_md": "E[X|Y=y]; tower/double expectation E[X]=E[E[X|Y]]. Heavily tested.",
+      "generator": {
+        "kind": "conditional_expectation",
+        "params": {
+          "ask": [
+            "cond_expectation",
+            "double_expectation"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.double_expectation_variance",
+      "name": "Law of total variance",
+      "category": "multivariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "mv.conditional_expectation",
+        "uv.variance"
+      ],
+      "theory_md": "Var(X)=E[Var(X|Y)]+Var(E[X|Y]).",
+      "generator": {
+        "kind": "total_variance",
+        "params": {
+          "ask": [
+            "total_variance"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.sums",
+      "name": "Distributions of sums (MGF method)",
+      "category": "multivariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "uv.mgf",
+        "mv.independence_rv"
+      ],
+      "theory_md": "MGF of independent sum = product of MGFs; sums of normals/Poissons/gammas stay in family.",
+      "generator": {
+        "kind": "sum_distribution",
+        "params": {
+          "ask": [
+            "sum_mean_var",
+            "identify_sum_dist"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.transformations_multi",
+      "name": "Transformations of multiple RVs",
+      "category": "multivariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "mv.joint",
+        "uv.transformations"
+      ],
+      "theory_md": "Bivariate change of variables with Jacobian determinant.",
+      "generator": {
+        "kind": "transformations_multi",
+        "params": {
+          "ask": [
+            "min_of_exp",
+            "sum_uniform_prob",
+            "jacobian_abs"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.order_statistics",
+      "name": "Order statistics",
+      "category": "multivariate",
+      "exam_weight": 2,
+      "prerequisites": [
+        "mv.joint",
+        "uv.transformations"
+      ],
+      "theory_md": "Min/max of iid sample; F_max=F^n, F_min=1-(1-F)^n.",
+      "generator": {
+        "kind": "order_statistics",
+        "params": {
+          "n": [
+            2,
+            6
+          ],
+          "ask": [
+            "max_cdf",
+            "min_cdf",
+            "min_max_prob"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.clt",
+      "name": "Central Limit Theorem",
+      "category": "multivariate",
+      "exam_weight": 3,
+      "prerequisites": [
+        "mv.sums",
+        "uv.normal",
+        "uv.variance"
+      ],
+      "theory_md": "Sum/mean of many iid → approx normal; standardize and use normal table. Heavily tested.",
+      "generator": {
+        "kind": "clt",
+        "params": {
+          "n": [
+            20,
+            100
+          ],
+          "ask": [
+            "clt_prob",
+            "clt_sum_prob"
+          ]
+        }
+      }
+    },
+    {
+      "id": "mv.moment_inequalities",
+      "name": "Moment inequalities",
+      "category": "multivariate",
+      "exam_weight": 1,
+      "prerequisites": [
+        "uv.variance",
+        "uv.expectation"
+      ],
+      "theory_md": "Markov and Chebyshev bounds (rarely tested, easy points).",
+      "generator": {
+        "kind": "chebyshev",
+        "params": {
+          "ask": [
+            "chebyshev_bound",
+            "markov_bound"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -27,6 +27,7 @@ chosen by feel.
 | `proofs` | MATH 250 Intro to Advanced Maths | generator + recall | counting/logic generators (inclusion–exclusion 2- & 3-set, power sets, Cartesian, function counts, truth tables) + technique cards |
 | `econ` | ECON 111 Freakonomics | generator + recall | decision generators (opportunity cost, margin, expected value, % change, ROI, elasticity) + concept cards |
 | `examfm` | Exam FM (Financial Mathematics) | generator + recall | compound interest (FV/PV/effective rate), annuities, perpetuity, loan payment + concept cards |
+| `examp` | Exam P (Probability) | generator | 44 concepts, 44 generators — combinatorics, discrete + continuous distributions, expectation/variance/MGF, transforms, joint/marginal/covariance, CLT, order statistics (ported from LearningModel) |
 
 ## Quick start
 

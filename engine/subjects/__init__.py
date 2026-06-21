@@ -36,8 +36,13 @@ SUBJECTS: dict[str, SubjectInfo] = {
         "examfm", "Exam FM — Financial Mathematics",
         "Generator mode: compound interest, annuities, perpetuities, loans.",
     ),
+    "examp": SubjectInfo(
+        "examp", "Exam P — Probability",
+        "Generator mode: combinatorics, distributions, expectation, joint/CLT.",
+    ),
 }
 
+from engine.subjects import examp as _examp  # noqa: E402, F401
 from engine.subjects.databases import generators as _db_gen  # noqa: E402, F401
 from engine.subjects.databases import solve as _db_solve  # noqa: E402, F401
 from engine.subjects.diffeq import generators as _diffeq_gen  # noqa: E402, F401

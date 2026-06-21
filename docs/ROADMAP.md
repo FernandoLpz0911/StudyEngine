@@ -11,7 +11,8 @@ practice, the 85% rule, endowed progress, the Zeigarnik effect).
   modes (generator / objective multiple-choice recall). No self-rating: grade is
   derived from correctness + response time.
 - **Subjects** — MATH 220 Diff Eq, CS 480 Databases, MATH 250 Proofs,
-  ECON 111 Econ, **Exam FM**. 19 generator kinds, all property-tested.
+  ECON 111 Econ, **Exam FM**, **Exam P** (44 concepts ported from LearningModel).
+  60+ generator kinds, all property-tested.
 - **Global interleaved mode** (`engine.cli.study`, default) — weakest-first across
   all subjects, interleaving (down-weights the last subject), warm-up/cool-down
   confidence builders, dopamine pacing toward ~85% success. `--subject X` =
@@ -21,19 +22,13 @@ practice, the 85% rule, endowed progress, the Zeigarnik effect).
 
 ## Next (high value)
 
-1. **Port Exam P from `../LearningModel`.** Bring the probability generators
-   (combinatorics, conditional/Bayes, distributions, expectation/variance, MGFs,
-   transforms, joint/marginal, CLT, order statistics) in as a `examp` subject with
-   worked solutions. Large + the author's live exam — do it carefully, one
-   generator family at a time with answer-key tests. **Top priority.**
-
-2. **Knowledge-graph hierarchy + endowed progress.** Add a `domain` tag
+1. **Knowledge-graph hierarchy + endowed progress.** Add a `domain` tag
    (Domain → Course/subject → Module/category → KC/concept) so the dashboard groups
    Actuarial / Mathematics / Computer Science / Economics. Add an
    `ENDOWED_BASELINE` so a freshly added syllabus shows ~10% familiarity (seeded
    from prerequisite mastery) instead of 0% — "never start at zero."
 
-3. **Global DKT.** Port the PyTorch LSTM knowledge-tracing model from
+2. **Global DKT.** Port the PyTorch LSTM knowledge-tracing model from
    `../LearningModel`, trained on the *global* interaction log across all subjects,
    to predict P(correct) per concept and sharpen weak-concept selection once enough
    history exists. Until the gate is met, FSRS drives selection (already true).
