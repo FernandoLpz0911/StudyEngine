@@ -8,62 +8,18 @@ persists in the SQLite database between runs.
 from __future__ import annotations
 
 import argparse
-import json
 import time
-from dataclasses import dataclass
 
 import numpy as np
 
 import engine.subjects  # noqa: F401  (registers the problem generators)
+from engine import service
 from engine.db import dao
 from engine.db.seed import load_all, load_subject
 from engine.engagement import reward_message
-from engine.feedback.solve import worked_solution
-from engine.generation.base import generate, pick_ask, random_seed
-from engine.grading import derive_grade, grade_answer
-from engine.recall.cards import as_question
 from engine.scheduler import policy, store
+from engine.service import GRADE_LABEL, LETTERS
 from engine.subjects import SUBJECTS
-
-LETTERS = ["a", "b", "c", "d"]
-GRADE_LABEL = {1: "Again", 2: "Hard", 3: "Good", 4: "Easy"}
-
-
-@dataclass
-class StudyItem:
-    kind: str
-    question: str
-    choices: list[str]
-    correct: str
-    explain: list[str]
-    seed: int
-    params: dict
-
-
-def _build_item(concept, rng: np.random.Generator) -> StudyItem:
-    if concept.mode == "generator" and concept.generator:
-        spec = concept.generator
-        ask = pick_ask(spec["params"]["ask"])
-        seed = random_seed()
-        problem = generate(spec["kind"], ask, spec["params"], seed)
-        correct = f"{problem.correct_answer:.3f}"
-        explain = worked_solution(spec["kind"], ask, problem.params)
-        return StudyItem(
-            f"{spec['kind']}:{ask}", problem.statement, problem.choices or [],
-            correct, explain, seed, problem.params,
-        )
-    question = as_question(concept, rng)
-    return StudyItem(
-        "recall", question.question, question.choices, question.correct,
-        [f"Correct answer: {question.correct}"], 0, {},
-    )
-
-
-def _is_correct(raw: str, item: StudyItem) -> bool:
-    raw = raw.strip().lower()
-    if raw in LETTERS and LETTERS.index(raw) < len(item.choices):
-        return item.choices[LETTERS.index(raw)] == item.correct
-    return grade_answer(raw, item.correct)
 
 
 def _prompt(text: str) -> str:
@@ -74,11 +30,8 @@ def _prompt(text: str) -> str:
 
 
 def _run_item(concept, session_id: int, rng: np.random.Generator) -> bool:
-    item = _build_item(concept, rng)
-    item_id = dao.log_shown(
-        session_id, concept.id, concept.subject, item.kind,
-        seed=item.seed, params_json=json.dumps(item.params), correct_answer=item.correct,
-    )
+    item = service.build_item(concept, rng)
+    item_id = service.log_item_shown(session_id, item)
 
     print(f"\n[{concept.name}]  {item.question}")
     note = dao.get_mnemonic(concept.id)
@@ -91,21 +44,20 @@ def _run_item(concept, session_id: int, rng: np.random.Generator) -> bool:
     raw = _prompt("Your answer (letter): ")
     elapsed_ms = int((time.monotonic() - start) * 1000)
 
-    is_correct = _is_correct(raw, item)
-    grade = derive_grade(is_correct, elapsed_ms)
-    verdict = "✓ Correct" if is_correct else f"✗ Incorrect — answer: {item.correct}"
+    correct, grade = service.grade(raw, elapsed_ms, item)
+    verdict = "✓ Correct" if correct else f"✗ Incorrect — answer: {item.correct}"
     print(f"{verdict}   [{GRADE_LABEL[grade]}, {elapsed_ms / 1000:.1f}s]")
     for step in item.explain:
         print(f"   · {step}")
 
-    dao.log_answered(item_id, raw or None, is_correct, grade, elapsed_ms)
+    dao.log_answered(item_id, raw or None, correct, grade, elapsed_ms)
     store.save(store.apply_rating(store.get_or_create(concept.id), grade))
 
-    if not is_correct and note is None:
+    if not correct and note is None:
         hint = _prompt("Add a hint for next time (Enter to skip): ").strip()
         if hint:
             dao.save_mnemonic(concept.id, hint)
-    return is_correct
+    return correct
 
 
 def run(subject: str, n: int) -> None:
