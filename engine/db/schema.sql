@@ -55,5 +55,11 @@ CREATE TABLE IF NOT EXISTS interaction (
     answered_at     TEXT
 );
 
+CREATE TABLE IF NOT EXISTS mnemonic (
+    concept_id  TEXT PRIMARY KEY REFERENCES concept(id),
+    text        TEXT NOT NULL,
+    created_at  TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_concept_subject ON concept(subject);
 CREATE INDEX IF NOT EXISTS idx_interaction_concept ON interaction(concept_id);

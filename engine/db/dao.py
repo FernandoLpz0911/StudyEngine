@@ -179,6 +179,26 @@ def subject_stats(subject: str) -> dict:
     }
 
 
+def save_mnemonic(concept_id: str, text: str) -> None:
+    """Store the learner's own hint for a concept (IKEA effect: they invest)."""
+    now = datetime.now(UTC).isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO mnemonic (concept_id, text, created_at) "
+            "VALUES (?, ?, ?)",
+            (concept_id, text, now),
+        )
+
+
+def get_mnemonic(concept_id: str) -> str | None:
+    """The learner's saved hint for a concept, resurfaced on later encounters."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT text FROM mnemonic WHERE concept_id = ?", (concept_id,)
+        ).fetchone()
+    return row["text"] if row else None
+
+
 def all_concept_ids() -> list[str]:
     """Every concept id across all subjects, sorted (the global DKT index order)."""
     with get_connection() as conn:

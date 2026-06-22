@@ -17,6 +17,7 @@ import numpy as np
 import engine.subjects  # noqa: F401  (registers the problem generators)
 from engine.db import dao
 from engine.db.seed import load_all, load_subject
+from engine.engagement import reward_message
 from engine.feedback.solve import worked_solution
 from engine.generation.base import generate, pick_ask, random_seed
 from engine.grading import derive_grade, grade_answer
@@ -80,6 +81,9 @@ def _run_item(concept, session_id: int, rng: np.random.Generator) -> bool:
     )
 
     print(f"\n[{concept.name}]  {item.question}")
+    note = dao.get_mnemonic(concept.id)
+    if note:
+        print(f"   📝 your note: {note}")
     for letter, choice in zip(LETTERS, item.choices, strict=False):
         print(f"   {letter}) {choice}")
 
@@ -96,6 +100,11 @@ def _run_item(concept, session_id: int, rng: np.random.Generator) -> bool:
 
     dao.log_answered(item_id, raw or None, is_correct, grade, elapsed_ms)
     store.save(store.apply_rating(store.get_or_create(concept.id), grade))
+
+    if not is_correct and note is None:
+        hint = _prompt("Add a hint for next time (Enter to skip): ").strip()
+        if hint:
+            dao.save_mnemonic(concept.id, hint)
     return is_correct
 
 
@@ -109,6 +118,7 @@ def run(subject: str, n: int) -> None:
     rng = np.random.default_rng()
     print(f"\n=== {info.title} ===\n{info.blurb}")
 
+    streak = 0
     for i in range(n):
         selection = policy.select_next(subject)
         if selection is None:
@@ -116,7 +126,10 @@ def run(subject: str, n: int) -> None:
             break
         tag = "NEW" if selection.reason == "new" else "review"
         print(f"\n--- item {i + 1}/{n}  ({tag}) ---", end="")
-        _run_item(selection.concept, session_id, rng)
+        correct = _run_item(selection.concept, session_id, rng)
+        streak = streak + 1 if correct else 0
+        if msg := reward_message(correct, streak, rng):
+            print(f"   {msg}")
 
     dao.close_session(session_id)
     stats = dao.subject_stats(subject)
@@ -153,6 +166,7 @@ def run_global(n: int) -> None:
     last_subject: str | None = None
     recent: list[bool] = []
     touched: set[str] = set()
+    streak = 0
     for i in range(n):
         if dkt_active and i > 0 and i % 5 == 0:
             p_correct = infer.predict(dao.get_interaction_history_timed())
@@ -170,7 +184,11 @@ def run_global(n: int) -> None:
         is_builder = mode == "confidence" and selection.reason == "review"
         builder = " · confidence builder" if is_builder else ""
         print(f"\n--- item {i + 1}/{n}  [{label}]{builder} ---", end="")
-        recent.append(_run_item(concept, session_id, rng))
+        correct = _run_item(concept, session_id, rng)
+        recent.append(correct)
+        streak = streak + 1 if correct else 0
+        if msg := reward_message(correct, streak, rng):
+            print(f"   {msg}")
         last_subject = concept.subject
         touched.add(concept.subject)
 
