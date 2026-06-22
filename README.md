@@ -43,9 +43,12 @@ python -m engine.cli.study --n 12
 python -m engine.cli.study --subject diffeq --n 10
 python -m engine.cli.study --subject examfm
 
-# Progress map: readiness per subject (add --subject X for per-concept mastery).
+# Progress: readiness per subject, grouped by domain (--subject X for per-concept).
 python -m engine.cli.dashboard
 python -m engine.cli.dashboard --subject databases
+
+# Knowledge map: every concept as a glyph that brightens ░▒▓█ with mastery.
+python -m engine.cli.dashboard --map
 
 # Train the global knowledge-tracing model on your whole interaction log.
 # Once it clears the gate, it drives weak-concept selection in global sessions.

@@ -22,37 +22,32 @@ practice, the 85% rule, endowed progress, the Zeigarnik effect).
 - **Global DKT** (`engine.cli.train`) — one PyTorch LSTM trained on the whole
   cross-subject interaction log; once it clears the gate (interactions + AUC) it
   predicts P(correct) per concept and drives weak-concept selection in global
-  sessions. FSRS drives until then.
+  sessions. FSRS drives until then. `--pretrain` cold-starts it on synthetic data.
+- **Knowledge-graph hierarchy + endowed progress** — a `domain` tag groups the
+  dashboard (Actuarial / Mathematics / CS / Economics); `ENDOWED_BASELINE` means a
+  freshly added syllabus reads ~10%, never 0%.
+- **Knowledge map** (`dashboard --map`) — the "unfogging" view: each concept a
+  glyph (░ ▒ ▓ █) that brightens with mastery, grouped by domain.
+- **Engagement** — mnemonics (write a hint on a miss; it resurfaces — IKEA effect)
+  and variable-ratio rewards (occasional praise + streak milestones).
 
-## Next (high value)
+The engine side of the unified-app vision is complete: every cognitive principle
+(interleaving, 85% pacing, endowed progress, the unfogging map, variable rewards,
+IKEA investment) is implemented and tested at the CLI/data layer.
 
-1. **Knowledge-graph hierarchy + endowed progress.** Add a `domain` tag
-   (Domain → Course/subject → Module/category → KC/concept) so the dashboard groups
-   Actuarial / Mathematics / Computer Science / Economics. Add an
-   `ENDOWED_BASELINE` so a freshly added syllabus shows ~10% familiarity (seeded
-   from prerequisite mastery) instead of 0% — "never start at zero."
+## Later (a graphical client — out of scope for a Python CLI)
 
-2. **DKT pretraining on synthetic data** (optional). Port LearningModel's synthetic
-   warm-up so the model is useful before the real-interaction gate is met — a
-   cold-start boost. FSRS already covers this window, so it is a nicety.
+These need a real UI and are a separate frontend project over this same engine and
+SQLite (the data + APIs are already here):
 
-## Later (needs a real UI — CLI can't express these well)
-
-4. **Knowledge-map visualization (the "unfogging" map).** Render the concept graph
-   as nodes that brighten with mastery and dim as the forgetting curve decays
-   (Zeigarnik "repair your map" itch). The dashboard's per-concept mastery already
-   provides the data.
-
-5. **Engagement mechanics.** Variable-reward animations on milestones, "juicy"
-   micro-interactions, the IKEA effect (let the user attach a one-line mnemonic to
-   a missed item and resurface it), frictionless "Start Daily Optimization" button.
-
-6. **Analog bridge / cross-platform.** "Paper mode" for heavy problems (dim screen
-   → solve on paper → reveal → objective self-check), and a Flutter/web client over
-   the same engine with synced global state.
+- **Graphical knowledge map** — animated node graph instead of glyph rows; nodes
+  visibly dim as the forgetting curve decays (Zeigarnik "repair your map" itch).
+- **Juicy reward animations + haptics** — the variable-reward *logic* exists; the
+  satisfying visuals/sound/vibration are GUI concerns.
+- **Analog bridge / Flutter** — "paper mode" (dim → solve on paper → reveal →
+  objective self-check) and a cross-platform Flutter/web client with synced state.
 
 ## Notes
 
 - `../LearningModel` (Exam P, with DKT + a React dashboard) is the single-subject
-  ancestor; this repo generalizes it. The plan above folds its Exam P content and
-  DKT into the unified app rather than running two tools.
+  ancestor; its Exam P content and DKT are now folded into this unified app.
