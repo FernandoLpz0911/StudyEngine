@@ -19,13 +19,21 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Train the global DKT model.")
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--hidden", type=int, default=64)
+    parser.add_argument(
+        "--pretrain", action="store_true",
+        help="cold-start: train on synthetic data and mark the checkpoint pretrained",
+    )
     args = parser.parse_args()
 
     load_all()
     from engine.tracing import infer
-    from engine.tracing.train import train
 
-    result = train(n_epochs=args.epochs, hidden=args.hidden)
+    if args.pretrain:
+        from engine.tracing.pretrain import pretrain
+        result = pretrain(n_epochs=args.epochs, hidden=args.hidden)
+    else:
+        from engine.tracing.train import train
+        result = train(n_epochs=args.epochs, hidden=args.hidden)
     if result.get("error"):
         print(f"Not enough data yet: {result['error']}")
     else:
