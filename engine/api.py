@@ -21,9 +21,10 @@ from engine.analytics.readiness import overall_progress, subject_readiness
 from engine.config import GLOBAL_WARMUP
 from engine.db import dao
 from engine.db.seed import load_all
-from engine.engagement import reward_message
+from engine.engagement import combo_label, reward_message
 from engine.scheduler import policy, store
 from engine.service import GRADE_LABEL
+from engine.stats import profile
 from engine.subjects import SUBJECTS
 
 _rng = np.random.default_rng()
@@ -38,8 +39,11 @@ class _Session:
     last_subject: str | None = None
     index: int = 0
     streak: int = 0
+    best_streak: int = 0
+    xp_session: int = 0
     recent: list[bool] = field(default_factory=list)
     items: dict = field(default_factory=dict)
+    retry_queue: list[tuple[str, int]] = field(default_factory=list)
 
 
 _sessions: dict[int, _Session] = {}
@@ -94,11 +98,36 @@ def start_session(body: StartIn) -> dict:
     return {"session_id": db_id, "scope": body.scope, "dkt_active": sess.dkt_active}
 
 
+def _days_until(due) -> int | None:
+    """Whole days until a card's next review (the 'back in N days' open loop)."""
+    if due is None:
+        return None
+    from datetime import UTC, datetime
+    now = datetime.now(UTC)
+    d = due if due.tzinfo else due.replace(tzinfo=UTC)
+    return max(0, (d - now).days)
+
+
+def _pop_retry(sess: _Session, force: bool) -> policy.Selection | None:
+    """Serve a queued missed concept whose spacing gap has elapsed (errorful retry)."""
+    for i, (cid, ready) in enumerate(sess.retry_queue):
+        if force or sess.index >= ready:
+            concept = dao.get_concept(cid)
+            sess.retry_queue.pop(i)
+            if concept is not None:
+                return policy.Selection(concept, "retry")
+    return None
+
+
 @app.get("/session/{session_id}/next")
 def next_item(session_id: int) -> dict:
     sess = _sessions.get(session_id)
     if sess is None:
         raise HTTPException(404, "unknown session")
+
+    selection = _pop_retry(sess, force=False)
+    if selection is not None:
+        return _serve(sess, selection)
 
     if sess.scope == "global":
         if sess.dkt_active and sess.index % 5 == 0:
@@ -114,8 +143,27 @@ def next_item(session_id: int) -> dict:
         selection = policy.select_next(sess.scope)
 
     if selection is None:
-        return {"done": True}
+        selection = _pop_retry(sess, force=True)  # drain pending re-tests before ending
+    if selection is None:
+        answered = len(sess.recent)
+        correct = sum(sess.recent)
+        return {
+            "done": True,
+            "summary": {
+                "answered": answered,
+                "correct": correct,
+                "accuracy": round(correct / answered, 3) if answered else 0.0,
+                "best_streak": sess.best_streak,
+                "xp_gained": sess.xp_session,
+                **profile(),
+            },
+        }
 
+    return _serve(sess, selection)
+
+
+def _serve(sess: _Session, selection: policy.Selection) -> dict:
+    """Build, log, and return one study item for a chosen concept."""
     item = service.build_item(selection.concept, _rng, selection.reason)
     item_id = service.log_item_shown(sess.db_id, item)
     sess.items[item_id] = item
@@ -131,6 +179,7 @@ def next_item(session_id: int) -> dict:
         "question": item.question,
         "choices": item.choices,
         "note": dao.get_mnemonic(item.concept_id),
+        "theory": item.theory,
     }
 
 
@@ -145,11 +194,31 @@ def submit_answer(body: AnswerIn) -> dict:
 
     correct, grade = service.grade(body.answer, body.elapsed_ms, item)
     dao.log_answered(body.item_id, body.answer or None, correct, grade, body.elapsed_ms)
-    store.save(store.apply_rating(store.get_or_create(item.concept_id), grade))
+    new_state = store.apply_rating(store.get_or_create(item.concept_id), grade)
+    store.save(new_state)
+    next_review_days = _days_until(new_state.due)
+
+    if not correct and item.reason != "retry":
+        from engine.config import RETRY_GAP
+        sess.retry_queue.append((item.concept_id, sess.index + RETRY_GAP))
 
     sess.recent.append(correct)
     sess.last_subject = item.subject
     sess.streak = sess.streak + 1 if correct else 0
+    sess.best_streak = max(sess.best_streak, sess.streak)
+    xp_gained = 0
+    if correct:
+        concept = dao.get_concept(item.concept_id)
+        xp_gained = grade * (concept.exam_weight if concept else 1)
+        sess.xp_session += xp_gained
+
+    from engine.config import FATIGUE_THRESHOLD, FATIGUE_WINDOW
+    window = sess.recent[-FATIGUE_WINDOW:]
+    fatigued = (
+        len(window) >= FATIGUE_WINDOW
+        and sum(window) / len(window) < FATIGUE_THRESHOLD
+    )
+    why_wrong = "" if correct else service.explanation_for(body.answer, item)
     return {
         "is_correct": correct,
         "correct_answer": item.correct,
@@ -157,6 +226,13 @@ def submit_answer(body: AnswerIn) -> dict:
         "label": GRADE_LABEL[grade],
         "steps": item.explain,
         "reward": reward_message(correct, sess.streak, _rng),
+        "streak": sess.streak,
+        "combo": combo_label(sess.streak),
+        "xp_gained": xp_gained,
+        "next_review_days": next_review_days,
+        "theory": item.theory,
+        "why_wrong": why_wrong,
+        "fatigued": fatigued,
         "ask_mnemonic": (not correct) and dao.get_mnemonic(item.concept_id) is None,
     }
 
@@ -165,6 +241,19 @@ def submit_answer(body: AnswerIn) -> dict:
 def save_mnemonic(body: MnemonicIn) -> dict:
     dao.save_mnemonic(body.concept_id, body.text)
     return {"ok": True}
+
+
+@app.get("/stats")
+def stats() -> dict:
+    """Streak, level, XP, daily-goal progress, reviews waiting — the home HUD."""
+    return profile()
+
+
+@app.get("/me")
+def me_endpoint() -> dict:
+    """Full learner profile: stats, achievements, personal bests, leeches, heatmap."""
+    from engine.stats import me
+    return me()
 
 
 @app.get("/progress")

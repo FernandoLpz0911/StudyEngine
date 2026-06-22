@@ -32,3 +32,7 @@ def init_db() -> None:
         db_dir.mkdir(parents=True, exist_ok=True)
     with get_connection() as conn:
         conn.executescript(SCHEMA_PATH.read_text())
+        # Idempotent migration for databases created before a column was added.
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(concept)")}
+        if "card_explanations" not in cols:
+            conn.execute("ALTER TABLE concept ADD COLUMN card_explanations TEXT")

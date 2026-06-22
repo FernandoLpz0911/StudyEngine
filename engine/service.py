@@ -6,7 +6,7 @@ and objective grading have one implementation.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -34,6 +34,8 @@ class StudyItem:
     explain: list[str]
     seed: int
     params: dict
+    theory: str | None = None
+    explanations: dict = field(default_factory=dict)
 
 
 def build_item(concept: Concept, rng: np.random.Generator, reason: str = "") -> StudyItem:
@@ -48,13 +50,25 @@ def build_item(concept: Concept, rng: np.random.Generator, reason: str = "") -> 
             f"{spec['kind']}:{ask}", problem.statement, problem.choices or [],
             f"{problem.correct_answer:.3f}",
             worked_solution(spec["kind"], ask, problem.params), seed, problem.params,
+            theory=concept.theory_md,
         )
     question = as_question(concept, rng)
     return StudyItem(
         concept.id, concept.name, concept.subject, reason, "recall",
         question.question, question.choices, question.correct,
         [f"Correct answer: {question.correct}"], 0, {},
+        theory=concept.theory_md, explanations=concept.card_explanations,
     )
+
+
+def explanation_for(answer: str, item: StudyItem) -> str:
+    """Why the learner's wrong choice is wrong, if the author supplied one."""
+    if not item.explanations:
+        return ""
+    answer = answer.strip()
+    if answer.lower() in LETTERS and LETTERS.index(answer.lower()) < len(item.choices):
+        answer = item.choices[LETTERS.index(answer.lower())]
+    return item.explanations.get(answer, "")
 
 
 def log_item_shown(session_id: int, item: StudyItem) -> int:

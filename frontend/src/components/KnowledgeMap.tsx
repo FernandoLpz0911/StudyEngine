@@ -28,8 +28,29 @@ export default function KnowledgeMap() {
   if (!p) return <div className="muted">Loading…</div>;
   const byDomain = groupByDomain(p.subjects);
 
+  const concepts = p.subjects.flatMap((s) => s.concepts);
+  const total = concepts.length || 1;
+  const unfogged = concepts.reduce((a, c) => a + c.mastery, 0) / total;
+  const lit = concepts.filter((c) => c.mastery > 0).length;
+  const mastered = p.subjects.reduce((a, s) => a + s.mastered, 0);
+  const foggy = total - lit;
+
   return (
     <div className="map">
+      <section className="unfog-hero">
+        <div className="unfog-pct">{Math.round(unfogged * 100)}%</div>
+        <div className="unfog-label">of your knowledge map unfogged</div>
+        <div className="bar">
+          <div
+            className="bar-fill"
+            style={{ width: `${Math.round(unfogged * 100)}%`, background: "var(--green)" }}
+          />
+        </div>
+        <div className="unfog-stats muted small">
+          🟢 {mastered} mastered · ✨ {lit}/{total} lit ·{" "}
+          {foggy > 0 ? `🌫️ ${foggy} still in the fog` : "🎉 every concept touched"}
+        </div>
+      </section>
       <p className="muted">
         Each node is a concept — it brightens as you master it and dims as it fades.
       </p>

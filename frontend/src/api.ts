@@ -1,5 +1,13 @@
 /** Client for the StudyEngine FastAPI backend (proxied at /api by Vite). */
-import type { AnswerResult, NextItem, Progress, Subject, SubjectProgress } from "./types";
+import type {
+  AnswerResult,
+  Me,
+  NextItem,
+  Profile,
+  Progress,
+  Subject,
+  SubjectProgress,
+} from "./types";
 
 const BASE = "/api";
 
@@ -33,6 +41,8 @@ export const api = {
     }),
   mnemonic: (conceptId: string, text: string) =>
     post<{ ok: boolean }>("/mnemonic", { concept_id: conceptId, text }),
+  stats: () => get<Profile>("/stats"),
+  me: () => get<Me>("/me"),
   progress: () => get<Progress>("/progress"),
   subjectProgress: (subject: string) => get<SubjectProgress>(`/progress/${subject}`),
 };

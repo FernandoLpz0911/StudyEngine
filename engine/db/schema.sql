@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS concept (
     card_question   TEXT,                   -- recall prompt (objective, multiple-choice)
     card_answer     TEXT,                   -- the one correct option
     card_distractors TEXT,                  -- JSON array of wrong options
+    card_explanations TEXT,                 -- JSON {distractor: why-it's-wrong}
     theory_md       TEXT,
     exam_weight     INTEGER NOT NULL DEFAULT 1
 );
@@ -63,3 +64,5 @@ CREATE TABLE IF NOT EXISTS mnemonic (
 
 CREATE INDEX IF NOT EXISTS idx_concept_subject ON concept(subject);
 CREATE INDEX IF NOT EXISTS idx_interaction_concept ON interaction(concept_id);
+CREATE INDEX IF NOT EXISTS idx_interaction_answered ON interaction(answered_at);
+CREATE INDEX IF NOT EXISTS idx_card_due ON card_state(due);

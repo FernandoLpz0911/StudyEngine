@@ -21,6 +21,18 @@ def _pct(fraction: float) -> str:
     return f"{round(fraction * 100):3d}%"
 
 
+def _print_hud() -> None:
+    from engine import stats
+    p = stats.profile()
+    streak = f"🔥 {p['streak_days']}-day streak" if p["streak_days"] else "no streak yet"
+    goal = f"{p['answered_today']}/{p['daily_goal']}"
+    waiting = f" · {p['due_count']} review(s) due" if p["due_count"] else ""
+    print(
+        f"{streak} · ⭐ Lvl {p['level']} ({p['xp_into_level']}/{p['xp_for_next']} XP) "
+        f"· 🎯 {goal} today{waiting}\n"
+    )
+
+
 def _dkt_status_line() -> str:
     from engine.config import DKT_MIN_INTERACTIONS
     from engine.db import dao
@@ -72,6 +84,12 @@ def _by_domain(subjects: list[dict]) -> dict[str, list[dict]]:
 
 def _render_map(progress: dict) -> None:
     print("=== Knowledge Map  (░ foggy · ▒ · ▓ · █ mastered) ===")
+    concepts = [c for s in progress["subjects"] for c in s["concepts"]]
+    total = len(concepts) or 1
+    unfogged = sum(c["mastery"] for c in concepts) / total
+    foggy = sum(1 for c in concepts if c["mastery"] == 0)
+    tail = f"{foggy} still in the fog" if foggy else "every concept touched 🎉"
+    print(f"[{_bar(unfogged)}] {_pct(unfogged)} unfogged · {tail}")
     print(_dkt_status_line())
     for domain in sorted(_by_domain(progress["subjects"])):
         print(f"\n{domain}")
@@ -98,6 +116,7 @@ def run(subject: str | None = None, show_map: bool = False) -> None:
         return
 
     print("=== StudyEngine — Progress Dashboard ===")
+    _print_hud()
     print(
         f"Combined readiness: [{_bar(progress['combined_readiness'])}] "
         f"{_pct(progress['combined_readiness'])}"
@@ -107,7 +126,31 @@ def run(subject: str | None = None, show_map: bool = False) -> None:
         print(f"\n=== {domain} ===")
         for s in _by_domain(progress["subjects"])[domain]:
             _print_subject_summary(s)
+    _print_extras()
     print("\n--subject <key> for per-concept detail · --map for the knowledge map.")
+
+
+def _print_extras() -> None:
+    from engine import stats
+    from engine.db import dao
+    bests = dao.personal_bests()
+    fast = f"{bests['fastest_ms'] / 1000:.1f}s" if bests["fastest_ms"] else "—"
+    print(
+        f"\n=== Personal bests ===\n  fastest {fast} · best day {bests['best_day']} "
+        f"· longest run {bests['longest_run']}"
+    )
+    earned = [a for a in stats.achievements() if a["earned"]]
+    locked = [a for a in stats.achievements() if not a["earned"]]
+    print("\n=== Achievements ===")
+    print("  " + (" ".join(a["name"] for a in earned) if earned else "none yet"))
+    if locked:
+        nxt = locked[0]
+        print(f"  next: {nxt['name']} — {nxt['desc']}")
+    leeches = dao.leeches()
+    if leeches:
+        print("\n=== ⚠️ Leeches (repeatedly missed — add a mnemonic) ===")
+        for ll in leeches[:5]:
+            print(f"  {ll['lapses']}× {ll['name']} ({ll['subject']})")
 
 
 def main() -> None:

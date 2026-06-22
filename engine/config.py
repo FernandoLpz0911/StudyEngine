@@ -30,6 +30,32 @@ MASTERY_ACCURACY_WINDOW: int = int(os.getenv("MASTERY_ACCURACY_WINDOW", "20"))
 # hill). Real mastery and the "mastered" count still use measured signals only.
 ENDOWED_BASELINE: float = float(os.getenv("ENDOWED_BASELINE", "0.1"))
 
+# Streak day boundary: hours offset from UTC for "today" so the streak rolls over
+# at the learner's local midnight, not UTC's.
+STREAK_TZ_OFFSET: float = float(os.getenv("STREAK_TZ_OFFSET", "0"))
+
+# Streak freeze: one earned per this many distinct study days; each earned freeze
+# silently bridges one missed day so a single slip never resets the streak.
+STREAK_FREEZE_EARN_DAYS: int = int(os.getenv("STREAK_FREEZE_EARN_DAYS", "5"))
+
+# A concept with at least this many lapses is a "leech" — surfaced for special
+# attention (a mnemonic / reformulation) since it is eating disproportionate effort.
+LEECH_LAPSES: int = int(os.getenv("LEECH_LAPSES", "4"))
+
+# Fatigue guard: if accuracy over the last FATIGUE_WINDOW answers drops below
+# FATIGUE_THRESHOLD, suggest ending the session (quality over grind).
+FATIGUE_WINDOW: int = int(os.getenv("FATIGUE_WINDOW", "5"))
+FATIGUE_THRESHOLD: float = float(os.getenv("FATIGUE_THRESHOLD", "0.4"))
+
+# Errorful-retrieval retry: a missed concept is re-queued to reappear this many
+# items later in the same session. Re-testing a fresh miss after a short, filled
+# gap (not immediately) is among the strongest known boosts to retention.
+RETRY_GAP: int = int(os.getenv("RETRY_GAP", "3"))
+
+# Daily-goal target: items answered per day that fills the progress ring and keeps
+# the streak alive. Small enough to hit on a busy day (habit > heroics).
+DAILY_GOAL: int = int(os.getenv("DAILY_GOAL", "20"))
+
 # Global interleaved sessions: down-weight a candidate from the subject just
 # studied so consecutive items come from different subjects (interleaving). Each
 # session opens with WARMUP and closes with COOLDOWN "confidence builders" (items

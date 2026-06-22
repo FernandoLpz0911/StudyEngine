@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Dashboard from "./components/Dashboard";
 import KnowledgeMap from "./components/KnowledgeMap";
+import NudgeBell from "./components/NudgeBell";
 import StudyView from "./components/StudyView";
 import "./App.css";
 
@@ -29,6 +30,8 @@ export default function App() {
             </button>
           ))}
         </nav>
+        <div className="app-spacer" />
+        <NudgeBell />
       </header>
       <main className="app-main">
         {tab === "study" && <StudyView />}
