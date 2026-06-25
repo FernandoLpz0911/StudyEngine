@@ -1,4 +1,8 @@
 """DKT synthetic pretraining + the pretrained-bypasses-gate behaviour."""
+import pytest
+
+pytest.importorskip("torch")  # DKT is an optional extra (requirements-dkt.txt)
+
 import torch
 
 import engine.subjects  # noqa: F401  (registers concepts)

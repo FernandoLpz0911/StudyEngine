@@ -2,6 +2,10 @@
 import random
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
+pytest.importorskip("torch")  # DKT is an optional extra (requirements-dkt.txt)
+
 import engine.subjects  # noqa: F401  (registers concepts)
 from engine.db import dao
 from engine.scheduler import policy, store

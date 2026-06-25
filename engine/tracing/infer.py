@@ -11,12 +11,24 @@ checkpoint_meta()    Reads epoch/val_auc/n_concepts from the saved checkpoint.
 """
 from __future__ import annotations
 
-import torch
+from pathlib import Path
 
-from engine.tracing.concept_index import load as load_index
-from engine.tracing.dataset import Step, encode_history
-from engine.tracing.model import DKT
-from engine.tracing.train import _BEST_CHECKPOINT
+# torch (and the DKT stack) is an optional extra. The core engine — generators,
+# FSRS scheduling, recall, analytics, the CLI and HTTP API — runs without it; when
+# torch is absent, knowledge-tracing simply stays inactive and FSRS drives
+# selection. Install requirements-dkt.txt to enable it.
+try:
+    import torch
+
+    from engine.tracing.concept_index import load as load_index
+    from engine.tracing.dataset import Step, encode_history
+    from engine.tracing.model import DKT
+
+    _TORCH_OK = True
+except ImportError:
+    _TORCH_OK = False
+
+_BEST_CHECKPOINT = Path(__file__).parent / "checkpoints" / "dkt_best.pt"
 
 
 def _load_model(device: torch.device) -> tuple[DKT, dict[str, int]] | None:
@@ -43,9 +55,9 @@ def predict(
     """Given a timed (concept_id, is_correct, time_days) history, return
     {concept_id: P(correct)} for all concepts.
 
-    Returns None if no checkpoint exists or history is empty.
+    Returns None if torch is unavailable, no checkpoint exists, or history is empty.
     """
-    if not history:
+    if not _TORCH_OK or not history:
         return None
 
     if device_str == "auto":
@@ -100,8 +112,8 @@ def dkt_is_active() -> bool:
 
 
 def checkpoint_meta() -> dict | None:
-    """Return metadata from the best checkpoint, or None if none exists."""
-    if not _BEST_CHECKPOINT.exists():
+    """Return metadata from the best checkpoint, or None if unavailable."""
+    if not _TORCH_OK or not _BEST_CHECKPOINT.exists():
         return None
     ckpt = torch.load(_BEST_CHECKPOINT, map_location="cpu", weights_only=True)
     return {

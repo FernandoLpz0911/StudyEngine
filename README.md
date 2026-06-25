@@ -35,6 +35,11 @@ chosen by feel.
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
+# Optional: the neural knowledge-tracing model (DKT). The whole engine runs
+# without it — FSRS drives selection until it's installed. CPU-only build avoids
+# the ~1.5 GB CUDA wheels:
+# pip install -r requirements-dkt.txt --extra-index-url https://download.pytorch.org/whl/cpu
+
 # Default: one interleaved session across ALL subjects (global spaced repetition).
 # Weakest-first, subjects interleaved, warm-up/cool-down confidence builders.
 python -m engine.cli.study --n 12

@@ -1,0 +1,8 @@
+# Optional deep knowledge-tracing (DKT) extra. The core engine runs without this;
+# install it only to train/run the neural concept-mastery model.
+#
+# CPU-only torch (avoids the ~1.5 GB NVIDIA CUDA wheels). Install with:
+#   pip install -r requirements-dkt.txt --extra-index-url https://download.pytorch.org/whl/cpu
+# For a CUDA GPU build, drop the --extra-index-url and use plain PyPI.
+torch>=2.0
+scikit-learn>=1.3
