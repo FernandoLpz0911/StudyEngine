@@ -97,6 +97,10 @@ def _run_item(concept, session_id: int, rng: np.random.Generator, reason: str = 
     item_id = service.log_item_shown(session_id, item)
 
     print(f"\n[{concept.name}]  {item.question}")
+    # First time seeing this concept — give the background up front so a brand-new
+    # topic isn't a cold guess.
+    if reason == "new" and item.theory:
+        print(f"   📖 Background: {item.theory}")
     note = dao.get_mnemonic(concept.id)
     if note:
         print(f"   📝 your note: {note}")
@@ -112,14 +116,14 @@ def _run_item(concept, session_id: int, rng: np.random.Generator, reason: str = 
     print(f"{verdict}   [{GRADE_LABEL[grade]}, {elapsed_ms / 1000:.1f}s]")
     for step in item.explain:
         print(f"   · {step}")
-    # Just-in-time correction: on a miss, surface the concept's theory right when
-    # it is most encodable, before the spaced re-test brings it back.
     if not correct:
         why = service.explanation_for(raw, item)
         if why:
             print(f"   ✗ {why}")
-        if item.theory:
-            print(f"   📖 {item.theory}")
+    # Surface the concept explanation right or wrong (skip if it was already shown
+    # as up-front background on a brand-new item).
+    if item.theory and reason != "new":
+        print(f"   📖 {item.theory}")
 
     dao.log_answered(item_id, raw or None, correct, grade, elapsed_ms)
     new_state = store.apply_rating(store.get_or_create(concept.id), grade)

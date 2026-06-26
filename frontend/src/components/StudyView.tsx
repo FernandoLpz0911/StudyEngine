@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { AnswerResult, NextItem, Profile, SessionSummary, Subject } from "../types";
+import Markdown from "./Markdown";
+import Tex from "./Math";
+import QuestionTimer from "./QuestionTimer";
 
 const REASON_LABEL: Record<string, string> = {
   new: "🌱 New",
@@ -107,9 +110,9 @@ function Summary({
   );
 }
 
-export default function StudyView() {
+export default function StudyView({ initialScope = "global" }: { initialScope?: string }) {
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [scope, setScope] = useState("global");
+  const [scope, setScope] = useState(initialScope);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [dktActive, setDktActive] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -273,13 +276,18 @@ export default function StudyView() {
       <div className="meta">
         <span className="concept">{item.concept_name}</span>
         {item.reason && <span className="reason">{REASON_LABEL[item.reason] ?? item.reason}</span>}
+        {item.subject === "examp" && (
+          <QuestionTimer startedAt={shownAt.current} frozen={!!feedback} />
+        )}
       </div>
       {item.note && <div className="note">📝 your note: {item.note}</div>}
-      <div className="question">{item.question}</div>
+      <div className="question"><Tex>{item.question}</Tex></div>
       {item.theory && (
-        <details className="theory">
-          <summary>📖 Learn this concept</summary>
-          {item.theory}
+        <details className="theory" key={item.item_id} open={item.reason === "new"}>
+          <summary>
+            {item.reason === "new" ? "📖 Background (new topic)" : "📖 Learn this concept"}
+          </summary>
+          <Markdown>{item.theory}</Markdown>
         </details>
       )}
 
@@ -306,10 +314,13 @@ export default function StudyView() {
             </div>
           )}
           {feedback.why_wrong && (
-            <div className="theory-jit">✗ {feedback.why_wrong}</div>
+            <div className="theory-jit">✗ <Tex>{feedback.why_wrong}</Tex></div>
           )}
-          {!feedback.is_correct && feedback.theory && (
-            <div className="theory-jit">📖 {feedback.theory}</div>
+          {feedback.theory && (
+            <details className="theory" open={!feedback.is_correct}>
+              <summary>📖 Concept explanation</summary>
+              <Markdown>{feedback.theory}</Markdown>
+            </details>
           )}
           {feedback.fatigued && (
             <div className="note">😮‍💨 Accuracy dipping — a short break may help.</div>
@@ -322,7 +333,7 @@ export default function StudyView() {
           {feedback.steps.length > 0 && (
             <ol className="steps">
               {feedback.steps.map((s, i) => (
-                <li key={i}>{s}</li>
+                <li key={i}><Tex>{s}</Tex></li>
               ))}
             </ol>
           )}

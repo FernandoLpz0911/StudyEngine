@@ -12,7 +12,7 @@ def _client():
 class TestSubjects:
     def test_lists_all_subjects(self, db):
         with _client() as client:
-            data = client.get("/subjects").json()
+            data = client.get("/api/subjects").json()
         keys = {s["key"] for s in data}
         assert {"examp", "examfm", "diffeq", "databases", "proofs", "econ"} <= keys
 
@@ -20,14 +20,14 @@ class TestSubjects:
 class TestStudyLoop:
     def test_global_next_and_answer(self, db):
         with _client() as client:
-            sid = client.post("/session", json={"scope": "global"}).json()["session_id"]
-            nxt = client.get(f"/session/{sid}/next").json()
+            sid = client.post("/api/session", json={"scope": "global"}).json()["session_id"]
+            nxt = client.get(f"/api/session/{sid}/next").json()
             assert nxt["done"] is False
             assert nxt["choices"] and nxt["question"]
 
             # answer correctly using the server-side stored correct value
             correct = api._sessions[sid].items[nxt["item_id"]].correct
-            res = client.post("/answer", json={
+            res = client.post("/api/answer", json={
                 "session_id": sid, "item_id": nxt["item_id"],
                 "answer": correct, "elapsed_ms": 3000,
             }).json()
@@ -38,10 +38,10 @@ class TestStudyLoop:
     def test_wrong_answer_offers_mnemonic_and_solution(self, db):
         with _client() as client:
             sid = client.post(
-                "/session", json={"scope": "diffeq"}
+                "/api/session", json={"scope": "diffeq"}
             ).json()["session_id"]
-            nxt = client.get(f"/session/{sid}/next").json()
-            res = client.post("/answer", json={
+            nxt = client.get(f"/api/session/{sid}/next").json()
+            res = client.post("/api/answer", json={
                 "session_id": sid, "item_id": nxt["item_id"],
                 "answer": "definitely-wrong", "elapsed_ms": 1000,
             }).json()
@@ -51,20 +51,20 @@ class TestStudyLoop:
 
     def test_unknown_session_404(self, db):
         with _client() as client:
-            assert client.get("/session/99999/next").status_code == 404
+            assert client.get("/api/session/99999/next").status_code == 404
 
 
 class TestProgress:
     def test_progress_has_readiness_and_dkt(self, db):
         with _client() as client:
-            data = client.get("/progress").json()
+            data = client.get("/api/progress").json()
         assert "combined_readiness" in data
         assert data["dkt"]["active"] is False
         assert len(data["subjects"]) == 6
 
     def test_subject_progress_has_concept_mastery(self, db):
         with _client() as client:
-            data = client.get("/progress/examp").json()
+            data = client.get("/api/progress/examp").json()
         assert data["n_concepts"] == 44
         assert all("displayed" in c for c in data["concepts"])
 
@@ -73,7 +73,7 @@ class TestMnemonic:
     def test_save_mnemonic(self, db):
         with _client() as client:
             res = client.post(
-                "/mnemonic", json={"concept_id": "diffeq.separable", "text": "sep+int"}
+                "/api/mnemonic", json={"concept_id": "diffeq.separable", "text": "sep+int"}
             ).json()
         assert res["ok"] is True
         assert dao.get_mnemonic("diffeq.separable") == "sep+int"

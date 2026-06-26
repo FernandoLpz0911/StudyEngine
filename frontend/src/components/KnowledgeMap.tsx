@@ -19,7 +19,7 @@ function groupByDomain(subjects: SubjectProgress[]): Record<string, SubjectProgr
   return grouped;
 }
 
-export default function KnowledgeMap() {
+export default function KnowledgeMap({ onStudy }: { onStudy: (scope: string) => void }) {
   const [p, setP] = useState<Progress | null>(null);
   useEffect(() => {
     api.progress().then(setP).catch(() => {});
@@ -59,9 +59,10 @@ export default function KnowledgeMap() {
           <h3>{domain}</h3>
           {byDomain[domain].map((s) => (
             <div className="map-subject" key={s.subject}>
-              <div className="map-label">
+              <button className="map-label map-label-btn" onClick={() => onStudy(s.subject)}>
                 {s.subject} <span className="muted">({Math.round(s.readiness * 100)}%)</span>
-              </div>
+                <span className="muted small"> · study →</span>
+              </button>
               <div className="nodes">
                 {s.concepts.map((c) => (
                   <span

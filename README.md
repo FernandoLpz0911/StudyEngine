@@ -60,7 +60,7 @@ python -m engine.cli.dashboard --map
 python -m engine.cli.train
 ```
 
-## Web app
+## Graphical app
 
 The CLI *is* the engine; a small FastAPI layer (`engine/api.py`) exposes it over
 HTTP and a React/Vite app (`frontend/`) talks to that — same scheduler, generators,
@@ -68,15 +68,21 @@ DKT, and analytics, no duplication. Study, Dashboard, and Knowledge Map (the
 "unfogging" node grid) tabs.
 
 ```bash
-# 1. backend (same engine, over HTTP):
-uvicorn engine.api:app --port 8000
-
-# 2. frontend (separate terminal):
-cd frontend && npm install && npm run dev      # open http://localhost:5173
+# One command: builds the UI (first run, needs Node), serves UI + API from one
+# process, and opens your browser. No second terminal.
+python -m engine.cli.app                        # → http://127.0.0.1:8000
 ```
 
-Vite proxies `/api/*` to the backend on :8000. Endpoints: `/subjects`, `/session`,
-`/session/{id}/next`, `/answer`, `/mnemonic`, `/progress`, `/progress/{subject}`.
+Dev mode with hot-reload (two terminals) is still available:
+
+```bash
+uvicorn engine.api:app --port 8000              # backend
+cd frontend && npm install && npm run dev       # frontend → http://localhost:5173
+```
+
+API is served under `/api/*`: `/api/subjects`, `/api/session`,
+`/api/session/{id}/next`, `/api/answer`, `/api/mnemonic`, `/api/stats`, `/api/me`,
+`/api/progress`, `/api/progress/{subject}`.
 
 Progress persists in `data/app.db` between runs. The unified session is the point:
 the scheduler sees your whole course load at once and serves the most critical

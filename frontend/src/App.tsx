@@ -9,11 +9,17 @@ type Tab = "study" | "dashboard" | "map";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("study");
+  const [studyScope, setStudyScope] = useState("global");
   const tabs: [Tab, string][] = [
     ["study", "Study"],
     ["dashboard", "Dashboard"],
     ["map", "Knowledge Map"],
   ];
+
+  const study = (scope: string) => {
+    setStudyScope(scope);
+    setTab("study");
+  };
 
   return (
     <div className="app">
@@ -34,9 +40,9 @@ export default function App() {
         <NudgeBell />
       </header>
       <main className="app-main">
-        {tab === "study" && <StudyView />}
-        {tab === "dashboard" && <Dashboard />}
-        {tab === "map" && <KnowledgeMap />}
+        {tab === "study" && <StudyView key={studyScope} initialScope={studyScope} />}
+        {tab === "dashboard" && <Dashboard onStudy={study} />}
+        {tab === "map" && <KnowledgeMap onStudy={study} />}
       </main>
     </div>
   );

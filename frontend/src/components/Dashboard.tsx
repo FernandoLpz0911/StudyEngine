@@ -2,9 +2,24 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { Me, Progress, SubjectProgress } from "../types";
 
-function Bar({ frac }: { frac: number }) {
+const SUBJECT_ICON: Record<string, string> = {
+  examp: "🎲",
+  examfm: "💰",
+  diffeq: "📈",
+  databases: "🗄️",
+  proofs: "📐",
+  econ: "📊",
+};
+
+function Bar({ frac, started = true }: { frac: number; started?: boolean }) {
   const pct = Math.round(frac * 100);
-  const color = frac >= 0.7 ? "var(--green)" : frac >= 0.4 ? "var(--yellow)" : "var(--red)";
+  const color = !started
+    ? "var(--surface2)"
+    : frac >= 0.7
+      ? "var(--green)"
+      : frac >= 0.4
+        ? "var(--yellow)"
+        : "var(--accent)";
   return (
     <div className="bar">
       <div className="bar-fill" style={{ width: `${pct}%`, background: color }} />
@@ -45,7 +60,17 @@ function groupByDomain(subjects: SubjectProgress[]): Record<string, SubjectProgr
   return grouped;
 }
 
-export default function Dashboard() {
+// Started subjects first, then by readiness — so momentum sits at the top and the
+// untouched ones don't dominate as a wall of empty bars.
+function ranked(subjects: SubjectProgress[]): SubjectProgress[] {
+  return [...subjects].sort((a, b) => {
+    const sa = a.seen > 0 ? 1 : 0;
+    const sb = b.seen > 0 ? 1 : 0;
+    return sb - sa || b.readiness - a.readiness;
+  });
+}
+
+export default function Dashboard({ onStudy }: { onStudy: (scope: string) => void }) {
   const [p, setP] = useState<Progress | null>(null);
   const [me, setMe] = useState<Me | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,15 +83,35 @@ export default function Dashboard() {
   if (error) return <div className="error">{error}</div>;
   if (!p) return <div className="muted">Loading…</div>;
 
-  const byDomain = groupByDomain(p.subjects);
+  const due = me?.due_count ?? 0;
+  const goalLeft = me ? Math.max(0, me.daily_goal - me.answered_today) : 0;
+
   return (
     <div className="dash">
+      <section className="hero-cta">
+        <div>
+          <div className="hero-line">
+            {due > 0
+              ? `${due} review${due > 1 ? "s" : ""} due now`
+              : goalLeft > 0
+                ? `${goalLeft} to hit today's goal`
+                : "All caught up — keep the streak alive"}
+          </div>
+          {me && (
+            <div className="muted small">
+              🔥 {me.streak_days}-day streak · ⭐ Lvl {me.level}
+              {me.freezes > 0 && ` · 🧊 ${me.freezes}`}
+            </div>
+          )}
+        </div>
+        <button className="btn big" onClick={() => onStudy("global")}>
+          {due > 0 ? "Review now →" : "Study →"}
+        </button>
+      </section>
+
       {me && (
         <section className="card">
-          <h2>
-            🔥 {me.streak_days}-day streak · ⭐ Lvl {me.level}
-            {me.freezes > 0 && ` · 🧊 ${me.freezes}`}
-          </h2>
+          <h3>Activity</h3>
           <Heatmap days={me.heatmap} />
           <div className="muted small">
             fastest {me.bests.fastest_ms ? `${(me.bests.fastest_ms / 1000).toFixed(1)}s` : "—"}{" "}
@@ -74,11 +119,7 @@ export default function Dashboard() {
           </div>
           <div className="badges">
             {me.achievements.map((a) => (
-              <span
-                key={a.id}
-                className={a.earned ? "badge earned" : "badge"}
-                title={a.desc}
-              >
+              <span key={a.id} className={a.earned ? "badge earned" : "badge"} title={a.desc}>
                 {a.name}
               </span>
             ))}
@@ -95,33 +136,44 @@ export default function Dashboard() {
           )}
         </section>
       )}
+
       <section className="card">
-        <h2>Combined readiness</h2>
-        <div className="combined">{Math.round(p.combined_readiness * 100)}%</div>
+        <div className="srow-head">
+          <h3 style={{ margin: 0 }}>Combined readiness</h3>
+          <span className="combined-pct">{Math.round(p.combined_readiness * 100)}%</span>
+        </div>
         <Bar frac={p.combined_readiness} />
-        <div className="muted">
+        <div className="muted small">
           {p.dkt.active
             ? "DKT active — the global model is driving selection."
             : `DKT warming up — ${p.dkt.answered}/${p.dkt.gate} interactions until it activates.`}
         </div>
       </section>
 
-      {Object.keys(byDomain).sort().map((domain) => (
+      {Object.keys(groupByDomain(p.subjects)).sort().map((domain) => (
         <section className="card" key={domain}>
           <h3>{domain}</h3>
-          {byDomain[domain].map((s) => (
-            <div className="srow" key={s.subject}>
-              <div className="srow-head">
-                <span>{s.subject}</span>
-                <span>{Math.round(s.readiness * 100)}%</span>
-              </div>
-              <Bar frac={s.readiness} />
-              <div className="muted small">
-                seen {s.seen}/{s.n_concepts} · mastered {s.mastered} · due {s.due} ·{" "}
-                {Math.round(s.accuracy * 100)}% correct
-              </div>
-            </div>
-          ))}
+          {ranked(groupByDomain(p.subjects)[domain]).map((s) => {
+            const started = s.seen > 0;
+            return (
+              <button className="srow srow-btn" key={s.subject} onClick={() => onStudy(s.subject)}>
+                <div className="srow-head">
+                  <span>
+                    {SUBJECT_ICON[s.subject] ?? "📚"} {s.subject}
+                  </span>
+                  <span className={started ? "" : "muted"}>
+                    {started ? `${Math.round(s.readiness * 100)}%` : "Start →"}
+                  </span>
+                </div>
+                <Bar frac={started ? s.readiness : 0} started={started} />
+                <div className="muted small">
+                  {started
+                    ? `seen ${s.seen}/${s.n_concepts} · mastered ${s.mastered} · due ${s.due} · ${Math.round(s.accuracy * 100)}% correct`
+                    : `${s.n_concepts} concepts · not started yet`}
+                </div>
+              </button>
+            );
+          })}
         </section>
       ))}
     </div>

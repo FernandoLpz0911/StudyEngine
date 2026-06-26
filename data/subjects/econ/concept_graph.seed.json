@@ -15,7 +15,8 @@
           "Positive, negative, and neutral",
           "Short-run, long-run, and permanent"
         ]
-      }
+      },
+      "theory_md": "An incentive is anything that motivates a choice. Freakonomics splits them into economic (money/material), social (reputation — how others see you), and moral (conscience — right vs wrong). Most behaviour mixes all three, and schemes fail when they target only one."
     },
     {
       "id": "econ.opportunity_cost",
@@ -30,14 +31,17 @@
           "The total value of all alternatives forgone",
           "The sunk cost already incurred"
         ]
-      }
+      },
+      "theory_md": "Opportunity cost = the value of the single next-best option you give up by choosing something. The true cost isn't the price tag, it's the best alternative forgone. An hour studying 'costs' the hour of work or rest you didn't take."
     },
     {
       "id": "econ.marginal",
       "name": "Thinking at the Margin",
       "category": "core",
       "exam_weight": 3,
-      "prerequisites": ["econ.opportunity_cost"],
+      "prerequisites": [
+        "econ.opportunity_cost"
+      ],
       "card": {
         "question": "Thinking at the margin means deciding based on:",
         "answer": "The benefit and cost of one more unit",
@@ -46,7 +50,8 @@
           "Average cost per unit",
           "The sunk cost already spent"
         ]
-      }
+      },
+      "theory_md": "Marginal thinking weighs the cost and benefit of ONE more unit (one more hour, one more slice), not the total. Rational choices push to where marginal benefit = marginal cost. Sunk and total amounts don't affect the next-step decision."
     },
     {
       "id": "econ.correlation_causation",
@@ -61,14 +66,17 @@
           "B directly causing A",
           "A properly randomized experiment"
         ]
-      }
+      },
+      "theory_md": "Correlation means two things move together; causation means one drives the other. A spurious correlation looks causal but is really produced by a hidden confounding variable affecting both. Correlation ≠ causation."
     },
     {
       "id": "econ.moral_hazard",
       "name": "Moral Hazard",
       "category": "information",
       "exam_weight": 2,
-      "prerequisites": ["econ.incentives"],
+      "prerequisites": [
+        "econ.incentives"
+      ],
       "card": {
         "question": "Moral hazard arises from:",
         "answer": "Hidden action after a deal, when a party doesn't bear the full risk",
@@ -77,14 +85,17 @@
           "Two parties having identical information",
           "A binding price ceiling"
         ]
-      }
+      },
+      "theory_md": "Moral hazard: AFTER a deal is struck, a party takes more risk because they don't bear the full consequences — a hidden ACTION. Example: an insured driver drives recklessly since the insurer absorbs the loss. Key marker: behaviour changes post-agreement because risk was shifted."
     },
     {
       "id": "econ.adverse_selection",
       "name": "Adverse Selection",
       "category": "information",
       "exam_weight": 2,
-      "prerequisites": ["econ.incentives"],
+      "prerequisites": [
+        "econ.incentives"
+      ],
       "card": {
         "question": "Adverse selection differs from moral hazard in that it involves:",
         "answer": "Hidden information before the deal (who chooses to participate)",
@@ -93,14 +104,17 @@
           "Perfectly symmetric information",
           "Government price regulation"
         ]
-      }
+      },
+      "theory_md": "Adverse selection: BEFORE a deal, hidden INFORMATION about who chooses to participate skews the pool. The riskiest types are keenest to sign up (the sickest buy the most insurance) because they know what the other side can't. Contrast moral hazard, which is hidden action AFTER the deal."
     },
     {
       "id": "econ.information_asymmetry",
       "name": "Information Asymmetry",
       "category": "information",
       "exam_weight": 3,
-      "prerequisites": ["econ.moral_hazard"],
+      "prerequisites": [
+        "econ.moral_hazard"
+      ],
       "card": {
         "question": "Information asymmetry lets an expert (e.g. an agent):",
         "answer": "Exploit knowing more than the client to serve their own incentives",
@@ -109,14 +123,17 @@
           "Eliminate moral hazard entirely",
           "Guarantee an efficient market outcome"
         ]
-      }
+      },
+      "theory_md": "Information asymmetry: one side knows more than the other. The informed party (mechanic, realtor, doctor) can exploit that edge to serve their own incentives at the client's expense. It's the root cause behind adverse selection and principal–agent problems."
     },
     {
       "id": "econ.unintended_consequences",
       "name": "Unintended Consequences",
       "category": "core",
       "exam_weight": 2,
-      "prerequisites": ["econ.incentives"],
+      "prerequisites": [
+        "econ.incentives"
+      ],
       "card": {
         "question": "The daycare late-pickup fine increased lateness because it:",
         "answer": "Reframed a moral breach as a small price worth paying",
@@ -125,20 +142,27 @@
           "Eliminated the daycare's operating costs",
           "Made parents arrive earlier on average"
         ]
-      }
+      },
+      "theory_md": "Unintended consequences: an incentive produces effects nobody intended. Classic case — a daycare fined late pickups and lateness ROSE, because the fine reframed a moral obligation ('don't burden the staff') as a small price worth paying. Prices can crowd out morality."
     },
     {
       "id": "econ.decisions",
       "name": "Decision Math (Opportunity Cost, Margin, EV)",
       "category": "core",
       "exam_weight": 3,
-      "prerequisites": ["econ.marginal"],
+      "prerequisites": [
+        "econ.marginal"
+      ],
       "generator": {
         "kind": "econ_decision",
         "params": {
           "ask": [
-            "opportunity_cost", "marginal_net", "expected_value",
-            "percent_change", "roi", "elasticity"
+            "opportunity_cost",
+            "marginal_net",
+            "expected_value",
+            "percent_change",
+            "roi",
+            "elasticity"
           ]
         }
       }

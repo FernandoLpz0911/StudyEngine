@@ -52,6 +52,10 @@ FATIGUE_THRESHOLD: float = float(os.getenv("FATIGUE_THRESHOLD", "0.4"))
 # gap (not immediately) is among the strongest known boosts to retention.
 RETRY_GAP: int = int(os.getenv("RETRY_GAP", "3"))
 
+# Exam P question-pace target (seconds): the on-screen timer turns amber past this.
+# 180s is a tighter practice pace than the real SOA exam (~6 min/question).
+EXAM_TIMER_TARGET_S: int = int(os.getenv("EXAM_TIMER_TARGET_S", "180"))
+
 # Daily-goal target: items answered per day that fills the progress ring and keeps
 # the streak alive. Small enough to hit on a busy day (habit > heroics).
 DAILY_GOAL: int = int(os.getenv("DAILY_GOAL", "20"))
