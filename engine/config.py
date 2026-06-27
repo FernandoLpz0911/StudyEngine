@@ -52,6 +52,11 @@ FATIGUE_THRESHOLD: float = float(os.getenv("FATIGUE_THRESHOLD", "0.4"))
 # gap (not immediately) is among the strongest known boosts to retention.
 RETRY_GAP: int = int(os.getenv("RETRY_GAP", "3"))
 
+# Cold start: a served concept whose measured mastery is below this counts as
+# "not yet learned" — the UI auto-opens its explanation up front (never seen,
+# never answered correctly, or low mastery all fall under this threshold).
+COLD_START_MASTERY: float = float(os.getenv("COLD_START_MASTERY", "0.5"))
+
 # Exam P question-pace target (seconds): the on-screen timer turns amber past this.
 # 180s is a tighter practice pace than the real SOA exam (~6 min/question).
 EXAM_TIMER_TARGET_S: int = int(os.getenv("EXAM_TIMER_TARGET_S", "180"))

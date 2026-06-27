@@ -4,6 +4,7 @@ import type { AnswerResult, NextItem, Profile, SessionSummary, Subject } from ".
 import Markdown from "./Markdown";
 import Tex from "./Math";
 import QuestionTimer from "./QuestionTimer";
+import { playCorrect, playLevelUp, playWrong } from "./sound";
 
 const REASON_LABEL: Record<string, string> = {
   new: "🌱 New",
@@ -12,23 +13,6 @@ const REASON_LABEL: Record<string, string> = {
 };
 
 const SOUND_KEY = "studyengine.sound";
-let _ac: AudioContext | null = null;
-function ding(freq: number) {
-  if (localStorage.getItem(SOUND_KEY) !== "1") return;
-  try {
-    _ac = _ac ?? new AudioContext();
-    const o = _ac.createOscillator();
-    const g = _ac.createGain();
-    o.connect(g);
-    g.connect(_ac.destination);
-    o.frequency.value = freq;
-    g.gain.value = 0.05;
-    o.start();
-    o.stop(_ac.currentTime + 0.12);
-  } catch {
-    /* audio unavailable — silent */
-  }
-}
 
 function StatsBar({ p }: { p: Profile }) {
   const xpPct = Math.round((100 * p.xp_into_level) / p.xp_for_next);
@@ -134,6 +118,14 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
     api.stats().then(setProfile).catch(() => {});
   }, []);
 
+  // Fanfare when XP crosses a level boundary.
+  const prevLevel = useRef<number | null>(null);
+  useEffect(() => {
+    if (!profile) return;
+    if (prevLevel.current !== null && profile.level > prevLevel.current) playLevelUp();
+    prevLevel.current = profile.level;
+  }, [profile]);
+
   const loadNext = useCallback(async (sid: number) => {
     setFeedback(null);
     setSelected(null);
@@ -179,7 +171,8 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
     try {
       const res = await api.answer(sessionId, item.item_id, choice, Date.now() - shownAt.current);
       setFeedback(res);
-      ding(res.is_correct ? (res.combo ? 880 : 660) : 180);
+      if (res.is_correct) playCorrect(res.streak);
+      else playWrong();
       refreshStats();
     } catch (e) {
       if (String(e).includes("404")) startSession(scope);
@@ -212,7 +205,7 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
     const next = !sound;
     setSound(next);
     localStorage.setItem(SOUND_KEY, next ? "1" : "0");
-    if (next) ding(660);
+    if (next) playCorrect(3);
   };
 
   const saveHint = async () => {
@@ -283,9 +276,9 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
       {item.note && <div className="note">📝 your note: {item.note}</div>}
       <div className="question"><Tex>{item.question}</Tex></div>
       {item.theory && (
-        <details className="theory" key={item.item_id} open={item.reason === "new"}>
+        <details className="theory" key={item.item_id} open={item.cold}>
           <summary>
-            {item.reason === "new" ? "📖 Background (new topic)" : "📖 Learn this concept"}
+            {item.cold ? "📖 Start here — concept explained" : "📖 Learn this concept"}
           </summary>
           <Markdown>{item.theory}</Markdown>
         </details>

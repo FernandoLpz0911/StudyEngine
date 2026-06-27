@@ -97,10 +97,13 @@ def _run_item(concept, session_id: int, rng: np.random.Generator, reason: str = 
     item_id = service.log_item_shown(session_id, item)
 
     print(f"\n[{concept.name}]  {item.question}")
-    # First time seeing this concept — give the background up front so a brand-new
-    # topic isn't a cold guess.
-    if reason == "new" and item.theory:
-        print(f"   📖 Background: {item.theory}")
+    # Cold start: not yet learned (never seen / never correct / low mastery) — give
+    # the explanation up front so it isn't a blind guess.
+    from engine.analytics.readiness import concept_mastery
+    from engine.config import COLD_START_MASTERY
+    cold = concept_mastery(concept.id) < COLD_START_MASTERY
+    if cold and item.theory:
+        print(f"   📖 Start here: {item.theory}")
     note = dao.get_mnemonic(concept.id)
     if note:
         print(f"   📝 your note: {note}")
@@ -121,8 +124,8 @@ def _run_item(concept, session_id: int, rng: np.random.Generator, reason: str = 
         if why:
             print(f"   ✗ {why}")
     # Surface the concept explanation right or wrong (skip if it was already shown
-    # as up-front background on a brand-new item).
-    if item.theory and reason != "new":
+    # as the up-front cold-start intro).
+    if item.theory and not cold:
         print(f"   📖 {item.theory}")
 
     dao.log_answered(item_id, raw or None, correct, grade, elapsed_ms)

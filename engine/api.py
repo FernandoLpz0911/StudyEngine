@@ -19,8 +19,12 @@ from pydantic import BaseModel
 
 import engine.subjects  # noqa: F401  (registers generators + solvers)
 from engine import service
-from engine.analytics.readiness import overall_progress, subject_readiness
-from engine.config import GLOBAL_WARMUP
+from engine.analytics.readiness import (
+    concept_mastery,
+    overall_progress,
+    subject_readiness,
+)
+from engine.config import COLD_START_MASTERY, GLOBAL_WARMUP
 from engine.db import dao
 from engine.db.seed import load_all
 from engine.engagement import combo_label, reward_message
@@ -190,6 +194,8 @@ def _serve(sess: _Session, selection: policy.Selection) -> dict:
         "note": dao.get_mnemonic(item.concept_id),
         # Theory is authored markdown/LaTeX (rendered client-side); never latexify it.
         "theory": item.theory,
+        # Cold start: not yet learned → the UI opens the explanation up front.
+        "cold": concept_mastery(item.concept_id) < COLD_START_MASTERY,
     }
 
 

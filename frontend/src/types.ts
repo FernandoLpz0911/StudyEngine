@@ -64,6 +64,7 @@ export interface NextItem {
   choices?: string[];
   note?: string | null;
   theory?: string | null;
+  cold?: boolean;
   summary?: SessionSummary;
 }
 
