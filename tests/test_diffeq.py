@@ -74,3 +74,67 @@ class TestLaplace:
                 assert p.correct_answer == round(expected, 3)
                 assert _choice_has_answer(p)
                 assert solve("laplace_transform", p.ask, p.params).answer == p.correct_answer
+
+
+# --- Full-syllabus expansion: every new kind/ask stays self-consistent ---
+_NEW_ASKS = {
+    "exact_equation": ["exactness_check", "potential_value"],
+    "newtonian": ["terminal_velocity", "velocity_t"],
+    "mixing": ["amount"],
+    "population": ["exponential", "logistic"],
+    "mass_spring": ["omega", "period", "damped_freq"],
+    "char_complex": ["real_part", "imag_part"],
+    "wronskian": ["value"],
+    "undetermined": ["exp_coeff", "poly_const", "trig_amp"],
+    "cauchy_euler": ["larger_root", "smaller_root"],
+    "vibrations": ["damped_freq", "steady_amplitude"],
+    "rlc": ["natural_freq", "damped_freq"],
+    "rk4_step": ["one_step"],
+    "system_eig": ["larger_eig", "smaller_eig"],
+    "laplace_props": ["shift_value"],
+    "laplace_ivp": ["value"],
+    "step_function": ["transform_value"],
+    "dirac_delta": ["transform_value", "impulse_response"],
+    "fourier": ["b_n", "a_n"],
+    "bvp_eigenvalue": ["lambda_n"],
+    "heat_mode": ["value"],
+    "wave_mode": ["value"],
+}
+
+
+def test_new_generators_self_consistent():
+    """Generator answer ∈ choices, and the worked solver recomputes the same value."""
+    for kind, asks in _NEW_ASKS.items():
+        for ask in asks:
+            for seed in SEEDS:
+                p = generate(kind, ask, {}, seed)
+                assert _choice_has_answer(p), (kind, ask, seed)
+                assert solve(kind, ask, p.params).answer == p.correct_answer, (kind, ask)
+
+
+class TestNewKeyFormulas:
+    def test_terminal_velocity(self):
+        for seed in SEEDS:
+            p = generate("newtonian", "terminal_velocity", {}, seed)
+            m, b = p.params["m"], p.params["bdrag"]
+            assert p.correct_answer == round(m * 9.8 / b, 3)
+
+    def test_bvp_eigenvalue(self):
+        for seed in SEEDS:
+            p = generate("bvp_eigenvalue", "lambda_n", {}, seed)
+            n, ell = p.params["n"], p.params["ell"]
+            assert p.correct_answer == round((n * math.pi / ell) ** 2, 3)
+
+    def test_system_eigenvalue_larger(self):
+        for seed in SEEDS:
+            p = generate("system_eig", "larger_eig", {}, seed)
+            a, b, c, dd = (p.params[x] for x in ("a", "b", "c", "d"))
+            tr, det = a + dd, a * dd - b * c
+            expected = (tr + math.sqrt(tr * tr - 4 * det)) / 2
+            assert p.correct_answer == round(expected, 3)
+
+    def test_fourier_bn(self):
+        for seed in SEEDS:
+            p = generate("fourier", "b_n", {}, seed)
+            n, ell = p.params["n"], p.params["ell"]
+            assert p.correct_answer == round(2 * ell / (n * math.pi) * (-1) ** (n + 1), 3)

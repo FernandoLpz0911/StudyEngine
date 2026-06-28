@@ -148,6 +148,589 @@
         }
       },
       "theory_md": "## Why this exists\n\nAfter solving the IVP **algebraically** in the $s$-domain, you must transform the\nanswer $F(s)$ back to $f(t)$ — the **inverse Laplace transform**.\n\n## Core inverses\n\n$$\\frac{1}{s-a}\\to e^{at},\\qquad \\frac{\\omega}{s^2+\\omega^2}\\to \\sin\\omega t,\n\\qquad \\frac{s}{s^2+\\omega^2}\\to \\cos\\omega t,\\qquad \\frac{n!}{s^{n+1}}\\to t^n.$$\n\n## Method: partial fractions\n\nBreak a rational $F(s)$ into pieces matching the table, then invert each.\n\n## Worked example\n\n$\\dfrac{1}{s-3}\\to e^{3t}$; $\\dfrac{2}{s^2+4}\\to \\sin 2t$ (since $\\omega=2$).\n\n## Gotchas\n\n- Match $\\omega$ vs $\\omega^2$ carefully: $\\dfrac{1}{s^2+4}\\to\\frac12\\sin 2t$, not\n  $\\sin 2t$.\n- Complete the square for shifted denominators $\\to e^{at}\\sin/\\cos$.\n"
+    },
+    {
+      "id": "diffeq.intro",
+      "name": "What Is a Differential Equation?",
+      "category": "foundations",
+      "exam_weight": 2,
+      "prerequisites": [],
+      "theory_md": "## Background\n\nA **differential equation** relates a function to its own derivatives. It says *how\nsomething changes* rather than giving the thing directly — and most laws of nature\nare stated this way (Newton, cooling, circuits, populations).\n\n## Vocabulary\n\n- **ODE** vs **PDE**: an *ordinary* DE has one independent variable ($y'(x)$); a\n  *partial* DE has several ($u_t=u_{xx}$).\n- **Order**: the highest derivative present. $y''+y=0$ is second order.\n- **Linear**: $y$ and its derivatives appear to the first power, not multiplied\n  together: $a_n(x)y^{(n)}+\\dots+a_0(x)y=g(x)$. Otherwise **nonlinear** (e.g.\n  $y'=y^2$).\n\n## How to read it\n\n$y'=f(x,y)$ says \"the slope at $(x,y)$ is $f(x,y)$.\" A **solution** is a function\nwhose graph has that slope everywhere.\n\n## Gotchas\n\n- $(y')^2=y$ is nonlinear (squared derivative).\n- Order counts the highest derivative, not the power.\n",
+      "card": {
+        "question": "Which equation is a second-order linear ODE?",
+        "answer": "y'' + 3y' + 2y = e^x",
+        "distractors": [
+          "y' = y²",
+          "(y'')² + y = 0",
+          "u_t = u_xx"
+        ]
+      }
+    },
+    {
+      "id": "diffeq.solutions_ivp",
+      "name": "Solutions & Initial Value Problems",
+      "category": "foundations",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.intro"
+      ],
+      "theory_md": "## Background\n\nA **solution** of an ODE is a function satisfying it on an interval. A DE usually\nhas a *family* of solutions (one constant per order); an **initial value problem\n(IVP)** pins down one by giving conditions at a point.\n\n## IVP\n\n$y'=f(x,y),\\ y(x_0)=y_0$. The condition selects the single solution curve through\n$(x_0,y_0)$.\n\n## Existence & uniqueness\n\nIf $f$ and $\\partial f/\\partial y$ are continuous near $(x_0,y_0)$, a **unique**\nsolution exists locally (Picard's theorem). Nonlinear problems can fail this and\nhave multiple or short-lived solutions.\n\n## Gotchas\n\n- A general solution has arbitrary constants; a *particular* solution has them\n  fixed by initial data.\n- \"Unique\" is only **local** — solutions can blow up in finite time.\n",
+      "card": {
+        "question": "The role of an initial condition y(x₀)=y₀ is to:",
+        "answer": "Select one solution from the general family",
+        "distractors": [
+          "Make the equation linear",
+          "Raise the order of the equation",
+          "Guarantee the solution is global"
+        ]
+      }
+    },
+    {
+      "id": "diffeq.direction_fields",
+      "name": "Direction (Slope) Fields",
+      "category": "foundations",
+      "exam_weight": 1,
+      "prerequisites": [
+        "diffeq.solutions_ivp"
+      ],
+      "theory_md": "## Background\n\nBefore solving, you can **see** solutions. For $y'=f(x,y)$, draw a short segment of\nslope $f(x,y)$ at each grid point — the **direction field**. Solution curves flow\ntangent to these segments.\n\n## Tools\n\n- **Isocline**: the curve $f(x,y)=c$ where all segments share slope $c$ — handy for\n  sketching.\n- **Equilibrium**: a constant solution $y\\equiv y^*$ where $f(x,y^*)=0$ (horizontal\n  flow). Stable if nearby solutions approach it, unstable if they leave.\n\n## Gotchas\n\n- The field needs no formula for the solution — great for nonlinear/unsolvable ODEs.\n- Equilibria are found from $f=0$, and their stability from the sign of $f$ around\n  them.\n",
+      "card": {
+        "question": "In a direction field for y' = f(x,y), an equilibrium solution occurs where:",
+        "answer": "f(x,y) = 0 (slope is zero, giving a constant solution)",
+        "distractors": [
+          "f(x,y) is largest",
+          "the isoclines cross the y-axis",
+          "the slope equals 1"
+        ]
+      }
+    },
+    {
+      "id": "diffeq.exact",
+      "name": "Exact Equations",
+      "category": "first_order",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.first_order_linear"
+      ],
+      "theory_md": "## Background\n\nSome first-order equations $M(x,y)\\,dx+N(x,y)\\,dy=0$ are the total differential of a\nhidden potential $F(x,y)$, so solutions are simply $F(x,y)=C$.\n\n## Exactness test\n\nThe equation is **exact** iff\n$$\\frac{\\partial M}{\\partial y}=\\frac{\\partial N}{\\partial x}.$$\nThen there is an $F$ with $F_x=M$ and $F_y=N$.\n\n## Method\n\nIntegrate $M$ in $x$: $F=\\int M\\,dx+g(y)$; differentiate in $y$ and match $N$ to\nfind $g(y)$. The solution is $F(x,y)=C$.\n\n## Worked example\n\n$M=2xy,\\ N=x^2$: $M_y=2x=N_x$ ✓ exact; $F=x^2y$, so $x^2y=C$.\n\n## Gotchas\n\n- If not exact, an **integrating factor** may make it exact.\n",
+      "generator": {
+        "kind": "exact_equation",
+        "params": {
+          "ask": [
+            "exactness_check",
+            "potential_value"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.newtonian",
+      "name": "Falling Body & Newtonian Mechanics",
+      "category": "applications",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.first_order_linear"
+      ],
+      "theory_md": "## Background\n\nNewton's second law $m\\,v'=\\sum F$ becomes a differential equation. With gravity and\n**linear air resistance**:\n$$m\\,v'=mg-bv.$$\n\n## Solution\n\nThis is first-order linear. The velocity rises toward a **terminal velocity** where\n$v'=0$:\n$$v_{term}=\\frac{mg}{b},\\qquad v(t)=\\frac{mg}{b}\\left(1-e^{-bt/m}\\right)\\ (v_0=0).$$\n\n## Worked example\n\n$m=2,\\ b=0.5,\\ g=9.8$: $v_{term}=2\\cdot9.8/0.5=39.2$. The object speeds up but never\nexceeds that.\n\n## Gotchas\n\n- Quadratic drag ($-bv^2$) gives a different (separable) equation.\n- Terminal velocity is the equilibrium of the velocity ODE.\n",
+      "generator": {
+        "kind": "newtonian",
+        "params": {
+          "ask": [
+            "terminal_velocity",
+            "velocity_t"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.mixing",
+      "name": "Mixing Problems",
+      "category": "applications",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.first_order_linear"
+      ],
+      "theory_md": "## Background\n\nA tank holds a solute in solution; fluid flows in and out. The amount $A(t)$ obeys\n$$A'=(\\text{rate in})-(\\text{rate out})=c_{in}r_{in}-\\frac{r_{out}}{V}A.$$\n\n## Solution\n\nWith constant volume it's first-order linear; the salt approaches equilibrium\n$A^*=V c_{in}$:\n$$A(t)=Vc_{in}+(A_0-Vc_{in})e^{-(r/V)t}.$$\n\n## Worked example\n\n$V=100,\\ c_{in}=0.5,\\ r=5$: equilibrium $=50$ kg; $A(t)\\to 50$ with rate $5/100$.\n\n## Gotchas\n\n- \"Rate out\" uses the **current concentration** $A/V$, not $c_{in}$.\n- If inflow ≠ outflow, $V$ changes with $t$ and the coefficient is non-constant.\n",
+      "generator": {
+        "kind": "mixing",
+        "params": {
+          "ask": [
+            "amount"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.population",
+      "name": "Population Models",
+      "category": "applications",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.separable"
+      ],
+      "theory_md": "## Background\n\nPopulations grow at a rate proportional to size — until resources limit them.\n\n## Two models\n\n- **Exponential** (Malthus): $P'=rP\\Rightarrow P=P_0e^{rt}$ (unbounded).\n- **Logistic** (Verhulst): growth slows near carrying capacity $K$:\n  $$P'=rP\\left(1-\\frac{P}{K}\\right)\\Rightarrow\n    P(t)=\\frac{K}{1+\\frac{K-P_0}{P_0}e^{-rt}}.$$\n\n## Worked example\n\nLogistic with $K=400$: $P$ rises, inflects at $P=K/2=200$, and levels at $400$.\n\n## Gotchas\n\n- Logistic has equilibria $P=0$ (unstable) and $P=K$ (stable).\n- Exponential is the logistic limit when $P\\ll K$.\n",
+      "generator": {
+        "kind": "population",
+        "params": {
+          "ask": [
+            "exponential",
+            "logistic"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.rlc",
+      "name": "RLC Circuits",
+      "category": "applications",
+      "exam_weight": 1,
+      "prerequisites": [
+        "diffeq.second_order"
+      ],
+      "theory_md": "## Background\n\nAn RLC circuit is the electrical twin of a mass-spring: charge $q$ obeys\n$$L\\,q''+R\\,q'+\\frac{1}{C}q=E(t),$$\nwith $L$↔mass, $R$↔damping, $1/C$↔stiffness.\n\n## Frequencies\n\n- **Natural** (no resistance): $\\omega_0=\\dfrac{1}{\\sqrt{LC}}$.\n- **Damped**: $\\omega_d=\\sqrt{\\dfrac{1}{LC}-\\left(\\dfrac{R}{2L}\\right)^2}$\n  (underdamped when this is real).\n\n## Gotchas\n\n- Current is $i=q'$.\n- Same math as mechanical vibrations — resonance occurs when forcing ≈ $\\omega_0$.\n",
+      "generator": {
+        "kind": "rlc",
+        "params": {
+          "ask": [
+            "natural_freq",
+            "damped_freq"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.mass_spring",
+      "name": "The Mass-Spring Oscillator",
+      "category": "second_order",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.second_order"
+      ],
+      "theory_md": "## Background\n\nA mass on a spring is the prototype second-order ODE:\n$$m\\,x''+c\\,x'+k\\,x=0,$$\nmass $m$, damping $c$, stiffness $k$.\n\n## Key quantities\n\n- **Natural frequency** $\\omega=\\sqrt{k/m}$, **period** $T=2\\pi/\\omega$.\n- **Damped frequency** (underdamped) $\\omega_d=\\sqrt{k/m-(c/2m)^2}$.\n\n## Regimes\n\nCompare $c$ to $2\\sqrt{mk}$: under-damped (oscillates), critically damped, or\nover-damped (no oscillation).\n\n## Gotchas\n\n- Frequency uses $\\sqrt{k/m}$, not $k/m$.\n- Damping always lowers the oscillation frequency.\n",
+      "generator": {
+        "kind": "mass_spring",
+        "params": {
+          "ask": [
+            "omega",
+            "period",
+            "damped_freq"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.complex_roots",
+      "name": "Auxiliary Equations with Complex Roots",
+      "category": "second_order",
+      "exam_weight": 3,
+      "prerequisites": [
+        "diffeq.second_order"
+      ],
+      "theory_md": "## Background\n\nWhen $y''+py'+qy=0$ has characteristic roots that are **complex**\n$r=\\alpha\\pm\\beta i$ (discriminant $p^2-4q<0$), the solution oscillates.\n\n## Solution form\n\n$$y=e^{\\alpha t}\\big(C_1\\cos\\beta t+C_2\\sin\\beta t\\big),$$\nwith $\\alpha=-\\dfrac{p}{2}$ (decay/growth) and\n$\\beta=\\dfrac{\\sqrt{4q-p^2}}{2}$ (frequency).\n\n## Worked example\n\n$y''+2y'+5y=0$: roots $-1\\pm2i$, so $y=e^{-t}(C_1\\cos2t+C_2\\sin2t)$.\n\n## Gotchas\n\n- $\\alpha>0$ grows, $\\alpha<0$ decays, $\\alpha=0$ pure oscillation.\n- Use Euler's formula $e^{i\\theta}=\\cos\\theta+i\\sin\\theta$ to get the real form.\n",
+      "generator": {
+        "kind": "char_complex",
+        "params": {
+          "ask": [
+            "real_part",
+            "imag_part"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.superposition",
+      "name": "Superposition Principle",
+      "category": "second_order",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.second_order"
+      ],
+      "theory_md": "## Background\n\nLinearity is what makes linear ODEs tractable.\n\n## Homogeneous superposition\n\nIf $y_1,y_2$ solve the **homogeneous** equation $L[y]=0$, so does any combination\n$C_1y_1+C_2y_2$. The general solution is the span of independent solutions.\n\n## Nonhomogeneous structure\n\nFor $L[y]=g$, the general solution is\n$$y=y_h+y_p,$$\nthe homogeneous solution **plus** any particular solution. If $g=g_1+g_2$, solve\neach piece and add the $y_p$'s.\n\n## Gotchas\n\n- Superposition holds for **linear** equations only.\n- You still need the full $y_h$ (with constants) to satisfy initial conditions.\n",
+      "card": {
+        "question": "For a linear equation L[y] = g, the general solution is:",
+        "answer": "y_h + y_p (homogeneous solution plus a particular solution)",
+        "distractors": [
+          "y_p only",
+          "y_h only",
+          "y_h · y_p"
+        ]
+      }
+    },
+    {
+      "id": "diffeq.wronskian",
+      "name": "Linear Independence & the Wronskian",
+      "category": "second_order",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.second_order"
+      ],
+      "theory_md": "## Background\n\nTwo solutions form a valid general solution only if they're **linearly\nindependent** — neither is a constant multiple of the other.\n\n## The Wronskian\n\n$$W(y_1,y_2)=\\begin{vmatrix}y_1&y_2\\\\y_1'&y_2'\\end{vmatrix}=y_1y_2'-y_2y_1'.$$\nIf $W\\ne0$ at a point, the solutions are independent (a **fundamental set**). For\n$y=e^{r_1t},e^{r_2t}$: $W=(r_2-r_1)e^{(r_1+r_2)t}$.\n\n## Why it matters\n\nThe Wronskian also appears in the variation-of-parameters formula.\n\n## Gotchas\n\n- $W\\equiv0$ for solutions of a linear ODE means dependent (Abel's theorem: $W$ is\n  either always zero or never zero).\n",
+      "generator": {
+        "kind": "wronskian",
+        "params": {
+          "ask": [
+            "value"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.undetermined",
+      "name": "Method of Undetermined Coefficients",
+      "category": "second_order",
+      "exam_weight": 3,
+      "prerequisites": [
+        "diffeq.complex_roots",
+        "diffeq.superposition"
+      ],
+      "theory_md": "## Background\n\nFor $y''+py'+qy=g(t)$ with a \"nice\" forcing $g$ (exponential, polynomial, sine/\ncosine, or products), **guess** a $y_p$ of the same form and solve for its\ncoefficients.\n\n## Guesses\n\n- $g=Ae^{rt}\\Rightarrow y_p=Be^{rt},\\ B=\\dfrac{A}{r^2+pr+q}$.\n- $g=$ constant $c\\Rightarrow y_p=c/q$.\n- $g=F\\cos\\omega t\\Rightarrow y_p$ a cos/sin combo; for $y''+qy=F\\cos\\omega t$,\n  amplitude $\\dfrac{F}{q-\\omega^2}$.\n\n## Gotchas\n\n- **Resonance**: if your guess already solves the homogeneous equation, multiply by\n  $t$.\n- Denominators vanish exactly at resonance ($\\omega^2=q$, or $r$ a root).\n",
+      "generator": {
+        "kind": "undetermined",
+        "params": {
+          "ask": [
+            "exp_coeff",
+            "poly_const",
+            "trig_amp"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.cauchy_euler",
+      "name": "Cauchy-Euler & Reduction of Order",
+      "category": "second_order",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.second_order"
+      ],
+      "theory_md": "## Background\n\nA **Cauchy–Euler** (equidimensional) equation has variable coefficients in a special\npattern:\n$$x^2y''+bxy'+cy=0.$$\n\n## Method\n\nTry $y=x^r$. Then $x^r$ cancels, leaving the **indicial** equation\n$$r(r-1)+br+c=0\\;\\Rightarrow\\;r^2+(b-1)r+c=0.$$\nDistinct real roots give $y=C_1x^{r_1}+C_2x^{r_2}$ (repeated → add $x^{r}\\ln x$;\ncomplex → $x^\\alpha[\\cos(\\beta\\ln x),\\sin(\\beta\\ln x)]$).\n\n## Reduction of order\n\nIf one solution $y_1$ is known, seek $y_2=v(x)y_1$; substituting drops the order and\nyields the second independent solution.\n\n## Gotchas\n\n- Don't use $e^{rt}$ here — the right guess is $x^r$.\n",
+      "generator": {
+        "kind": "cauchy_euler",
+        "params": {
+          "ask": [
+            "larger_root",
+            "smaller_root"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.vibrations",
+      "name": "Mechanical Vibrations & Resonance",
+      "category": "second_order",
+      "exam_weight": 1,
+      "prerequisites": [
+        "diffeq.mass_spring",
+        "diffeq.undetermined"
+      ],
+      "theory_md": "## Background\n\nA forced, damped oscillator $m x''+c x'+k x=F_0\\cos\\omega t$ settles into a\n**steady-state** oscillation plus a dying transient.\n\n## Steady-state amplitude\n\n$$A(\\omega)=\\frac{F_0}{\\sqrt{(k-m\\omega^2)^2+(c\\omega)^2}}.$$\nThe amplitude peaks near $\\omega\\approx\\sqrt{k/m}$ — **practical resonance**. With no\ndamping ($c=0$) and $\\omega=\\sqrt{k/m}$, amplitude blows up (pure resonance).\n\n## Damped frequency\n\nFree vibration oscillates at $\\omega_d=\\sqrt{k/m-(c/2m)^2}$.\n\n## Gotchas\n\n- Resonance is dangerous in real structures; damping limits the peak.\n",
+      "generator": {
+        "kind": "vibrations",
+        "params": {
+          "ask": [
+            "damped_freq",
+            "steady_amplitude"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.variation_parameters",
+      "name": "Variation of Parameters",
+      "category": "second_order",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.wronskian"
+      ],
+      "theory_md": "## Background\n\nWhen undetermined coefficients won't work (e.g. $g(t)=\\sec t,\\ \\tan t$, or arbitrary\n$g$), **variation of parameters** gives a particular solution for *any* forcing.\n\n## Formula\n\nGiven independent homogeneous solutions $y_1,y_2$ with Wronskian $W$,\n$$y_p=-y_1\\!\\int\\frac{y_2\\,g}{W}\\,dt+y_2\\!\\int\\frac{y_1\\,g}{W}\\,dt.$$\nThe key computation is the **Wronskian** $W=y_1y_2'-y_2y_1'$.\n\n## Gotchas\n\n- Put the equation in standard form ($y''+\\dots$, leading coefficient 1) so $g$ is\n  correct.\n- More general than undetermined coefficients, but the integrals can be hard.\n",
+      "card": {
+        "question": "Variation of parameters is preferred over undetermined coefficients when:",
+        "answer": "The forcing g(t) is not a polynomial/exponential/sinusoid",
+        "distractors": [
+          "The equation is homogeneous",
+          "The roots are complex",
+          "The equation is first order"
+        ]
+      }
+    },
+    {
+      "id": "diffeq.system_eig",
+      "name": "Systems: Elimination & Eigenvalues",
+      "category": "systems",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.second_order"
+      ],
+      "theory_md": "## Background\n\nA linear system $\\mathbf{x}'=A\\mathbf{x}$ couples several unknowns. Two ways to\nsolve: **elimination** (differentiate and substitute to get one higher-order ODE)\nor **eigenvalues**.\n\n## Eigenvalue method\n\nSolutions are $\\mathbf{x}=\\mathbf{v}e^{\\lambda t}$ where $\\lambda$ is an eigenvalue\nof $A$. For a $2\\times2$ matrix,\n$$\\lambda=\\frac{\\operatorname{tr}A\\pm\\sqrt{(\\operatorname{tr}A)^2-4\\det A}}{2}.$$\n\n## Worked example\n\n$A=\\begin{pmatrix}2&1\\\\1&2\\end{pmatrix}$: tr$=4$, det$=3$, $\\lambda=3,1$.\n\n## Gotchas\n\n- Complex eigenvalues ⇒ spirals; repeated ⇒ may need a generalized eigenvector.\n",
+      "generator": {
+        "kind": "system_eig",
+        "params": {
+          "ask": [
+            "larger_eig",
+            "smaller_eig"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.phase_plane",
+      "name": "Phase Plane & Stability",
+      "category": "systems",
+      "exam_weight": 1,
+      "prerequisites": [
+        "diffeq.system_eig"
+      ],
+      "theory_md": "## Background\n\nThe **phase plane** plots trajectories of $\\mathbf{x}'=A\\mathbf{x}$ in the\n$(x_1,x_2)$ plane. The eigenvalues of $A$ classify the equilibrium at the origin.\n\n## Classification\n\n| Eigenvalues | Type | Stability |\n|---|---|---|\n| real, same sign | node | stable if both $<0$ |\n| real, opposite sign | **saddle** | unstable |\n| complex, $\\operatorname{Re}<0$ | spiral | stable |\n| complex, $\\operatorname{Re}=0$ | center | neutral |\n\n## Gotchas\n\n- Saddles are always unstable.\n- Sign of the real part decides stability; the imaginary part adds rotation.\n",
+      "card": {
+        "question": "A 2×2 linear system whose eigenvalues are real with opposite signs has a:",
+        "answer": "Saddle point (unstable)",
+        "distractors": [
+          "Stable node",
+          "Stable spiral",
+          "Center"
+        ]
+      }
+    },
+    {
+      "id": "diffeq.rk4",
+      "name": "Runge-Kutta (RK4)",
+      "category": "numerical",
+      "exam_weight": 1,
+      "prerequisites": [
+        "diffeq.euler_method"
+      ],
+      "theory_md": "## Background\n\nEuler's method is only first-order accurate. **Runge–Kutta 4 (RK4)** samples the\nslope four times per step for far better accuracy at the same step size.\n\n## One step\n\n$$\\begin{aligned}\nk_1&=f(x_n,y_n), & k_2&=f(x_n+\\tfrac h2,\\,y_n+\\tfrac h2k_1),\\\\\nk_3&=f(x_n+\\tfrac h2,\\,y_n+\\tfrac h2k_2), & k_4&=f(x_n+h,\\,y_n+hk_3),\n\\end{aligned}$$\n$$y_{n+1}=y_n+\\frac h6\\,(k_1+2k_2+2k_3+k_4).$$\n\n## Gotchas\n\n- RK4 is **4th-order**: halving $h$ cuts error ~16×.\n- Adaptive methods vary $h$ to control error (3.7).\n",
+      "generator": {
+        "kind": "rk4_step",
+        "params": {
+          "ask": [
+            "one_step"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.why_laplace",
+      "name": "Why Laplace Transforms?",
+      "category": "transforms",
+      "exam_weight": 1,
+      "prerequisites": [
+        "diffeq.laplace"
+      ],
+      "theory_md": "## Background\n\nThe **Laplace transform** $\\mathcal L\\{f\\}(s)=\\int_0^\\infty e^{-st}f(t)\\,dt$ turns\nan IVP into algebra, then you invert to get $f(t)$.\n\n## Why it helps\n\n- The derivative rule $\\mathcal L\\{y'\\}=sY-y(0)$ **builds the initial conditions\n  in**, so you never fit constants at the end.\n- It handles **discontinuous** and **impulse** forcing (step, delta) that other\n  methods struggle with.\n\n## The recipe\n\nTransform the ODE → solve the algebraic equation for $Y(s)$ → inverse-transform\n(partial fractions) → $y(t)$.\n\n## Gotchas\n\n- Requires $f$ defined for $t\\ge0$ and of exponential order.\n",
+      "card": {
+        "question": "The main reason Laplace transforms simplify IVPs is that they:",
+        "answer": "Convert derivatives into algebra and embed the initial conditions",
+        "distractors": [
+          "Eliminate the need for integration entirely",
+          "Work only for homogeneous equations",
+          "Avoid partial fractions"
+        ]
+      }
+    },
+    {
+      "id": "diffeq.laplace_props",
+      "name": "Properties of Laplace Transforms",
+      "category": "transforms",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.laplace"
+      ],
+      "theory_md": "## Background\n\nA few **properties** let you transform complicated functions without integrating.\n\n## Key rules\n\n- **Linearity**: $\\mathcal L\\{af+bg\\}=aF+bG$.\n- **First shift (s-shift)**: $\\mathcal L\\{e^{at}f(t)\\}=F(s-a)$. So\n  $\\mathcal L\\{e^{at}\\cos\\omega t\\}=\\dfrac{s-a}{(s-a)^2+\\omega^2}$.\n- **Derivative**: $\\mathcal L\\{f'\\}=sF-f(0)$, $\\mathcal L\\{f''\\}=s^2F-sf(0)-f'(0)$.\n- **t-multiplication**: $\\mathcal L\\{t f\\}=-F'(s)$.\n\n## Gotchas\n\n- The s-shift replaces every $s$ by $s-a$ — including inside squares.\n",
+      "generator": {
+        "kind": "laplace_props",
+        "params": {
+          "ask": [
+            "shift_value"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.laplace_ivp",
+      "name": "Solving IVPs by Laplace",
+      "category": "transforms",
+      "exam_weight": 3,
+      "prerequisites": [
+        "diffeq.laplace",
+        "diffeq.laplace_inverse"
+      ],
+      "theory_md": "## Background\n\nThe payoff of the Laplace chapter: solve an IVP end-to-end.\n\n## Method\n\nTransform both sides using $\\mathcal L\\{y'\\}=sY-y(0)$, solve the algebraic equation\nfor $Y(s)$, then invert.\n\n## Worked example\n\n$y'+ay=0,\\ y(0)=y_0$: $(sY-y_0)+aY=0\\Rightarrow Y=\\dfrac{y_0}{s+a}\\Rightarrow\ny=y_0e^{-at}$.\n\n## Gotchas\n\n- Always substitute the initial values during the transform step, not after.\n- Factor / partial-fraction $Y(s)$ to match inverse-transform table entries.\n",
+      "generator": {
+        "kind": "laplace_ivp",
+        "params": {
+          "ask": [
+            "value"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.step_function",
+      "name": "Transforms of Discontinuous Functions",
+      "category": "transforms",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.laplace_props"
+      ],
+      "theory_md": "## Background\n\nReal inputs switch on/off. The **Heaviside step** $u(t-a)=0$ for $t<a$, $1$ for\n$t\\ge a$ models that.\n\n## Transforms\n\n$$\\mathcal L\\{u(t-a)\\}=\\frac{e^{-as}}{s},\\qquad\n\\mathcal L\\{u(t-a)g(t-a)\\}=e^{-as}G(s).$$\nThe **second shift** $e^{-as}$ encodes the time delay.\n\n## Worked example\n\n$\\mathcal L\\{u(t-2)\\}=e^{-2s}/s$.\n\n## Gotchas\n\n- The shift rule needs $g$ evaluated at $t-a$; rewrite the function in terms of\n  $(t-a)$ first.\n",
+      "generator": {
+        "kind": "step_function",
+        "params": {
+          "ask": [
+            "transform_value"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.dirac_delta",
+      "name": "The Dirac Delta Function",
+      "category": "transforms",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.laplace_props"
+      ],
+      "theory_md": "## Background\n\nAn instantaneous \"kick\" (a bat hitting a ball) is modelled by the **Dirac delta**\n$\\delta(t-a)$: zero everywhere except an infinite spike at $t=a$ with total area 1\n($\\int\\delta=1$).\n\n## Transform & sifting\n\n$$\\mathcal L\\{\\delta(t-a)\\}=e^{-as},\\qquad \\int_0^\\infty \\delta(t-a)f(t)\\,dt=f(a).$$\nThe solution of $y'+ay=\\delta(t)$ (the **impulse response**) is $y=e^{-at}$.\n\n## Gotchas\n\n- $\\delta$ is a *generalized* function, not an ordinary one — it only makes sense\n  inside an integral/transform.\n",
+      "generator": {
+        "kind": "dirac_delta",
+        "params": {
+          "ask": [
+            "transform_value",
+            "impulse_response"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.convolution",
+      "name": "Convolution Theorem",
+      "category": "transforms",
+      "exam_weight": 1,
+      "prerequisites": [
+        "diffeq.laplace_inverse"
+      ],
+      "theory_md": "## Background\n\nTo invert a **product** $F(s)G(s)$, you don't multiply $f$ and $g$ — you\n**convolve** them.\n\n## Theorem\n\n$$\\mathcal L\\{(f*g)(t)\\}=F(s)\\,G(s),\\quad\n(f*g)(t)=\\int_0^t f(\\tau)\\,g(t-\\tau)\\,d\\tau.$$\n\n## Why it matters\n\nIt inverts products without partial fractions and expresses the response of a\nsystem to arbitrary input as (impulse response) $*$ (input).\n\n## Gotchas\n\n- Convolution is commutative: $f*g=g*f$.\n- $\\mathcal L\\{fg\\}\\ne F\\cdot G$ — the product rule is for the *convolution*, not the\n  pointwise product.\n",
+      "card": {
+        "question": "The convolution theorem says the inverse transform of F(s)·G(s) is:",
+        "answer": "The convolution (f * g)(t) = ∫₀ᵗ f(τ)g(t−τ)dτ",
+        "distractors": [
+          "The product f(t)·g(t)",
+          "f(t) + g(t)",
+          "F(s)/G(s)"
+        ]
+      }
+    },
+    {
+      "id": "diffeq.pde_intro",
+      "name": "Introduction to PDEs",
+      "category": "pde",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.second_order"
+      ],
+      "theory_md": "## Background\n\nA **partial** differential equation involves a function of several variables and its\npartial derivatives. The three classic linear second-order PDEs:\n\n- **Heat**: $u_t=\\alpha u_{xx}$ — diffusion (parabolic).\n- **Wave**: $u_{tt}=c^2u_{xx}$ — vibration (hyperbolic).\n- **Laplace**: $u_{xx}+u_{yy}=0$ — steady state (elliptic).\n\n## Setup\n\nPDEs need **boundary conditions** (in space) as well as initial conditions (in\ntime). The method of choice here is separation of variables + Fourier series.\n\n## Gotchas\n\n- Type (parabolic/hyperbolic/elliptic) controls behaviour and which data you need.\n",
+      "card": {
+        "question": "The heat equation u_t = α·u_xx is classified as:",
+        "answer": "A parabolic PDE modelling diffusion",
+        "distractors": [
+          "A hyperbolic PDE modelling waves",
+          "An elliptic PDE for steady states",
+          "A first-order ODE"
+        ]
+      }
+    },
+    {
+      "id": "diffeq.separation_eigenvalue",
+      "name": "Separation of Variables & Eigenvalue Problems",
+      "category": "pde",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.pde_intro"
+      ],
+      "theory_md": "## Background\n\nTo solve a PDE on $[0,L]$, **assume** $u(x,t)=X(x)T(t)$. Substituting separates it\ninto two ODEs sharing a constant $-\\lambda$.\n\n## The eigenvalue problem\n\nThe space part with homogeneous boundary conditions,\n$$X''+\\lambda X=0,\\quad X(0)=X(L)=0,$$\nhas nontrivial solutions only for the **eigenvalues**\n$$\\lambda_n=\\left(\\frac{n\\pi}{L}\\right)^2,\\qquad X_n=\\sin\\frac{n\\pi x}{L}.$$\n\n## Gotchas\n\n- $\\lambda$ must be positive here for nontrivial solutions (a Sturm–Liouville\n  problem); $\\lambda\\le0$ forces $X\\equiv0$.\n- Different boundary conditions give different eigenfunctions (e.g. cosines).\n",
+      "generator": {
+        "kind": "bvp_eigenvalue",
+        "params": {
+          "ask": [
+            "lambda_n"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.fourier",
+      "name": "Fourier Series",
+      "category": "pde",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.separation_eigenvalue"
+      ],
+      "theory_md": "## Background\n\nA periodic function on $[-L,L]$ can be written as an infinite sum of sines and\ncosines — a **Fourier series**:\n$$f(x)=\\frac{a_0}{2}+\\sum_{n\\ge1}\\left(a_n\\cos\\frac{n\\pi x}{L}\n  +b_n\\sin\\frac{n\\pi x}{L}\\right).$$\n\n## Coefficients\n\n$$a_n=\\frac1L\\int_{-L}^{L} f\\cos\\frac{n\\pi x}{L}dx,\\quad\n   b_n=\\frac1L\\int_{-L}^{L} f\\sin\\frac{n\\pi x}{L}dx.$$\nFor $f(x)=x$: $a_n=0$, $b_n=\\dfrac{2L}{n\\pi}(-1)^{n+1}$. For $f(x)=x^2$:\n$a_n=\\dfrac{4L^2(-1)^n}{n^2\\pi^2}$.\n\n## Gotchas\n\n- At a jump, the series converges to the **midpoint** (Gibbs phenomenon nearby).\n",
+      "generator": {
+        "kind": "fourier",
+        "params": {
+          "ask": [
+            "b_n",
+            "a_n"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.fourier_sincos",
+      "name": "Fourier Sine & Cosine Series",
+      "category": "pde",
+      "exam_weight": 1,
+      "prerequisites": [
+        "diffeq.fourier"
+      ],
+      "theory_md": "## Background\n\nOn $[0,L]$ you can expand $f$ in **only sines** or **only cosines** by extending it\nto $[-L,L]$ as an odd or even function.\n\n## Which to use\n\n- **Odd extension → sine series** ($b_n$ only). Matches $u=0$ (Dirichlet) ends —\n  used for a string fixed at both ends.\n- **Even extension → cosine series** ($a_n$ only). Matches $u_x=0$ (Neumann) ends —\n  insulated ends in heat flow.\n\n## Gotchas\n\n- The boundary conditions of your PDE decide sine vs cosine.\n- Odd functions have no cosine terms; even functions have no sine terms.\n",
+      "card": {
+        "question": "A function on [0,L] expanded so that only sine terms appear uses the:",
+        "answer": "Odd (half-range) extension",
+        "distractors": [
+          "Even extension",
+          "Full cosine series",
+          "Taylor series"
+        ]
+      }
+    },
+    {
+      "id": "diffeq.heat_equation",
+      "name": "The Heat Equation",
+      "category": "pde",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.fourier"
+      ],
+      "theory_md": "## Background\n\nHeat spreads out over time. On a rod $[0,L]$ with ends held at 0:\n$$u_t=\\alpha u_{xx},\\quad u(0,t)=u(L,t)=0.$$\n\n## Solution\n\nSeparation + Fourier gives a sum of decaying modes:\n$$u(x,t)=\\sum_n b_n\\sin\\frac{n\\pi x}{L}\\,e^{-(n\\pi/L)^2\\alpha t}.$$\nEach mode decays faster the higher its frequency — heat **smooths** the profile. For\na single-mode start $u(x,0)=B\\sin\\frac{\\pi x}{L}$:\n$u=B\\sin\\frac{\\pi x}{L}e^{-(\\pi/L)^2\\alpha t}$.\n\n## Gotchas\n\n- Diffusion is irreversible — high modes vanish quickly; the solution flattens.\n",
+      "generator": {
+        "kind": "heat_mode",
+        "params": {
+          "ask": [
+            "value"
+          ]
+        }
+      }
+    },
+    {
+      "id": "diffeq.wave_equation",
+      "name": "The Wave Equation",
+      "category": "pde",
+      "exam_weight": 2,
+      "prerequisites": [
+        "diffeq.fourier"
+      ],
+      "theory_md": "## Background\n\nA plucked string obeys the **wave equation**:\n$$u_{tt}=c^2u_{xx},\\quad u(0,t)=u(L,t)=0,$$\nwhere $c$ is the wave speed.\n\n## Solution\n\nStanding-wave modes that **oscillate** (not decay):\n$$u(x,t)=\\sum_n \\sin\\frac{n\\pi x}{L}\\Big(a_n\\cos\\frac{n\\pi c t}{L}\n  +b_n\\sin\\frac{n\\pi c t}{L}\\Big).$$\nMode $n$ has frequency $\\dfrac{n\\pi c}{L}$ — the musical harmonics.\n\n## Gotchas\n\n- Unlike heat, energy is conserved: modes oscillate forever (no damping).\n- d'Alembert's form $u=\\tfrac12[f(x-ct)+f(x+ct)]$ shows left/right travelling waves.\n",
+      "generator": {
+        "kind": "wave_mode",
+        "params": {
+          "ask": [
+            "value"
+          ]
+        }
+      }
     }
   ]
 }

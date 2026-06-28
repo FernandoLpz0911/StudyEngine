@@ -2,8 +2,8 @@
 from engine.db import dao
 from engine.subjects import SUBJECTS
 
-# Every subject now has generator concepts; the three recall subjects are mixed.
-MIXED_SUBJECTS = ("databases", "proofs", "econ")
+# Every subject now has generator concepts; these carry concept cards too.
+MIXED_SUBJECTS = ("databases", "proofs", "econ", "diffeq")
 
 
 class TestSeed:
@@ -14,8 +14,9 @@ class TestSeed:
         for subject in SUBJECTS:
             assert len(dao.get_concepts(subject)) >= 4
 
-    def test_diffeq_is_all_generator(self, db):
-        assert all(c.mode == "generator" for c in dao.get_concepts("diffeq"))
+    def test_diffeq_has_generator_drills(self, db):
+        modes = {c.mode for c in dao.get_concepts("diffeq")}
+        assert "generator" in modes  # the auto-graded drills remain
 
     def test_mixed_subjects_have_both_modes(self, db):
         for subject in MIXED_SUBJECTS:

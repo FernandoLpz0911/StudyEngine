@@ -18,7 +18,8 @@ class SubjectInfo:
 SUBJECTS: dict[str, SubjectInfo] = {
     "diffeq": SubjectInfo(
         "diffeq", "MATH 220 — Differential Equations",
-        "Generator mode: ODEs, Laplace transforms — closed-form, auto-graded.",
+        "Full syllabus: first/second-order ODEs, applications, systems, Laplace "
+        "transforms, and PDEs/Fourier series — closed-form, auto-graded.",
     ),
     "databases": SubjectInfo(
         "databases", "CS 480 — Database Systems",
