@@ -9,7 +9,7 @@ from __future__ import annotations
 from engine.config import GRADE_FAST_MS, GRADE_SLOW_MS
 
 
-def grade_answer(user_answer: str, correct_answer: str, tolerance: float = 1e-3) -> bool:
+def grade_answer(user_answer: str, correct_answer: str, tolerance: float = 1e-5) -> bool:
     """True when the user's answer matches: exact string, or numeric within tolerance."""
     if user_answer.strip() == correct_answer.strip():
         return True
