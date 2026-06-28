@@ -35,7 +35,8 @@ SUBJECTS: dict[str, SubjectInfo] = {
     ),
     "examfm": SubjectInfo(
         "examfm", "Exam FM — Financial Mathematics",
-        "Generator mode: compound interest, annuities, perpetuities, loans.",
+        "Full syllabus: time value of money, annuities, loans, bonds, and "
+        "asset-liability management (duration, convexity, immunization).",
     ),
     "examp": SubjectInfo(
         "examp", "Exam P — Probability",

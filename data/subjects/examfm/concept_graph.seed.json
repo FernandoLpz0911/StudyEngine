@@ -1,5 +1,4 @@
 {
-  "subject": "examfm",
   "domain": "Actuarial",
   "concepts": [
     {
@@ -7,13 +6,34 @@
       "name": "Time Value of Money",
       "category": "interest_theory",
       "exam_weight": 2,
+      "prerequisites": [],
+      "theory_md": "## The core idea\n\nA dollar today is worth more than a dollar later: invested at rate $i$, it grows.\nComparing cash flows means moving them to a common date with the **accumulation\nfactor** $(1+i)^t$ or the **discount factor** $v^t$, $v=\\dfrac{1}{1+i}$.\n\nEverything in FM is one principle: *value cash flows at a common time, then equate*\n(the **equation of value**).\n",
       "card": {
         "question": "The time value of money principle says that:",
         "answer": "a dollar today is worth more than a dollar later because it can earn interest",
         "distractors": [
-          "a dollar later is worth more because of inflation",
-          "money has the same value regardless of timing",
-          "interest only matters for loans, not investments"
+          "money loses value only through inflation",
+          "a dollar later is worth more because of compounding",
+          "interest is irrelevant to comparing cash flows"
+        ]
+      }
+    },
+    {
+      "id": "fm.accum_function",
+      "name": "Accumulation & Amount Functions",
+      "category": "interest_theory",
+      "exam_weight": 1,
+      "prerequisites": [
+        "fm.tvm_concept"
+      ],
+      "theory_md": "## a(t) and A(t)\n\nThe **accumulation function** $a(t)$ gives the value at time $t$ of $1$ invested at\ntime $0$, with $a(0)=1$. The **amount function** is $A(t)=A(0)\\,a(t)$.\n\n- Compound interest: $a(t)=(1+i)^t$.\n- Simple interest: $a(t)=1+it$.\nThe effective rate in year $t$ is $i_t=\\dfrac{a(t)-a(t-1)}{a(t-1)}$.\n",
+      "card": {
+        "question": "The accumulation function a(t) is defined as:",
+        "answer": "the value at time t of an investment of 1 made at time 0",
+        "distractors": [
+          "the interest earned in year t",
+          "the present value of 1 due at time t",
+          "the force of interest at time t"
         ]
       }
     },
@@ -22,15 +42,139 @@
       "name": "Nominal vs Effective Rates",
       "category": "interest_theory",
       "exam_weight": 3,
-      "prerequisites": ["fm.tvm_concept"],
+      "prerequisites": [
+        "fm.tvm_concept"
+      ],
+      "theory_md": "## Converting rates\n\nA **nominal** rate $i^{(m)}$ is compounded $m$ times a year; the **effective**\nannual rate is\n$$i=\\left(1+\\frac{i^{(m)}}{m}\\right)^{m}-1.$$\nGoing the other way, $i^{(m)}=m\\big[(1+i)^{1/m}-1\\big]$. All rate forms ($i$,\n$i^{(m)}$, $d$, $d^{(m)}$, $\\delta$) describe the **same** growth — convert through\nthe effective annual rate or $v$.\n",
       "card": {
         "question": "How does a nominal annual rate i^(m) (compounded m times) relate to the effective annual rate i?",
         "answer": "i = (1 + i^(m)/m)^m − 1",
         "distractors": [
           "i = i^(m)/m",
-          "i = i^(m) × m",
-          "i = (1 + i^(m))^m − 1"
+          "i = (1 + i^(m))^m − 1",
+          "i = m·i^(m)"
         ]
+      }
+    },
+    {
+      "id": "fm.discount_rate",
+      "name": "Discount Rate d vs Interest Rate i",
+      "category": "interest_theory",
+      "exam_weight": 2,
+      "prerequisites": [
+        "fm.nominal_effective"
+      ],
+      "theory_md": "## Interest vs discount\n\nInterest is paid at period **end**, discount at the **start**:\n$$d=\\frac{i}{1+i}=iv=1-v,\\qquad i=\\frac{d}{1-d}.$$\nNominal discount: $d^{(m)}=m\\big[1-(1+i)^{-1/m}\\big]$. Also $v=1-d$ and\n$(1-d)=(1+i)^{-1}$.\n",
+      "card": {
+        "question": "The annual effective discount rate d relates to i by:",
+        "answer": "d = i/(1+i)",
+        "distractors": [
+          "d = i(1+i)",
+          "d = 1+i",
+          "d = i − 1"
+        ]
+      }
+    },
+    {
+      "id": "fm.force_concept",
+      "name": "Force of Interest δ",
+      "category": "interest_theory",
+      "exam_weight": 2,
+      "prerequisites": [
+        "fm.nominal_effective"
+      ],
+      "theory_md": "## Continuous compounding\n\nThe **force of interest** is the instantaneous rate\n$\\delta_t=\\dfrac{a'(t)}{a(t)}$. For a constant force,\n$$a(t)=e^{\\delta t},\\qquad \\delta=\\ln(1+i),\\qquad 1+i=e^{\\delta}.$$\nFor a **variable** force, accumulate by integrating:\n$$a(t)=\\exp\\!\\left(\\int_0^t \\delta_s\\,ds\\right).$$\n",
+      "card": {
+        "question": "For a constant force of interest δ, the annual effective rate satisfies:",
+        "answer": "1 + i = e^δ  (δ = ln(1+i))",
+        "distractors": [
+          "i = δ",
+          "1 + i = δ·e",
+          "i = e^δ"
+        ]
+      }
+    },
+    {
+      "id": "fm.real_inflation",
+      "name": "Inflation & the Real Rate",
+      "category": "interest_theory",
+      "exam_weight": 1,
+      "prerequisites": [
+        "fm.nominal_effective"
+      ],
+      "theory_md": "## Real vs nominal\n\nIf the nominal effective rate is $i$ and inflation is $r$, the **real** rate\n$i_{real}$ satisfies\n$$1+i_{real}=\\frac{1+i}{1+r},\\qquad i_{real}=\\frac{i-r}{1+r}\\approx i-r.$$\nThe approximation $i-r$ is fine for small rates but the exact ratio is examinable.\n",
+      "card": {
+        "question": "Given nominal rate i and inflation r, the exact real rate is:",
+        "answer": "(1 + i)/(1 + r) − 1",
+        "distractors": [
+          "i − r exactly",
+          "i + r",
+          "(1 + r)/(1 + i) − 1"
+        ]
+      }
+    },
+    {
+      "id": "fm.equation_of_value",
+      "name": "Equation of Value",
+      "category": "interest_theory",
+      "exam_weight": 2,
+      "prerequisites": [
+        "fm.tvm_concept"
+      ],
+      "theory_md": "## Set inflows = outflows at one date\n\nAn **equation of value** accumulates/discounts every cash flow to a common\n**comparison date** and sets the values equal. The result is independent of the\ndate chosen. Most FM problems reduce to writing — and solving — one equation of\nvalue.\n",
+      "card": {
+        "question": "An equation of value is obtained by:",
+        "answer": "bringing all cash flows to one comparison date and equating inflows and outflows",
+        "distractors": [
+          "summing all cash flows without discounting",
+          "using only the final payment",
+          "comparing nominal and effective rates"
+        ]
+      }
+    },
+    {
+      "id": "fm.compound",
+      "name": "Interest Rate Conversions & Compound Interest",
+      "category": "interest_theory",
+      "exam_weight": 3,
+      "prerequisites": [
+        "fm.nominal_effective"
+      ],
+      "theory_md": "## Compound interest & rate forms\n\n$$FV=PV\\,(1+i)^n,\\qquad PV=FV\\,v^n,\\qquad v=\\tfrac{1}{1+i}.$$\nSimple interest accrues linearly, $A=P(1+it)$. Convert among\n$i,\\ d=\\tfrac{i}{1+i},\\ i^{(m)},\\ d^{(m)},\\ \\delta=\\ln(1+i)$ — all the same growth.\n",
+      "generator": {
+        "kind": "fm_compound",
+        "params": {
+          "ask": [
+            "future_value",
+            "present_value",
+            "effective_rate",
+            "simple_interest",
+            "discount_factor",
+            "effective_discount",
+            "nominal_discount",
+            "force_from_i",
+            "real_rate"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fm.varforce",
+      "name": "Variable Force of Interest",
+      "category": "interest_theory",
+      "exam_weight": 2,
+      "prerequisites": [
+        "fm.force_concept"
+      ],
+      "theory_md": "## Accumulating under δ(t)\n\nWith force $\\delta(t)$, the factor from time 0 to $t$ is\n$\\exp\\!\\big(\\int_0^t \\delta_s\\,ds\\big)$. For $\\delta_t=a+bt$,\n$$\\int_0^t (a+bs)\\,ds = at+\\tfrac{b}{2}t^2,\\quad\n\\text{AV}=P\\,e^{\\,at+bt^2/2}.$$\nConstant force is the special case $b=0$: $P\\,e^{\\delta t}$.\n",
+      "generator": {
+        "kind": "fm_varforce",
+        "params": {
+          "ask": [
+            "accum",
+            "accum_const"
+          ]
+        }
       }
     },
     {
@@ -38,37 +182,402 @@
       "name": "Annuity-Immediate vs Annuity-Due",
       "category": "annuities",
       "exam_weight": 2,
-      "prerequisites": ["fm.tvm_concept"],
+      "prerequisites": [
+        "fm.tvm_concept"
+      ],
+      "theory_md": "## Timing of payments\n\n- **Annuity-immediate**: payments at period **end**.\n  $a_{\\overline{n}|}=\\dfrac{1-v^n}{i}$, $\\ s_{\\overline{n}|}=\\dfrac{(1+i)^n-1}{i}$.\n- **Annuity-due**: payments at period **start**.\n  $\\ddot a_{\\overline{n}|}=a_{\\overline{n}|}(1+i)$,\n  $\\ \\ddot s_{\\overline{n}|}=s_{\\overline{n}|}(1+i)$.\n\nDue = immediate $\\times(1+i)$ (one extra period of growth).\n",
       "card": {
         "question": "In an annuity-due (versus annuity-immediate), payments are made:",
         "answer": "at the beginning of each period",
         "distractors": [
           "at the end of each period",
-          "only once, at the start",
-          "at the midpoint of each period"
+          "only once at the start",
+          "continuously through the period"
         ]
       }
     },
     {
-      "id": "fm.compound",
-      "name": "Compound Interest (FV / PV / Effective Rate)",
-      "category": "interest_theory",
+      "id": "fm.annuities",
+      "name": "Level Annuities, Perpetuities & Loan Payments",
+      "category": "annuities",
       "exam_weight": 3,
-      "prerequisites": ["fm.nominal_effective"],
+      "prerequisites": [
+        "fm.compound",
+        "fm.annuity_types"
+      ],
+      "theory_md": "## Level annuities\n\n$$PV=\\text{PMT}\\cdot a_{\\overline{n}|}=\\text{PMT}\\,\\frac{1-v^n}{i},\\qquad\nFV=\\text{PMT}\\cdot s_{\\overline{n}|}.$$\nA **perpetuity-immediate** pays forever: $PV=\\dfrac{\\text{PMT}}{i}$. A level loan\npayment inverts the PV: $\\text{PMT}=\\dfrac{L}{a_{\\overline{n}|}}=\\dfrac{Li}{1-v^n}$.\n",
       "generator": {
-        "kind": "fm_compound",
-        "params": { "ask": ["future_value", "present_value", "effective_rate"] }
+        "kind": "fm_annuity",
+        "params": {
+          "ask": [
+            "annuity_pv",
+            "annuity_fv",
+            "perpetuity",
+            "loan_payment"
+          ]
+        }
       }
     },
     {
-      "id": "fm.annuities",
-      "name": "Annuities, Perpetuities & Loans",
+      "id": "fm.annuities_adv",
+      "name": "Annuities — Due, m-thly, Continuous, Non-level",
       "category": "annuities",
       "exam_weight": 3,
-      "prerequisites": ["fm.compound", "fm.annuity_types"],
+      "prerequisites": [
+        "fm.annuities"
+      ],
+      "theory_md": "## Beyond level annuity-immediate\n\n- **Due**: $\\times(1+i)$. **Perpetuity-due**: $\\text{PMT}/d=\\text{PMT}(1+i)/i$.\n- **Deferred** $k$ years: $v^k\\,a_{\\overline{n}|}$.\n- **Payable m-thly**: $PV=\\text{PMT}\\dfrac{1-v^n}{i^{(m)}}$.\n- **Continuous**: $PV=\\text{PMT}\\dfrac{1-v^n}{\\delta}$.\n- **Increasing** $(Ia)_{\\overline n|}=\\dfrac{\\ddot a_{\\overline n|}-nv^n}{i}$;\n  **decreasing** $(Da)_{\\overline n|}=\\dfrac{n-a_{\\overline n|}}{i}$.\n- **Geometric** (growth $g$): $\\text{PMT}\\dfrac{1-\\left(\\frac{1+g}{1+i}\\right)^n}{i-g}$.\n- **Solve for term**: $n=-\\dfrac{\\ln(1-Li/\\text{PMT})}{\\ln(1+i)}$.\n",
       "generator": {
         "kind": "fm_annuity",
-        "params": { "ask": ["annuity_pv", "annuity_fv", "perpetuity", "loan_payment"] }
+        "params": {
+          "ask": [
+            "annuity_due_pv",
+            "annuity_due_fv",
+            "perpetuity_due",
+            "deferred",
+            "mthly",
+            "continuous",
+            "increasing",
+            "decreasing",
+            "geometric",
+            "solve_term"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fm.amortization",
+      "name": "Loan Amortization",
+      "category": "loans",
+      "exam_weight": 3,
+      "prerequisites": [
+        "fm.annuities"
+      ],
+      "theory_md": "## Splitting each payment\n\nIn an amortized loan, each level payment is part interest, part principal:\n$$I_k=i\\cdot B_{k-1}=\\text{PMT}\\,(1-v^{\\,n-k+1}),\\qquad\nP_k=\\text{PMT}\\,v^{\\,n-k+1}.$$\nAs $k$ grows, interest **falls** and principal **rises** (principal repayments grow\nby the factor $(1+i)$ each period).\n",
+      "card": {
+        "question": "Over the life of an amortized level-payment loan, each successive payment contains:",
+        "answer": "less interest and more principal",
+        "distractors": [
+          "more interest and less principal",
+          "equal interest and principal",
+          "only interest until the last payment"
+        ]
+      }
+    },
+    {
+      "id": "fm.balance_methods",
+      "name": "Outstanding Balance: Prospective & Retrospective",
+      "category": "loans",
+      "exam_weight": 3,
+      "prerequisites": [
+        "fm.amortization"
+      ],
+      "theory_md": "## Two equivalent views\n\n- **Prospective** (look forward): $B_k=\\text{PMT}\\cdot a_{\\overline{n-k}|}$ — PV of\n  the *remaining* payments.\n- **Retrospective** (look back):\n  $B_k=L(1+i)^k-\\text{PMT}\\cdot s_{\\overline{k}|}$ — accumulated loan minus\n  accumulated payments.\n\nThey always agree; pick whichever inputs you have.\n",
+      "generator": {
+        "kind": "fm_loan",
+        "params": {
+          "ask": [
+            "balance_prospective",
+            "balance_retrospective",
+            "interest_portion",
+            "principal_portion",
+            "balloon",
+            "sinking_fund"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fm.balloon_concept",
+      "name": "Balloon & Drop Payments",
+      "category": "loans",
+      "exam_weight": 1,
+      "prerequisites": [
+        "fm.amortization"
+      ],
+      "theory_md": "## Uneven final payment\n\nIf level payments are **rounded**, the loan rarely clears exactly. A larger final\npayment is a **balloon**; a smaller one is a **drop** payment. Compute by\naccumulating the balance after the regular payments, then settling it with one\nperiod's interest.\n",
+      "card": {
+        "question": "A larger-than-usual final loan payment that clears a rounded schedule is called a:",
+        "answer": "balloon payment",
+        "distractors": [
+          "drop payment",
+          "sinking-fund payment",
+          "coupon"
+        ]
+      }
+    },
+    {
+      "id": "fm.sinking_fund_concept",
+      "name": "Sinking-Fund Method",
+      "category": "loans",
+      "exam_weight": 2,
+      "prerequisites": [
+        "fm.annuities"
+      ],
+      "theory_md": "## Interest-only + side fund\n\nUnder the **sinking-fund** method the borrower pays the lender **interest only**\n($Li$ each year) and separately deposits into a fund earning rate $j$ to accumulate\nthe principal $L$ by maturity:\n$$\\text{deposit}=\\frac{L}{s_{\\overline{n}|j}},\\qquad\n\\text{total annual cost}=Li+\\frac{L}{s_{\\overline{n}|j}}.$$\n",
+      "card": {
+        "question": "Under the sinking-fund method of loan repayment, the borrower:",
+        "answer": "pays interest to the lender and accumulates principal in a separate fund",
+        "distractors": [
+          "pays level amortized payments",
+          "pays only at maturity with no interest",
+          "pays principal first, then interest"
+        ]
+      }
+    },
+    {
+      "id": "fm.refinancing",
+      "name": "Refinancing",
+      "category": "loans",
+      "exam_weight": 1,
+      "prerequisites": [
+        "fm.balance_methods"
+      ],
+      "theory_md": "## Restructuring a loan\n\nTo **refinance**, find the current outstanding balance (prospective is easiest),\nthen treat it as a **new loan** at the new rate/term to get the new payment. Any\nfees are added to the balance being refinanced.\n",
+      "card": {
+        "question": "The first step in a refinancing calculation is to:",
+        "answer": "find the current outstanding balance, then re-amortize it on the new terms",
+        "distractors": [
+          "ignore the old loan entirely",
+          "add all remaining original payments",
+          "use the original payment unchanged"
+        ]
+      }
+    },
+    {
+      "id": "fm.bond_terms",
+      "name": "Bond Terminology",
+      "category": "bonds",
+      "exam_weight": 1,
+      "prerequisites": [
+        "fm.annuities"
+      ],
+      "theory_md": "## Anatomy of a bond\n\n- **Face/par** $F$: sets the coupon $Fr$ ($r$ = coupon rate per period).\n- **Redemption** $C$: paid at maturity (often $C=F$).\n- **Yield** $i$: the investor's required return per period.\n- **Price** $P$: PV of coupons + redemption at yield $i$.\nCoupon rate $r$ and yield $i$ are **different** rates — their relation sets\npremium vs discount.\n",
+      "card": {
+        "question": "A bond's coupon amount each period equals:",
+        "answer": "face value × coupon rate (F·r)",
+        "distractors": [
+          "redemption value × yield rate",
+          "price × yield rate",
+          "face value × yield rate"
+        ]
+      }
+    },
+    {
+      "id": "fm.bond_price",
+      "name": "Bond Pricing, Book Value & Amortization",
+      "category": "bonds",
+      "exam_weight": 3,
+      "prerequisites": [
+        "fm.bond_terms"
+      ],
+      "theory_md": "## Price and book value\n\n$$P=Fr\\,a_{\\overline{n}|i}+C\\,v^n.$$\n**Book value** at time $t$ is the same formula on the remaining term:\n$B_t=Fr\\,a_{\\overline{n-t}|}+C\\,v^{n-t}$. Each period, the **premium amortized**\n(write-down) is $\\text{coupon}-i\\,B_{t-1}$; for a discount bond this is the\n**accumulation of discount** (a write-up). Coupons reinvested at $j$ accumulate to\n$Fr\\,s_{\\overline{n}|j}+C$.\n",
+      "generator": {
+        "kind": "fm_bond",
+        "params": {
+          "ask": [
+            "price",
+            "premium_discount",
+            "book_value",
+            "amort_premium",
+            "accumulated_reinvest",
+            "callable_price"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fm.premium_discount_concept",
+      "name": "Premium vs Discount Bonds",
+      "category": "bonds",
+      "exam_weight": 2,
+      "prerequisites": [
+        "fm.bond_terms"
+      ],
+      "theory_md": "## Which is it?\n\n- $r>i$ ⇒ coupons exceed required yield ⇒ **premium** ($P>C$), book value\n  amortizes **down** to $C$.\n- $r<i$ ⇒ **discount** ($P<C$), book value accumulates **up** to $C$.\n- $r=i$ ⇒ priced at par.\n",
+      "card": {
+        "question": "A bond sells at a premium (price above redemption) exactly when:",
+        "answer": "the coupon rate exceeds the yield rate (r > i)",
+        "distractors": [
+          "the yield rate exceeds the coupon rate",
+          "the term is very long",
+          "coupons are reinvested"
+        ]
+      }
+    },
+    {
+      "id": "fm.callable_concept",
+      "name": "Callable Bonds",
+      "category": "bonds",
+      "exam_weight": 2,
+      "prerequisites": [
+        "fm.bond_price"
+      ],
+      "theory_md": "## Pricing for the worst call\n\nA **callable** bond may be redeemed early by the issuer. To **guarantee** a minimum\nyield, price it at the call date that gives the **lowest** price:\n- Premium bond ($r>i$): worst case is the **earliest** call.\n- Discount bond ($r<i$): worst case is the **latest** date.\nCompute the price at each candidate date and take the minimum.\n",
+      "card": {
+        "question": "To guarantee a minimum yield on a callable bond, you price it at:",
+        "answer": "the call date giving the lowest price",
+        "distractors": [
+          "the call date giving the highest price",
+          "the average of all call dates",
+          "maturity only"
+        ]
+      }
+    },
+    {
+      "id": "fm.yield",
+      "name": "Yield Rates & IRR",
+      "category": "alm",
+      "exam_weight": 2,
+      "prerequisites": [
+        "fm.compound"
+      ],
+      "theory_md": "## Internal rate of return\n\nThe **yield/IRR** of a cash-flow stream is the rate making\n$\\text{NPV}=\\sum_t \\text{CF}_t\\,v^t=0$. No closed form in general — solve\nnumerically (calculator/bisection). For a single in- and out-flow it reduces to a\nsimple growth rate.\n",
+      "generator": {
+        "kind": "fm_yield",
+        "params": {
+          "ask": [
+            "irr",
+            "dollar_weighted",
+            "time_weighted"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fm.dollar_vs_time",
+      "name": "Dollar-Weighted vs Time-Weighted Return",
+      "category": "alm",
+      "exam_weight": 2,
+      "prerequisites": [
+        "fm.yield"
+      ],
+      "theory_md": "## Two return measures\n\n- **Dollar-weighted** (money-weighted) = IRR of the fund's actual cash flows;\n  sensitive to **timing/size** of deposits. Simple-interest approx:\n  $i\\approx\\dfrac{I}{A+\\sum C_t(1-t)}$.\n- **Time-weighted** = product of sub-period growth factors minus 1; removes the\n  effect of cash-flow timing (measures the **manager's** performance).\n",
+      "card": {
+        "question": "Time-weighted return differs from dollar-weighted return because it:",
+        "answer": "removes the effect of the timing and size of cash flows",
+        "distractors": [
+          "weights early cash flows more heavily",
+          "always equals the IRR",
+          "ignores investment performance"
+        ]
+      }
+    },
+    {
+      "id": "fm.spot_forward",
+      "name": "Spot & Forward Rates / Yield Curve",
+      "category": "alm",
+      "exam_weight": 2,
+      "prerequisites": [
+        "fm.compound"
+      ],
+      "theory_md": "## Term structure\n\nA **spot rate** $s_t$ prices a zero maturing at $t$: discount each cash flow at its\nown spot, $PV=\\sum_t \\text{CF}_t/(1+s_t)^t$. A **forward rate** is implied between\nfuture dates:\n$$1+f_{[1,2]}=\\frac{(1+s_2)^2}{1+s_1}.$$\n",
+      "generator": {
+        "kind": "fm_termstructure",
+        "params": {
+          "ask": [
+            "forward",
+            "pv_spot"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fm.duration",
+      "name": "Duration & Convexity",
+      "category": "alm",
+      "exam_weight": 3,
+      "prerequisites": [
+        "fm.annuities",
+        "fm.bond_price"
+      ],
+      "theory_md": "## Interest-rate sensitivity\n\n- **Macaulay duration** = PV-weighted average time:\n  $\\bar D=\\dfrac{\\sum t\\,\\text{PV}_t}{\\sum \\text{PV}_t}$.\n- **Modified duration** $D_{mod}=\\dfrac{\\bar D}{1+i}$ measures price sensitivity:\n  $\\dfrac{dP}{P}\\approx -D_{mod}\\,di$.\n- **Convexity** is the second-order term.\n- **First-order estimate**: $\\Delta P\\approx -P\\,D_{mod}\\,\\Delta i$.\n",
+      "generator": {
+        "kind": "fm_duration",
+        "params": {
+          "ask": [
+            "macaulay",
+            "modified",
+            "convexity",
+            "pv_change"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fm.convexity_concept",
+      "name": "Convexity",
+      "category": "alm",
+      "exam_weight": 1,
+      "prerequisites": [
+        "fm.duration"
+      ],
+      "theory_md": "## Second-order correction\n\nDuration alone is a straight-line estimate; **convexity** captures the curvature of\nprice vs yield. A better approximation:\n$$\\frac{\\Delta P}{P}\\approx -D_{mod}\\,\\Delta i+\\tfrac12\\,\\text{Convexity}\\,(\\Delta i)^2.$$\nHigher convexity ⇒ price falls less when rates rise and gains more when they fall.\n",
+      "card": {
+        "question": "Convexity improves a duration-based price estimate by accounting for:",
+        "answer": "the curvature of the price–yield relationship (the second-order term)",
+        "distractors": [
+          "inflation",
+          "the coupon rate",
+          "reinvestment of coupons"
+        ]
+      }
+    },
+    {
+      "id": "fm.redington",
+      "name": "Redington Immunization",
+      "category": "alm",
+      "exam_weight": 2,
+      "prerequisites": [
+        "fm.duration"
+      ],
+      "theory_md": "## Protecting against small rate moves\n\nA portfolio is **Redington immunized** at the current rate when:\n1. $PV_{assets}=PV_{liabilities}$,\n2. (modified) **durations match**,\n3. **asset convexity $\\ge$ liability convexity**.\n\nThis protects surplus against **small** interest-rate changes in either direction.\n",
+      "card": {
+        "question": "Redington immunization requires PV match, duration match, and:",
+        "answer": "asset convexity ≥ liability convexity",
+        "distractors": [
+          "asset convexity ≤ liability convexity",
+          "equal coupon rates",
+          "a flat yield curve"
+        ]
+      }
+    },
+    {
+      "id": "fm.full_immunization",
+      "name": "Full Immunization",
+      "category": "alm",
+      "exam_weight": 1,
+      "prerequisites": [
+        "fm.redington"
+      ],
+      "theory_md": "## Protecting against any move\n\n**Full immunization** structures assets so surplus is protected against an\ninterest-rate change of **any size** (not just small ones), typically with one\nasset cash flow **before** and one **after** each liability, matching PV and\nduration. Stronger than Redington but needs a specific asset structure.\n",
+      "card": {
+        "question": "Full immunization (vs Redington) protects surplus against:",
+        "answer": "interest-rate changes of any size, not just small ones",
+        "distractors": [
+          "only small rate changes",
+          "only upward rate moves",
+          "inflation, not interest rates"
+        ]
+      }
+    },
+    {
+      "id": "fm.cashflow_matching",
+      "name": "Cash-Flow Matching / Dedication",
+      "category": "alm",
+      "exam_weight": 1,
+      "prerequisites": [
+        "fm.duration"
+      ],
+      "theory_md": "## Exact matching\n\n**Cash-flow matching** (dedication) buys assets whose cash flows **exactly** equal\neach liability as it falls due — no reinvestment or rate risk at all. It is the most\nrobust (and usually most expensive/constrained) strategy, requiring no rate\nassumptions.\n",
+      "card": {
+        "question": "Cash-flow matching immunizes a liability stream by:",
+        "answer": "holding assets whose cash flows exactly meet each liability when due",
+        "distractors": [
+          "matching only the durations",
+          "matching only present values",
+          "maximizing portfolio convexity"
+        ]
       }
     }
   ]
