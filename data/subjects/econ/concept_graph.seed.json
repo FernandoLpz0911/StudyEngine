@@ -16,7 +16,7 @@
           "Short-run, long-run, and permanent"
         ]
       },
-      "theory_md": "An incentive is anything that motivates a choice. Freakonomics splits them into economic (money/material), social (reputation — how others see you), and moral (conscience — right vs wrong). Most behaviour mixes all three, and schemes fail when they target only one."
+      "theory_md": "## Why this exists\n\nFreakonomics' core claim: people respond to **incentives**, and schemes fail when\ndesigners misread them.\n\n## The three types\n\n- **Economic** — money/material gain.\n- **Social** — reputation, how others see you.\n- **Moral** — conscience, right vs wrong.\n\nMost behaviour mixes all three; targeting only one often backfires.\n\n## Example\n\nA fine for late daycare pickup (economic) **crowded out** the moral incentive and\n*increased* lateness — parents now \"bought\" the right to be late.\n\n## Gotchas\n\n- Strong incentives invite **gaming** — people optimize the metric, not the goal.\n"
     },
     {
       "id": "econ.opportunity_cost",
@@ -32,7 +32,7 @@
           "The sunk cost already incurred"
         ]
       },
-      "theory_md": "Opportunity cost = the value of the single next-best option you give up by choosing something. The true cost isn't the price tag, it's the best alternative forgone. An hour studying 'costs' the hour of work or rest you didn't take."
+      "theory_md": "## Why this exists\n\nEvery choice forecloses others. **Opportunity cost** is how economists measure the\ntrue cost of a decision.\n\n## Definition\n\nOpportunity cost = the value of the **single next-best alternative** you give up —\nnot the sum of all alternatives, and not just the cash outlay.\n\n## Example\n\nSpending an evening studying \"costs\" the shift you didn't work (say \\$60) — that\nforgone wage is the opportunity cost, even though studying is \"free\".\n\n## Gotchas\n\n- Include **implicit** costs (your time), not just money spent.\n- Sunk costs are **not** opportunity costs — they're already gone.\n"
     },
     {
       "id": "econ.marginal",
@@ -51,7 +51,7 @@
           "The sunk cost already spent"
         ]
       },
-      "theory_md": "Marginal thinking weighs the cost and benefit of ONE more unit (one more hour, one more slice), not the total. Rational choices push to where marginal benefit = marginal cost. Sunk and total amounts don't affect the next-step decision."
+      "theory_md": "## Why this exists\n\nGood decisions happen **at the margin** — about the next unit, not the whole.\n\n## Definition\n\nCompare the **marginal benefit** and **marginal cost** of one more unit (hour, item,\nmile). Keep doing the activity while MB > MC; the optimum is where **MB = MC**.\n\n## Example\n\nStudying hour 1 raises your grade a lot (high MB); hour 6 barely helps (low MB). Stop\nwhen the next hour's benefit no longer beats its cost (sleep, time).\n\n## Gotchas\n\n- Ignore **sunk** and **total** amounts — only the *next* unit's costs/benefits\n  count.\n"
     },
     {
       "id": "econ.correlation_causation",
@@ -67,7 +67,7 @@
           "A properly randomized experiment"
         ]
       },
-      "theory_md": "Correlation means two things move together; causation means one drives the other. A spurious correlation looks causal but is really produced by a hidden confounding variable affecting both. Correlation ≠ causation."
+      "theory_md": "## Why this exists\n\nData shows things moving together; jumping to \"A causes B\" is the classic error.\n\n## Definition\n\n- **Correlation:** two variables move together.\n- **Causation:** one actually drives the other.\n- A **spurious correlation** is produced by a hidden **confounder** affecting both.\n\n## Example\n\nIce-cream sales and drownings rise together — both are driven by **hot weather**\n(the confounder), not by each other.\n\n## Gotchas\n\n- \"Correlation ≠ causation.\" To claim causation you need an experiment or a credible\n  natural experiment, not just association.\n"
     },
     {
       "id": "econ.moral_hazard",
@@ -86,7 +86,7 @@
           "A binding price ceiling"
         ]
       },
-      "theory_md": "Moral hazard: AFTER a deal is struck, a party takes more risk because they don't bear the full consequences — a hidden ACTION. Example: an insured driver drives recklessly since the insurer absorbs the loss. Key marker: behaviour changes post-agreement because risk was shifted."
+      "theory_md": "## Why this exists\n\nInsurance and contracts change behaviour. **Moral hazard** is the risk created\n*after* a deal.\n\n## Definition\n\n**Moral hazard:** after an agreement, a party takes **more risk** because they don't\nbear the full consequences — a hidden **action**.\n\n## Example\n\nA fully-insured driver drives less carefully; the insurer absorbs the loss. The\nbehaviour change happens **post-agreement**.\n\n## Gotchas\n\n- Contrast **adverse selection** (hidden *information*, **before** the deal). Moral\n  hazard = hidden *action*, **after**.\n"
     },
     {
       "id": "econ.adverse_selection",
@@ -105,7 +105,7 @@
           "Government price regulation"
         ]
       },
-      "theory_md": "Adverse selection: BEFORE a deal, hidden INFORMATION about who chooses to participate skews the pool. The riskiest types are keenest to sign up (the sickest buy the most insurance) because they know what the other side can't. Contrast moral hazard, which is hidden action AFTER the deal."
+      "theory_md": "## Why this exists\n\nWhen one side knows more **before** a deal, the pool of participants skews badly.\n\n## Definition\n\n**Adverse selection:** hidden **information** at the time of contracting means the\nriskiest types are the keenest to participate.\n\n## Example\n\nThe sickest people buy the most health insurance (they know their risk); the insurer\ncan't tell them apart, so prices rise and the healthy drop out.\n\n## Gotchas\n\n- Before-the-deal hidden *info* = adverse selection; after-the-deal hidden *action*\n  = moral hazard. Fixes: signalling, screening, mandates.\n"
     },
     {
       "id": "econ.information_asymmetry",
@@ -124,7 +124,7 @@
           "Guarantee an efficient market outcome"
         ]
       },
-      "theory_md": "Information asymmetry: one side knows more than the other. The informed party (mechanic, realtor, doctor) can exploit that edge to serve their own incentives at the client's expense. It's the root cause behind adverse selection and principal–agent problems."
+      "theory_md": "## Why this exists\n\nMarkets assume informed parties. When one side **knows more**, it can exploit the\nother — the root of adverse selection and moral hazard.\n\n## Definition\n\n**Information asymmetry:** one party (mechanic, realtor, doctor, agent) has more\nrelevant knowledge than the other and can act in their own interest.\n\n## Example\n\nA mechanic recommends an unnecessary repair; the customer can't verify it. The\nexpert's information advantage becomes a conflict of interest.\n\n## Gotchas\n\n- Remedies reduce the gap: reputation, warranties, third-party certification,\n  aligned incentives.\n"
     },
     {
       "id": "econ.unintended_consequences",
@@ -143,7 +143,7 @@
           "Made parents arrive earlier on average"
         ]
       },
-      "theory_md": "Unintended consequences: an incentive produces effects nobody intended. Classic case — a daycare fined late pickups and lateness ROSE, because the fine reframed a moral obligation ('don't burden the staff') as a small price worth paying. Prices can crowd out morality."
+      "theory_md": "## Why this exists\n\nIncentives ripple. Policies often produce effects **nobody intended** — a recurring\nFreakonomics theme.\n\n## Definition\n\n**Unintended consequences:** an intervention changes behaviour in ways that\nundercut (or reverse) its goal.\n\n## Example\n\nThe daycare late-pickup **fine** reframed a moral obligation as a cheap price, so\nlateness **rose** — the opposite of the intent.\n\n## Gotchas\n\n- Ask \"how will people **re-optimize**?\" before deploying an incentive; prices can\n  crowd out morality.\n"
     },
     {
       "id": "econ.decisions",
@@ -165,7 +165,8 @@
             "elasticity"
           ]
         }
-      }
+      },
+      "theory_md": "## Why this exists\n\nEconomics is decision-making under scarcity. This drills the **quantitative tools**\nbehind good choices.\n\n## The tools\n\n- **Opportunity cost** — value of the next-best alternative given up. The real cost\n  of a choice, not the cash price.\n- **Marginal net benefit** — benefit of *one more* unit minus its cost; keep going\n  while it's positive (optimum where marginal benefit = marginal cost).\n- **Expected value** — probability-weighted average payoff\n  $E = \\sum p_i x_i$; the rational criterion under risk.\n- **Percent change** — $\\dfrac{\\text{new}-\\text{old}}{\\text{old}}\\times100\\%$.\n- **ROI** — return on investment $=\\dfrac{\\text{gain}-\\text{cost}}{\\text{cost}}$.\n- **Elasticity** — % change in quantity ÷ % change in price; $|E|>1$ elastic,\n  $<1$ inelastic.\n\n## Worked example\n\nA \\$100 bet pays \\$300 with probability 0.4: $E = 0.4(300)+0.6(0)=120 > 100$ ⇒\npositive expected value.\n\n## Gotchas\n\n- Opportunity cost counts the **forgone** option, not all alternatives.\n- Marginal thinking ignores **sunk** costs — only the next unit matters.\n"
     }
   ]
 }

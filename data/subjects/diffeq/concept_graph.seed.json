@@ -7,71 +7,147 @@
       "name": "Separable & Growth/Decay",
       "category": "first_order",
       "exam_weight": 3,
-      "generator": { "kind": "separable_growth", "params": { "ask": ["value"] } },
-      "theory_md": "dy/dt = k·y separates to dy/y = k dt; integrate to ln|y| = kt + C, so y = y0·e^{kt}. Positive k grows, negative k decays."
+      "generator": {
+        "kind": "separable_growth",
+        "params": {
+          "ask": [
+            "value"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\nMany systems change at a rate proportional to their current size (populations,\nradioactive decay, cooling). These give the simplest ODEs — **separable** ones.\n\n## The method\n\nAn equation is separable if you can write it as $\\dfrac{dy}{dt} = g(t)\\,h(y)$.\nSeparate and integrate:\n$$\\int \\frac{dy}{h(y)} = \\int g(t)\\,dt.$$\n\nFor pure growth/decay $\\dfrac{dy}{dt} = k\\,y$:\n$$\\frac{dy}{y} = k\\,dt \\;\\Rightarrow\\; \\ln|y| = kt + C \\;\\Rightarrow\\;\n  y(t) = y_0\\,e^{kt}.$$\n$k>0$ grows, $k<0$ decays.\n\n## Worked example\n\n$\\dfrac{dy}{dt} = -0.3\\,y,\\ y(0)=10$. Then $y(t) = 10\\,e^{-0.3t}$, so\n$y(2) = 10e^{-0.6}\\approx 5.49$.\n\n## Gotchas\n\n- Don't forget $+C$ and solve for it with the initial condition.\n- Dividing by $h(y)$ can lose constant (equilibrium) solutions where $h(y)=0$.\n"
     },
     {
       "id": "diffeq.first_order_linear",
       "name": "First-Order Linear ODEs",
       "category": "first_order",
       "exam_weight": 3,
-      "prerequisites": ["diffeq.separable"],
-      "generator": { "kind": "first_order_linear", "params": { "ask": ["value", "equilibrium"] } },
-      "theory_md": "y' + a·y = b. The solution is the equilibrium b/a plus a decaying transient (y0 − b/a)·e^{-at}. In general, multiply by the integrating factor e^{∫a dt}."
+      "prerequisites": [
+        "diffeq.separable"
+      ],
+      "generator": {
+        "kind": "first_order_linear",
+        "params": {
+          "ask": [
+            "value",
+            "equilibrium"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\nLinear first-order ODEs model a quantity pushed toward an equilibrium (mixing tanks,\nRC circuits, drug levels): $\\dfrac{dy}{dt} + a\\,y = b$.\n\n## The solution\n\nFor constant $a,b$ the answer is **equilibrium + decaying transient**:\n$$y(t) = \\frac{b}{a} + \\left(y_0 - \\frac{b}{a}\\right)e^{-at}.$$\nThe equilibrium (particular) solution is $y_p = b/a$; the transient dies at rate $a$.\n\n## Worked example\n\n$y' + 2y = 6,\\ y(0)=1$. Equilibrium $=3$, so $y(t) = 3 + (1-3)e^{-2t} = 3 - 2e^{-2t}$;\n$y(\\infty)=3$.\n\n## Gotchas\n\n- The sign: $+a y$ gives $e^{-at}$ decay; a negative $a$ blows up.\n- For non-constant coefficients use the **integrating factor** method.\n"
     },
     {
       "id": "diffeq.second_order",
       "name": "2nd-Order Linear, Constant Coefficients",
       "category": "second_order",
       "exam_weight": 3,
-      "prerequisites": ["diffeq.first_order_linear"],
-      "generator": { "kind": "second_order_homog", "params": { "ask": ["larger_root", "smaller_root"] } },
-      "theory_md": "y'' + p·y' + q·y = 0 gives the characteristic equation r² + p·r + q = 0. Real distinct roots r1, r2 → y = c1·e^{r1 t} + c2·e^{r2 t}."
+      "prerequisites": [
+        "diffeq.first_order_linear"
+      ],
+      "generator": {
+        "kind": "second_order_homog",
+        "params": {
+          "ask": [
+            "larger_root",
+            "smaller_root"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\nSprings, circuits, and oscillators obey **second-order linear** ODEs with constant\ncoefficients: $a y'' + b y' + c y = 0$.\n\n## The method (characteristic equation)\n\nGuess $y=e^{rt}$ to get $a r^2 + b r + c = 0$. The roots set the form:\n\n- **Distinct real** $r_1,r_2$: $y = C_1 e^{r_1 t} + C_2 e^{r_2 t}$ (over/critically\n  damped).\n- **Repeated** $r$: $y = (C_1 + C_2 t)e^{rt}$.\n- **Complex** $\\alpha \\pm \\beta i$: $y = e^{\\alpha t}(C_1\\cos\\beta t + C_2\\sin\\beta t)$\n  (oscillation).\n\n## Worked example\n\n$y'' - 5y' + 6y = 0 \\Rightarrow r^2-5r+6=(r-2)(r-3) \\Rightarrow\ny = C_1 e^{2t} + C_2 e^{3t}$.\n\n## Gotchas\n\n- Use the quadratic formula; the **discriminant sign** picks which of the three\n  forms you're in.\n"
     },
     {
       "id": "diffeq.laplace",
       "name": "Laplace Transforms",
       "category": "transforms",
       "exam_weight": 3,
-      "prerequisites": ["diffeq.first_order_linear"],
-      "generator": { "kind": "laplace_transform", "params": { "ask": ["exp", "cos", "power"] } },
-      "theory_md": "L{e^{at}} = 1/(s−a), L{cos wt} = s/(s²+w²), L{t^n} = n!/s^{n+1}. Laplace transforms turn linear ODEs into algebra in s, then invert."
+      "prerequisites": [
+        "diffeq.first_order_linear"
+      ],
+      "generator": {
+        "kind": "laplace_transform",
+        "params": {
+          "ask": [
+            "exp",
+            "cos",
+            "power"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\nThe **Laplace transform** turns calculus (derivatives, IVPs) into algebra by mapping\na function $f(t)$ to $F(s)=\\int_0^\\infty e^{-st}f(t)\\,dt$.\n\n## Key transforms\n\n$$\\mathcal L\\{1\\}=\\tfrac1s,\\quad \\mathcal L\\{e^{at}\\}=\\tfrac{1}{s-a},\\quad\n\\mathcal L\\{t^n\\}=\\tfrac{n!}{s^{n+1}},$$\n$$\\mathcal L\\{\\cos\\omega t\\}=\\tfrac{s}{s^2+\\omega^2},\\quad\n\\mathcal L\\{\\sin\\omega t\\}=\\tfrac{\\omega}{s^2+\\omega^2}.$$\nDerivative rule: $\\mathcal L\\{f'\\}=sF(s)-f(0)$ — this is why it solves IVPs.\n\n## Worked example\n\n$\\mathcal L\\{e^{3t}\\} = \\dfrac{1}{s-3}$ (valid for $s>3$).\n\n## Gotchas\n\n- Mind the region of convergence ($s>a$).\n- Linearity lets you transform term-by-term.\n"
     },
     {
       "id": "diffeq.newton_cooling",
       "name": "Newton's Law of Cooling",
       "category": "first_order",
       "exam_weight": 2,
-      "prerequisites": ["diffeq.first_order_linear"],
-      "generator": { "kind": "newton_cooling", "params": { "ask": ["temperature"] } },
-      "theory_md": "T(t) = Ts + (T0 − Ts)·e^{−kt}: an applied first-order linear ODE; temperature decays exponentially toward the ambient Ts."
+      "prerequisites": [
+        "diffeq.first_order_linear"
+      ],
+      "generator": {
+        "kind": "newton_cooling",
+        "params": {
+          "ask": [
+            "temperature"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\n**Newton's law of cooling**: an object's temperature changes at a rate proportional\nto the gap with its surroundings — a classic applied first-order linear ODE.\n\n## The model\n\n$$\\frac{dT}{dt} = -k\\,(T - T_{env}) \\;\\Rightarrow\\;\nT(t) = T_{env} + (T_0 - T_{env})\\,e^{-kt}.$$\n$T_{env}$ is the ambient temperature; $k>0$ the cooling constant. $T\\to T_{env}$ as\n$t\\to\\infty$.\n\n## Worked example\n\nCoffee at $90^\\circ$ in a $20^\\circ$ room, $k=0.1$/min:\n$T(t)=20+70e^{-0.1t}$, so $T(10)=20+70e^{-1}\\approx 45.8^\\circ$.\n\n## Gotchas\n\n- It's the first-order-linear solution with equilibrium $T_{env}$.\n- Find $k$ from a second data point before predicting.\n"
     },
     {
       "id": "diffeq.integrating_factor",
       "name": "Integrating Factor",
       "category": "first_order",
       "exam_weight": 2,
-      "prerequisites": ["diffeq.first_order_linear"],
-      "generator": { "kind": "integrating_factor", "params": { "ask": ["factor_value"] } },
-      "theory_md": "For y' + a·y = b, multiply by μ(t) = e^{∫a dt} so the left side becomes (μy)'. With constant a, μ(t) = e^{at}."
+      "prerequisites": [
+        "diffeq.first_order_linear"
+      ],
+      "generator": {
+        "kind": "integrating_factor",
+        "params": {
+          "ask": [
+            "factor_value"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\nWhen $\\dfrac{dy}{dt}+P(t)\\,y=Q(t)$ has a **non-constant** coefficient, you can't read\noff an equilibrium — the **integrating factor** makes the left side a perfect\nderivative.\n\n## The method\n\nMultiply by $\\mu(t)=e^{\\int P(t)\\,dt}$. Then the equation becomes\n$$\\frac{d}{dt}\\big[\\mu(t)\\,y\\big] = \\mu(t)\\,Q(t),$$\nso $y = \\dfrac{1}{\\mu(t)}\\left(\\int \\mu(t)Q(t)\\,dt + C\\right)$.\n\n## Worked example\n\n$y' + \\tfrac{1}{t}y = 1$. Here $\\mu=e^{\\int dt/t}=t$, so $(ty)' = t$, giving\n$ty = \\tfrac{t^2}{2}+C$, i.e. $y=\\tfrac{t}{2}+C/t$.\n\n## Gotchas\n\n- Put the ODE in standard form (coefficient of $y'$ equal to 1) **before** finding\n  $\\mu$.\n- $\\mu = e^{\\int P\\,dt}$ — don't include $Q$ in the exponent.\n"
     },
     {
       "id": "diffeq.euler_method",
       "name": "Euler's Method (Numerical)",
       "category": "numerical",
       "exam_weight": 2,
-      "prerequisites": ["diffeq.separable"],
-      "generator": { "kind": "euler_method", "params": { "ask": ["two_step"] } },
-      "theory_md": "Euler steps: y_{n+1} = y_n + h·f(x_n, y_n). A first-order numerical approximation to the solution curve."
+      "prerequisites": [
+        "diffeq.separable"
+      ],
+      "generator": {
+        "kind": "euler_method",
+        "params": {
+          "ask": [
+            "two_step"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\nMost ODEs have **no closed-form** solution. **Euler's method** approximates the\nsolution curve numerically by stepping along its slope.\n\n## The method\n\nGiven $y' = f(x,y)$ and a step $h$:\n$$y_{n+1} = y_n + h\\,f(x_n, y_n),\\qquad x_{n+1}=x_n+h.$$\nEach step follows the tangent line for a short distance.\n\n## Worked example\n\n$y'=y,\\ y(0)=1,\\ h=0.5$: $y_1 = 1 + 0.5(1) = 1.5$;\n$y_2 = 1.5 + 0.5(1.5) = 2.25$ (the exact $e^{1}\\approx2.718$ — Euler undershoots).\n\n## Gotchas\n\n- It's **first-order accurate**: halving $h$ roughly halves the error.\n- Use the **updated** $x_n,y_n$ at each step; errors accumulate over many steps.\n"
     },
     {
       "id": "diffeq.laplace_inverse",
       "name": "Inverse Laplace Transforms",
       "category": "transforms",
       "exam_weight": 3,
-      "prerequisites": ["diffeq.laplace"],
-      "generator": { "kind": "laplace_inverse", "params": { "ask": ["exp", "sin", "cos"] } },
-      "theory_md": "Invert F(s) back to f(t): 1/(s−a)→e^{at}, 1/(s²+w²)→sin(wt)/w, s/(s²+w²)→cos(wt)."
+      "prerequisites": [
+        "diffeq.laplace"
+      ],
+      "generator": {
+        "kind": "laplace_inverse",
+        "params": {
+          "ask": [
+            "exp",
+            "sin",
+            "cos"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\nAfter solving the IVP **algebraically** in the $s$-domain, you must transform the\nanswer $F(s)$ back to $f(t)$ — the **inverse Laplace transform**.\n\n## Core inverses\n\n$$\\frac{1}{s-a}\\to e^{at},\\qquad \\frac{\\omega}{s^2+\\omega^2}\\to \\sin\\omega t,\n\\qquad \\frac{s}{s^2+\\omega^2}\\to \\cos\\omega t,\\qquad \\frac{n!}{s^{n+1}}\\to t^n.$$\n\n## Method: partial fractions\n\nBreak a rational $F(s)$ into pieces matching the table, then invert each.\n\n## Worked example\n\n$\\dfrac{1}{s-3}\\to e^{3t}$; $\\dfrac{2}{s^2+4}\\to \\sin 2t$ (since $\\omega=2$).\n\n## Gotchas\n\n- Match $\\omega$ vs $\\omega^2$ carefully: $\\dfrac{1}{s^2+4}\\to\\frac12\\sin 2t$, not\n  $\\sin 2t$.\n- Complete the square for shifted denominators $\\to e^{at}\\sin/\\cos$.\n"
     }
   ]
 }

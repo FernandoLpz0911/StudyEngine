@@ -15,14 +15,17 @@
           "Columns have a fixed left-to-right order that queries rely on",
           "A cell may contain a nested sub-table"
         ]
-      }
+      },
+      "theory_md": "## Why this exists\n\nBefore SQL, data lived in ad-hoc files. The **relational model** (Codd, 1970) gives\ndata a clean mathematical shape so queries can be precise and optimizable.\n\n## The idea\n\nData is stored in **relations** (tables). A relation has a **schema** (named,\ntyped columns called *attributes*) and a body of **tuples** (rows). Crucially a\nrelation is a **set** of tuples:\n\n- **No duplicate rows** (the whole tuple is the identity).\n- **No row order** — rows aren't numbered.\n- **No column order** you can rely on — refer to columns by name.\n- Each cell holds a single **atomic** value (no nested tables).\n\n## Example\n\n`Student(id, name, major)` with rows `{(1,'Ann','CS'), (2,'Bo','Math')}`. Asking for\n\"the 3rd row\" is meaningless; you query by *value* (`WHERE id = 1`).\n\n## Gotchas\n\n- \"Relation\" = table, not \"relationship\". Relationships are modelled with shared\n  key values across tables.\n- A NULL means *unknown/absent*, not 0 or empty string.\n"
     },
     {
       "id": "db.keys",
       "name": "Keys (Super/Candidate/Primary)",
       "category": "foundations",
       "exam_weight": 2,
-      "prerequisites": ["db.relational_model"],
+      "prerequisites": [
+        "db.relational_model"
+      ],
       "card": {
         "question": "What distinguishes a candidate key from a superkey?",
         "answer": "A candidate key is a minimal superkey (no attribute removable)",
@@ -31,14 +34,17 @@
           "A candidate key must be a single attribute",
           "A superkey is always smaller than a candidate key"
         ]
-      }
+      },
+      "theory_md": "## Why this exists\n\nTo identify rows and to link tables, we need attribute sets guaranteed to be\nunique. That is what **keys** formalize.\n\n## Definitions\n\n- **Superkey**: any attribute set that uniquely identifies a tuple (no two rows\n  share all its values).\n- **Candidate key**: a **minimal** superkey — remove any attribute and it stops\n  being unique.\n- **Primary key**: the candidate key the designer picks as the official identifier\n  (cannot be NULL).\n- **Prime attribute**: an attribute that belongs to *some* candidate key.\n\n## Example\n\nIn `Enroll(student, course, grade)` with FD `student, course → grade`:\n`{student, course}` is a candidate key. `{student, course, grade}` is a superkey but\n**not** candidate (grade is removable).\n\n## Gotchas\n\n- Every candidate key is a superkey; not every superkey is candidate.\n- Minimality is about *removability*, not size — two candidate keys can differ in\n  length.\n"
     },
     {
       "id": "db.functional_dependencies",
       "name": "Functional Dependencies",
       "category": "design",
       "exam_weight": 3,
-      "prerequisites": ["db.keys"],
+      "prerequisites": [
+        "db.keys"
+      ],
       "card": {
         "question": "Armstrong's transitivity axiom states that:",
         "answer": "If X → Y and Y → Z then X → Z",
@@ -47,14 +53,17 @@
           "If X → Y then XZ → Y for any Z",
           "If X → Y and X → Z then Y → Z"
         ]
-      }
+      },
+      "theory_md": "## Why this exists\n\n**Functional dependencies (FDs)** state the business rules that drive good design.\nThey tell us which attributes determine which, and so where redundancy hides.\n\n## Definition\n\n$X \\to Y$ (\"X functionally determines Y\") means: any two rows that agree on all of\n$X$ must also agree on all of $Y$.\n\n## Armstrong's axioms (sound & complete)\n\n- **Reflexivity:** if $Y \\subseteq X$ then $X \\to Y$ (trivial FD).\n- **Augmentation:** if $X \\to Y$ then $XZ \\to YZ$.\n- **Transitivity:** if $X \\to Y$ and $Y \\to Z$ then $X \\to Z$.\n\nDerived: union, decomposition, pseudotransitivity.\n\n## Example\n\n`zip → city, state`. Two rows with the same zip must list the same city/state — if\nthey don't, the data violates the FD.\n\n## Gotchas\n\n- An FD is a constraint on **all** legal states, not just the rows you see now.\n- Transitivity is the engine behind 3NF's \"transitive dependency\".\n"
     },
     {
       "id": "db.normalization_3nf",
       "name": "Normalization: 1NF → 3NF",
       "category": "design",
       "exam_weight": 3,
-      "prerequisites": ["db.functional_dependencies"],
+      "prerequisites": [
+        "db.functional_dependencies"
+      ],
       "card": {
         "question": "Beyond 2NF, a table is in 3NF when it has:",
         "answer": "No transitive dependency of a non-prime attribute on a key",
@@ -63,14 +72,17 @@
           "Every determinant is a superkey",
           "No partial dependency on a candidate key"
         ]
-      }
+      },
+      "theory_md": "## Why this exists\n\nRedundancy causes **update/insert/delete anomalies**. Normalization decomposes\ntables to remove redundancy while preserving information.\n\n## The forms\n\n- **1NF:** atomic cells only (no repeating groups / nested tables).\n- **2NF:** 1NF **and** no **partial dependency** — no non-prime attribute depends on\n  only *part* of a candidate key.\n- **3NF:** 2NF **and** no **transitive dependency** — no non-prime attribute depends\n  on another non-prime attribute. Formally, for every FD $X\\to A$, either $X$ is a\n  superkey **or** $A$ is prime.\n\n## Example\n\n`Order(orderID, custID, custCity)` with `orderID→custID` and `custID→custCity` has a\ntransitive dependency `orderID→custCity`. Split into `Order(orderID, custID)` and\n`Customer(custID, custCity)`.\n\n## Gotchas\n\n- 3NF tolerates a little redundancy (the \"$A$ is prime\" escape) so it can always be\n  reached **dependency-preservingly**; BCNF cannot always.\n"
     },
     {
       "id": "db.bcnf",
       "name": "BCNF",
       "category": "design",
       "exam_weight": 2,
-      "prerequisites": ["db.normalization_3nf"],
+      "prerequisites": [
+        "db.normalization_3nf"
+      ],
       "card": {
         "question": "A relation is in BCNF iff, for every non-trivial FD X → Y:",
         "answer": "X is a superkey",
@@ -79,14 +91,17 @@
           "X is a candidate key of minimal size",
           "Y is not part of any candidate key"
         ]
-      }
+      },
+      "theory_md": "## Why this exists\n\n**Boyce–Codd Normal Form** is the strict version of 3NF: it removes *every*\nredundancy caused by functional dependencies.\n\n## Definition\n\nA relation is in **BCNF** iff for **every** non-trivial FD $X \\to Y$, $X$ is a\n**superkey**. (No exceptions — unlike 3NF, prime attributes get no pass.)\n\n## Example\n\n`Teach(student, course, instructor)` with `instructor → course` and\n`student, course → instructor`. Candidate key `{student,course}`. The FD\n`instructor → course` has a non-superkey left side ⇒ **BCNF violation**. Decompose\ninto `(instructor, course)` and `(student, instructor)`.\n\n## Gotchas\n\n- 3NF ⊋ BCNF: every BCNF relation is in 3NF, not vice versa.\n- BCNF is always achievable losslessly, but may **lose dependency preservation** —\n  the classic 3NF-vs-BCNF trade-off.\n"
     },
     {
       "id": "db.sql_select_join",
       "name": "SQL: SELECT / JOIN",
       "category": "querying",
       "exam_weight": 3,
-      "prerequisites": ["db.relational_model"],
+      "prerequisites": [
+        "db.relational_model"
+      ],
       "card": {
         "question": "A LEFT OUTER JOIN returns:",
         "answer": "All left rows, with NULLs where the right side has no match",
@@ -95,19 +110,27 @@
           "All rows from both tables, matched or not",
           "All right rows, with NULLs for unmatched left rows"
         ]
-      }
+      },
+      "theory_md": "## Why this exists\n\nSQL is the practical language for querying relations. The `SELECT`/`JOIN` core\nrecombines tables by matching values.\n\n## SELECT shape\n\n```sql\nSELECT cols      -- projection (which columns)\nFROM   t1 JOIN t2 ON t1.k = t2.k   -- combine tables\nWHERE  predicate -- selection (which rows)\nGROUP BY ... HAVING ...   -- aggregate then filter groups\nORDER BY ...\n```\n\n## Joins\n\n- **INNER JOIN:** only matching rows.\n- **LEFT OUTER JOIN:** all left rows; NULLs where the right has no match (RIGHT is\n  the mirror; FULL keeps unmatched from both sides).\n- **CROSS JOIN:** Cartesian product.\n\n## Example\n\n`SELECT s.name FROM Student s LEFT JOIN Enroll e ON s.id=e.sid WHERE e.sid IS NULL`\nfinds students with no enrollment.\n\n## Gotchas\n\n- `WHERE` filters rows **before** grouping; `HAVING` filters groups after.\n- A predicate on the right table in `WHERE` can silently turn a LEFT join back into\n  an inner join — put it in the `ON` clause instead.\n"
     },
     {
       "id": "db.relational_algebra",
       "name": "Relational Algebra",
       "category": "querying",
       "exam_weight": 2,
-      "prerequisites": ["db.relational_model"],
+      "prerequisites": [
+        "db.relational_model"
+      ],
       "card": {
         "question": "Which relational-algebra operator corresponds to SQL's WHERE clause?",
         "answer": "Selection (σ)",
-        "distractors": ["Projection (π)", "Join (⋈)", "Rename (ρ)"]
-      }
+        "distractors": [
+          "Projection (π)",
+          "Join (⋈)",
+          "Rename (ρ)"
+        ]
+      },
+      "theory_md": "## Why this exists\n\n**Relational algebra** is the formal, procedural semantics behind SQL — the\noperators a query optimizer reasons about.\n\n## Core operators\n\n- **Selection** $\\sigma_{pred}(R)$ — keep rows matching a predicate (SQL `WHERE`).\n- **Projection** $\\pi_{cols}(R)$ — keep columns (and dedupe).\n- **Cartesian product** $R \\times S$, **Join** $R \\bowtie S$ — combine tables.\n- **Rename** $\\rho$, **Union** $\\cup$, **Difference** $-$, **Intersection** $\\cap$.\n\n## Example\n\n\"Names of CS students\" = $\\pi_{name}(\\sigma_{major='CS'}(Student))$.\n\n## Gotchas\n\n- Algebra results are **sets** (auto-dedup); SQL keeps duplicates unless you say\n  `DISTINCT`.\n- Push selections/projections **down** (do them early) — the basis of query\n  optimization.\n"
     },
     {
       "id": "db.acid",
@@ -122,14 +145,17 @@
           "A transaction is all-or-nothing",
           "Each transaction always reads from disk, never cache"
         ]
-      }
+      },
+      "theory_md": "## Why this exists\n\nA **transaction** is a unit of work that must behave correctly even with crashes\nand concurrency. **ACID** names the four guarantees that make that safe.\n\n## The four properties\n\n- **Atomicity** — all-or-nothing. A transfer that debits A and credits B either does\n  both or neither (rollback undoes partial work).\n- **Consistency** — a transaction moves the DB from one valid state to another\n  (constraints hold at commit).\n- **Isolation** — concurrent transactions appear to run **serially**; one\n  transaction's in-progress changes aren't seen by others.\n- **Durability** — once **committed**, changes survive crashes (guaranteed by the\n  log / WAL).\n\n## Example\n\nBank transfer: Atomicity stops \"money debited but never credited\"; Durability stops\n\"transfer confirmed then lost in a crash.\"\n\n## Gotchas\n\n- Isolation is the expensive one — it's relaxed by **isolation levels** for speed.\n- Atomicity (undo) and Durability (redo) are both delivered by the **recovery**\n  subsystem.\n"
     },
     {
       "id": "db.concurrency_2pl",
       "name": "Concurrency Control (2PL)",
       "category": "transactions",
       "exam_weight": 3,
-      "prerequisites": ["db.acid"],
+      "prerequisites": [
+        "db.acid"
+      ],
       "card": {
         "question": "Plain two-phase locking (2PL) guarantees:",
         "answer": "Conflict-serializable schedules",
@@ -138,14 +164,17 @@
           "No cascading aborts",
           "That locks are released immediately after each operation"
         ]
-      }
+      },
+      "theory_md": "## Why this exists\n\nRunning transactions concurrently risks anomalies. **Locking protocols** force\nschedules to stay equivalent to some serial order (isolation).\n\n## Two-phase locking (2PL)\n\nEach transaction has a **growing phase** (acquire locks, shared S / exclusive X) and\na **shrinking phase** (release locks) — **once it releases any lock it may acquire\nno more**. This guarantees **conflict-serializable** schedules.\n\n- **Strict 2PL:** hold all X-locks until commit/abort ⇒ also prevents **cascading\n  aborts** (others never read uncommitted data). The common real-world choice.\n\n## Example\n\nT1 locks A then B; only after T1 starts releasing can it not grab C. The lock\ndiscipline serializes conflicts on A and B.\n\n## Gotchas\n\n- Plain 2PL gives serializability but **not** deadlock freedom — two transactions\n  can wait on each other.\n- Releasing locks early (not 2PL) breaks isolation.\n"
     },
     {
       "id": "db.recovery_wal",
       "name": "Recovery (WAL / ARIES)",
       "category": "transactions",
       "exam_weight": 2,
-      "prerequisites": ["db.acid"],
+      "prerequisites": [
+        "db.acid"
+      ],
       "card": {
         "question": "The write-ahead logging (WAL) rule requires that:",
         "answer": "A change's log record reaches stable storage before its data page",
@@ -154,47 +183,250 @@
           "All log records are written only at commit time",
           "Undo information is written after the redo pass"
         ]
-      }
+      },
+      "theory_md": "## Why this exists\n\nCrashes happen mid-transaction. **Recovery** restores a consistent state using a\n**log**; **write-ahead logging (WAL)** is the rule that makes it possible.\n\n## The WAL rule\n\nA change's **log record must reach stable storage *before* the modified data page**\nis written to disk. Then after a crash the log can **redo** committed work and\n**undo** uncommitted work.\n\n## ARIES (the standard algorithm)\n\nThree passes: **Analysis** (find dirty pages / active txns), **Redo** (repeat\nhistory), **Undo** (roll back losers). Uses LSNs and checkpoints.\n\n## Example\n\nIf A's debit is logged but the crash hits before the data page flushes, redo replays\nit from the log. If A's debit is logged but A never committed, undo removes it.\n\n## Gotchas\n\n- Without WAL you could have a data page on disk with no log to undo it ⇒ atomicity\n  lost. Order matters.\n"
     },
     {
       "id": "db.fd_closure_calc",
       "name": "Compute Attribute Closure",
       "category": "design",
       "exam_weight": 3,
-      "prerequisites": ["db.functional_dependencies"],
-      "generator": { "kind": "fd_closure", "params": { "ask": ["closure_size"] } }
+      "prerequisites": [
+        "db.functional_dependencies"
+      ],
+      "generator": {
+        "kind": "fd_closure",
+        "params": {
+          "ask": [
+            "closure_size"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\nThe **attribute closure** $X^+$ is the toolbox operation behind keys, BCNF checks,\nand equivalence of FD sets.\n\n## Algorithm\n\n$X^+$ = all attributes functionally determined by $X$:\n\n1. Start `closure = X`.\n2. Repeat: if some FD $A \\to B$ has $A \\subseteq$ `closure`, add $B$.\n3. Stop when nothing new is added.\n\n## Why it matters\n\n- $X$ is a **superkey** iff $X^+$ = all attributes.\n- $X \\to Y$ holds iff $Y \\subseteq X^+$.\n\n## Example\n\nFDs $A\\to B,\\ B\\to C$. Then $A^+ = \\{A,B,C\\}$, so $A$ is a key if those are all the\nattributes.\n\n## Gotchas\n\n- Always re-scan the whole FD set after each addition — new attributes can fire\n  previously-inapplicable FDs.\n"
     },
     {
       "id": "db.candidate_keys_calc",
       "name": "Count Candidate Keys",
       "category": "design",
       "exam_weight": 3,
-      "prerequisites": ["db.functional_dependencies"],
-      "generator": { "kind": "candidate_keys", "params": { "ask": ["count"] } }
+      "prerequisites": [
+        "db.functional_dependencies"
+      ],
+      "generator": {
+        "kind": "candidate_keys",
+        "params": {
+          "ask": [
+            "count"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\nFinding **all candidate keys** drives normalization (which attributes are prime,\nwhich FDs violate BCNF).\n\n## Method\n\n1. Attributes that appear on **no right-hand side** must be in **every** key — start\n   there.\n2. Compute the closure of that core; if it's everything, it's the only key.\n3. Otherwise add attributes and test minimal sets via closure (a candidate key $K$\n   has $K^+ =$ all attributes and no proper subset does).\n\n## Example\n\n`R(A,B,C)`, FDs $A\\to B,\\ B\\to A,\\ B\\to C$. Both $\\{A\\}$ and $\\{B\\}$ have full\nclosure ⇒ two candidate keys.\n\n## Gotchas\n\n- There can be **many** candidate keys; don't stop at the first.\n- An attribute on no RHS is always prime.\n"
     },
     {
       "id": "db.bcnf_calc",
       "name": "Detect BCNF Violations",
       "category": "design",
       "exam_weight": 3,
-      "prerequisites": ["db.bcnf"],
-      "generator": { "kind": "bcnf_check", "params": { "ask": ["violation_count"] } }
+      "prerequisites": [
+        "db.bcnf"
+      ],
+      "generator": {
+        "kind": "bcnf_check",
+        "params": {
+          "ask": [
+            "violation_count"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\nDetecting **BCNF violations** tells you whether a schema still hides\nFD-redundancy and where to decompose.\n\n## Method\n\nFor each non-trivial FD $X \\to Y$, compute $X^+$. If $X^+$ is **not** all attributes\n(i.e. $X$ is not a superkey), that FD **violates BCNF**.\n\n## Example\n\n`R(A,B,C)`, FDs $A\\to B,\\ C\\to B$. Key is $\\{A,C\\}$. $C^+=\\{C,B\\}\\ne$ all ⇒ $C\\to B$\nviolates BCNF. Decompose on $C^+$: $(C,B)$ and $(A,C)$.\n\n## Gotchas\n\n- Test FDs in a **minimal cover** to avoid counting equivalent FDs twice.\n- A relation with $\\le 2$ attributes is always in BCNF.\n"
     },
     {
       "id": "db.prime_attributes_calc",
       "name": "Count Prime Attributes",
       "category": "design",
       "exam_weight": 2,
-      "prerequisites": ["db.functional_dependencies"],
-      "generator": { "kind": "prime_attributes", "params": { "ask": ["count"] } }
+      "prerequisites": [
+        "db.functional_dependencies"
+      ],
+      "generator": {
+        "kind": "prime_attributes",
+        "params": {
+          "ask": [
+            "count"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\n**Prime attributes** (those in some candidate key) decide 3NF's transitive-\ndependency rule — non-prime attributes are the ones that cause trouble.\n\n## Method\n\n1. Find all candidate keys.\n2. The **prime** attributes are the union of those keys; everything else is\n   **non-prime**.\n\n## Example\n\n`R(A,B,C,D)` with candidate keys $\\{A,B\\}$ and $\\{A,C\\}$ ⇒ prime $=\\{A,B,C\\}$,\nnon-prime $=\\{D\\}$.\n\n## Gotchas\n\n- Prime is about membership in *any* candidate key, not the primary key only.\n- A relation where every attribute is prime is automatically in 3NF.\n"
     },
     {
       "id": "db.superkey_count_calc",
       "name": "Identify Superkeys",
       "category": "design",
       "exam_weight": 2,
-      "prerequisites": ["db.keys"],
-      "generator": { "kind": "superkey_count", "params": { "ask": ["count"] } }
+      "prerequisites": [
+        "db.keys"
+      ],
+      "generator": {
+        "kind": "superkey_count",
+        "params": {
+          "ask": [
+            "count"
+          ]
+        }
+      },
+      "theory_md": "## Why this exists\n\nCounting **superkeys** reinforces the key hierarchy and closure reasoning.\n\n## Method\n\nA set is a superkey iff its closure is all attributes. If a candidate key has $k$\nattributes out of $n$ total, every superset of that key is also a superkey — so you\ncount attribute sets whose closure is complete.\n\n## Example\n\n`R(A,B,C)` with single candidate key $\\{A\\}$: any set containing $A$ is a superkey\n— $\\{A\\},\\{A,B\\},\\{A,C\\},\\{A,B,C\\}$ ⇒ 4 superkeys.\n\n## Gotchas\n\n- Superkeys are plentiful; candidate keys are the **minimal** ones among them.\n- Use closure, not intuition, to confirm a set is a superkey.\n"
+    },
+    {
+      "id": "db.transactions",
+      "name": "Transactions (commit / rollback)",
+      "category": "transactions",
+      "exam_weight": 2,
+      "prerequisites": [
+        "db.relational_model"
+      ],
+      "theory_md": "## Why this exists\n\nReal work touches many rows. A **transaction** groups operations so they succeed or\nfail as one logical unit.\n\n## Definition\n\nA transaction begins, does reads/writes, and ends with **COMMIT** (make changes\npermanent) or **ROLLBACK/ABORT** (undo everything). Between, it holds the ACID\nguarantees.\n\n## Lifecycle\n\n`BEGIN → active → (partially committed) → COMMIT → committed`, or any time\n`→ ABORT → rolled back`.\n\n## Example\n\nA funds transfer is one transaction: debit + credit + commit. If the credit fails,\nrollback restores the debit.\n\n## Gotchas\n\n- A single SQL statement is itself a transaction unless you open one explicitly.\n- After COMMIT you cannot rollback; durability has kicked in.\n",
+      "card": {
+        "question": "A database transaction is best described as:",
+        "answer": "A unit of work that commits all its changes or rolls them all back",
+        "distractors": [
+          "A single SQL SELECT statement only",
+          "A lock held on one row",
+          "A backup taken before maintenance"
+        ]
+      }
+    },
+    {
+      "id": "db.serializability",
+      "name": "Schedules & Serializability",
+      "category": "transactions",
+      "exam_weight": 3,
+      "prerequisites": [
+        "db.acid"
+      ],
+      "theory_md": "## Why this exists\n\nConcurrency is fast but can corrupt data. **Serializability** is the gold standard:\na concurrent **schedule** is correct if it's equivalent to running the transactions\none-after-another.\n\n## Key terms\n\n- **Schedule:** an interleaving of the operations of several transactions.\n- **Serial schedule:** no interleaving — one transaction fully, then the next.\n- **Conflict-serializable:** can be turned into a serial schedule by swapping\n  **non-conflicting** adjacent operations. Two ops conflict if they're on the same\n  item and at least one is a write (W-W, R-W, W-R).\n- **Precedence (conflict) graph:** node per transaction, edge $T_i\\to T_j$ on a\n  conflict where $T_i$ goes first. **Acyclic ⇔ conflict-serializable.**\n- **View-serializable:** weaker, allows some extra schedules; harder to test.\n\n## Example\n\nIf the conflict graph $T_1\\to T_2\\to T_1$ has a cycle, the schedule is **not**\nserializable.\n\n## Gotchas\n\n- Conflict-serializable ⇒ view-serializable, not the reverse.\n- Serializable ≠ serial: interleaving is fine as long as it's *equivalent* to serial.\n",
+      "card": {
+        "question": "A concurrent schedule is conflict-serializable iff:",
+        "answer": "Its precedence (conflict) graph is acyclic",
+        "distractors": [
+          "It contains no interleaving at all",
+          "Every transaction holds locks until commit",
+          "It allows dirty reads"
+        ]
+      }
+    },
+    {
+      "id": "db.isolation_levels",
+      "name": "Isolation Levels & Anomalies",
+      "category": "transactions",
+      "exam_weight": 3,
+      "prerequisites": [
+        "db.acid"
+      ],
+      "theory_md": "## Why this exists\n\nFull isolation is costly, so SQL lets you **trade isolation for speed** by choosing\na level — accepting certain anomalies.\n\n## The anomalies\n\n- **Dirty read:** read another transaction's *uncommitted* change.\n- **Non-repeatable read:** re-read a row, get a different value (it was updated &\n  committed between reads).\n- **Phantom:** re-run a range query, get *new rows* that appeared.\n\n## The levels (each forbids more)\n\n| Level | Dirty | Non-repeatable | Phantom |\n|---|---|---|---|\n| Read Uncommitted | ✓ allowed | ✓ | ✓ |\n| Read Committed | ✗ | ✓ | ✓ |\n| Repeatable Read | ✗ | ✗ | ✓ |\n| Serializable | ✗ | ✗ | ✗ |\n\n## Gotchas\n\n- Phantoms need range/predicate locking (or serializable) to stop — row locks\n  aren't enough.\n- Higher isolation = more locking/aborts = less concurrency.\n",
+      "card": {
+        "question": "Which anomaly does READ COMMITTED still allow?",
+        "answer": "Non-repeatable reads",
+        "distractors": [
+          "Dirty reads",
+          "Lost durability",
+          "Cascading commits"
+        ]
+      }
+    },
+    {
+      "id": "db.deadlock",
+      "name": "Deadlocks",
+      "category": "transactions",
+      "exam_weight": 2,
+      "prerequisites": [
+        "db.concurrency_2pl"
+      ],
+      "theory_md": "## Why this exists\n\nLocking (e.g. 2PL) can make transactions **wait on each other in a cycle** — a\n**deadlock** where none can proceed.\n\n## Detection vs prevention\n\n- **Detection:** maintain a **wait-for graph** (edge $T_i\\to T_j$ if $T_i$ waits for\n  a lock $T_j$ holds); a **cycle** = deadlock. Resolve by aborting a *victim*.\n- **Prevention (timestamp schemes):** with older = higher priority,\n  - **wait-die:** older waits, younger aborts (dies) when requesting a held lock.\n  - **wound-wait:** older preempts (wounds) younger; younger waits.\n- **Timeouts:** abort a transaction that waits too long (cheap, approximate).\n\n## Example\n\nT1 holds A wants B; T2 holds B wants A ⇒ cycle ⇒ deadlock; abort one.\n\n## Gotchas\n\n- 2PL ensures serializability but **not** deadlock freedom — you still need one of\n  the schemes above.\n",
+      "card": {
+        "question": "A deadlock between transactions is detected by:",
+        "answer": "Finding a cycle in the wait-for graph",
+        "distractors": [
+          "Running write-ahead logging",
+          "Acquiring all locks at commit time",
+          "Raising the isolation level"
+        ]
+      }
+    },
+    {
+      "id": "db.recovery_mechanics",
+      "name": "Recovery Mechanics (undo / redo)",
+      "category": "transactions",
+      "exam_weight": 2,
+      "prerequisites": [
+        "db.recovery_wal"
+      ],
+      "theory_md": "## Why this exists\n\nWAL says *log first*; the **recovery mechanics** say *what to replay* after a crash.\n\n## Undo vs redo\n\n- **Redo:** re-apply changes of **committed** transactions that may not have reached\n  disk (durability).\n- **Undo:** roll back changes of **uncommitted** transactions that did reach disk\n  (atomicity).\n\n## Buffer policies (why both are needed)\n\n- **Steal:** dirty pages of uncommitted txns may be written early ⇒ need **undo**.\n- **No-force:** committed pages needn't be flushed at commit ⇒ need **redo**.\nMost systems are **steal + no-force** (best performance, needs undo+redo).\n\n## Checkpoints\n\nPeriodically flush state and write a checkpoint record so recovery doesn't scan the\n**whole** log — only from the last checkpoint.\n\n## Gotchas\n\n- Force + no-steal would avoid redo/undo but kills performance — nobody does it.\n",
+      "card": {
+        "question": "In a steal + no-force buffer policy, recovery needs:",
+        "answer": "Both undo (for uncommitted) and redo (for committed)",
+        "distractors": [
+          "Undo only",
+          "Redo only",
+          "Neither — checkpoints suffice"
+        ]
+      }
+    },
+    {
+      "id": "db.decomposition",
+      "name": "Decomposition: Lossless & Dependency-Preserving",
+      "category": "design",
+      "exam_weight": 2,
+      "prerequisites": [
+        "db.bcnf"
+      ],
+      "theory_md": "## Why this exists\n\nNormalization splits a table into smaller ones. A **good** decomposition must not\nlose information or constraints.\n\n## Two properties\n\n- **Lossless-join:** joining the pieces back yields **exactly** the original rows\n  (no spurious tuples). Test: for $R = R_1 \\cup R_2$, the decomposition is lossless\n  iff the common attributes form a key of $R_1$ or $R_2$:\n  $$(R_1 \\cap R_2) \\to R_1 \\quad\\text{or}\\quad (R_1 \\cap R_2) \\to R_2.$$\n- **Dependency-preserving:** every original FD is enforceable on a single piece (no\n  join needed to check it).\n\n## Trade-off\n\n**3NF** can always be both lossless **and** dependency-preserving. **BCNF** is always\nlossless but **sometimes cannot** preserve dependencies — the reason 3NF still\nexists.\n\n## Gotchas\n\n- Always require lossless-join; it is non-negotiable. Dependency preservation is\n  desirable but occasionally sacrificed for BCNF.\n",
+      "card": {
+        "question": "A decomposition R into R1, R2 is lossless-join when the common attributes (R1∩R2):",
+        "answer": "Form a key of at least one of R1 or R2",
+        "distractors": [
+          "Are disjoint from both keys",
+          "Include every attribute of R",
+          "Contain no prime attribute"
+        ]
+      }
+    },
+    {
+      "id": "db.er_model",
+      "name": "Entity–Relationship Model",
+      "category": "foundations",
+      "exam_weight": 2,
+      "prerequisites": [
+        "db.relational_model"
+      ],
+      "theory_md": "## Why this exists\n\nBefore tables, you design **conceptually**. The **ER model** captures the real-world\nthings and their connections, then maps to relations.\n\n## Building blocks\n\n- **Entity / entity set:** a thing (Student), with **attributes** (id, name).\n- **Key attribute:** uniquely identifies an entity (underlined).\n- **Relationship:** an association between entities (Student *enrolls in* Course).\n- **Cardinality:** 1:1, 1:N, M:N — how many of each side relate.\n\n## Mapping to tables\n\n- Entity set → table with its attributes; key → primary key.\n- 1:N → put the \"one\" side's key as a **foreign key** on the \"many\" side.\n- M:N → a **junction table** holding both keys.\n\n## Gotchas\n\n- A weak entity needs its owner's key as part of its own key.\n- M:N relationships always need their own table — you can't store them in one side.\n",
+      "card": {
+        "question": "An M:N relationship between two entity sets maps to:",
+        "answer": "A separate junction table holding both entities keys",
+        "distractors": [
+          "A foreign key on the many side",
+          "One merged table of both entities",
+          "An index on each entity set"
+        ]
+      }
+    },
+    {
+      "id": "db.indexing",
+      "name": "Indexing & B+ Trees",
+      "category": "foundations",
+      "exam_weight": 2,
+      "prerequisites": [
+        "db.relational_model"
+      ],
+      "theory_md": "## Why this exists\n\nScanning every row is slow. An **index** is an auxiliary structure that finds rows\nby value quickly.\n\n## B+ tree (the default index)\n\nA balanced tree keeping keys **sorted**; all data pointers are in the **leaves**,\nwhich are linked for range scans. Lookup/insert/delete are $O(\\log n)$, and it\nsupports both equality (`= 5`) and range (`BETWEEN`) queries.\n\n## Clustered vs secondary\n\n- **Clustered:** table rows are stored **in index order** (one per table) — great\n  for ranges on that key.\n- **Secondary (non-clustered):** separate structure pointing back to rows; you can\n  have many.\n\n## When it helps\n\nSelective predicates and joins on the indexed column. Indexes **cost** space and\nslow down writes (they must be maintained).\n\n## Gotchas\n\n- Hash indexes do equality only — no range scans (B+ trees do both).\n- An index on a low-selectivity column (e.g. boolean) often isn't worth it.\n",
+      "card": {
+        "question": "A B+ tree index, unlike a hash index, also supports:",
+        "answer": "Range queries such as BETWEEN, not just equality",
+        "distractors": [
+          "Only equality lookups",
+          "Faster inserts than a heap",
+          "Storing rows that have no key"
+        ]
+      }
     }
   ]
 }
