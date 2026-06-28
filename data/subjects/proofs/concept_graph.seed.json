@@ -1,5 +1,4 @@
 {
-  "subject": "proofs",
   "domain": "Mathematics",
   "concepts": [
     {
@@ -7,6 +6,8 @@
       "name": "Implication, Converse, Contrapositive",
       "category": "logic",
       "exam_weight": 3,
+      "prerequisites": [],
+      "theory_md": "## Conditional statements\n\n$P \\Rightarrow Q$ (\"if $P$ then $Q$\") is false only when $P$ is true and $Q$ is false.\n\n- **Converse:** $Q \\Rightarrow P$ — *not* equivalent.\n- **Inverse:** $\\lnot P \\Rightarrow \\lnot Q$ — *not* equivalent.\n- **Contrapositive:** $\\lnot Q \\Rightarrow \\lnot P$ — **logically equivalent** to the original.\n\n**Pitfall:** assuming the converse holds. \"If it rains, the ground is wet\" does\nnot give \"if the ground is wet, it rained.\"\n",
       "card": {
         "question": "Which statement is logically equivalent to P ⇒ Q?",
         "answer": "¬Q ⇒ ¬P (the contrapositive)",
@@ -18,13 +19,92 @@
       }
     },
     {
+      "id": "proofs.tautology",
+      "name": "Tautology & Contradiction",
+      "category": "logic",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.implication"
+      ],
+      "theory_md": "## Always true, always false\n\n- A **tautology** is true in *every* row of its truth table (e.g. $P \\lor \\lnot P$).\n- A **contradiction** is false in every row (e.g. $P \\land \\lnot P$).\n- Otherwise the formula is a **contingency** (\"neither\").\n\nTo classify a formula, build its truth table and count true rows: all rows →\ntautology, no rows → contradiction, some → neither.\n",
+      "card": {
+        "question": "A propositional formula that is true in every row of its truth table is called:",
+        "answer": "A tautology",
+        "distractors": [
+          "A contradiction",
+          "A contingency",
+          "A counterexample"
+        ]
+      }
+    },
+    {
+      "id": "proofs.truth_table",
+      "name": "Truth Tables (2- & 3-variable)",
+      "category": "logic",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.tautology"
+      ],
+      "theory_md": "## Counting true rows\n\nA formula on $k$ variables has $2^k$ rows. Evaluate the connectives row by row:\n$\\land$ (both), $\\lor$ (either), $\\Rightarrow$ (false only T→F), $\\Leftrightarrow$\n(same), $\\oplus$ (differ).\n\nTautology $\\iff$ all $2^k$ rows true; contradiction $\\iff$ $0$ true.\n",
+      "generator": {
+        "kind": "truth_table",
+        "params": {
+          "ask": [
+            "true_rows",
+            "count_true"
+          ]
+        }
+      }
+    },
+    {
+      "id": "proofs.demorgan_logic",
+      "name": "De Morgan's Laws (logic)",
+      "category": "logic",
+      "exam_weight": 3,
+      "prerequisites": [
+        "proofs.tautology"
+      ],
+      "theory_md": "## Negating ∧ and ∨\n\n$$\\lnot(P \\land Q) \\equiv \\lnot P \\lor \\lnot Q \\qquad\n  \\lnot(P \\lor Q) \\equiv \\lnot P \\land \\lnot Q$$\n\nNegation flips the connective: \"not (both)\" = \"at least one fails\"; \"not (either)\"\n= \"both fail\". These are tautologies (verify by truth table).\n",
+      "card": {
+        "question": "¬(P ∧ Q) is logically equivalent to:",
+        "answer": "¬P ∨ ¬Q",
+        "distractors": [
+          "¬P ∧ ¬Q",
+          "P ∨ Q",
+          "¬P ⇒ Q"
+        ]
+      }
+    },
+    {
+      "id": "proofs.denial",
+      "name": "Useful Denials (negation)",
+      "category": "logic",
+      "exam_weight": 3,
+      "prerequisites": [
+        "proofs.demorgan_logic"
+      ],
+      "theory_md": "## Writing a useful denial\n\nA *useful denial* pushes the negation inward until it sits on atomic statements.\n\n- $\\lnot(P \\land Q) = \\lnot P \\lor \\lnot Q$ (De Morgan).\n- $\\lnot(P \\lor Q) = \\lnot P \\land \\lnot Q$.\n- $\\lnot(P \\Rightarrow Q) = P \\land \\lnot Q$.\n\n**Example.** \"I like dessert **but** can't have ice cream\" is $D \\land \\lnot I$.\nIts denial is $\\lnot D \\lor I$: \"I dislike dessert **or** I can have ice cream.\"\n",
+      "card": {
+        "question": "A useful denial of \"I like dessert but can't have ice cream\" is:",
+        "answer": "I dislike dessert, or I can have ice cream",
+        "distractors": [
+          "I dislike dessert and I can have ice cream",
+          "I like dessert and I can have ice cream",
+          "If I like dessert then I can't have ice cream"
+        ]
+      }
+    },
+    {
       "id": "proofs.quantifiers",
       "name": "Quantifiers & Negation",
       "category": "logic",
       "exam_weight": 3,
-      "prerequisites": ["proofs.implication"],
+      "prerequisites": [
+        "proofs.denial"
+      ],
+      "theory_md": "## Negating quantifiers\n\nPush negation through, flipping each quantifier and negating the predicate:\n$$\\lnot \\forall x\\, P(x) \\equiv \\exists x\\, \\lnot P(x), \\qquad\n  \\lnot \\exists x\\, P(x) \\equiv \\forall x\\, \\lnot P(x).$$\n\nSo $\\lnot \\big(\\forall x\\, \\exists y\\, P(x,y)\\big) \\equiv\n\\exists x\\, \\forall y\\, \\lnot P(x,y)$. Order of mixed quantifiers matters.\n",
       "card": {
-        "question": "The negation of  ∀x ∃y, P(x,y)  is:",
+        "question": "The negation of ∀x ∃y, P(x,y) is:",
         "answer": "∃x ∀y, ¬P(x,y)",
         "distractors": [
           "∀x ∃y, ¬P(x,y)",
@@ -36,64 +116,252 @@
     {
       "id": "proofs.direct",
       "name": "Direct Proof",
-      "category": "techniques",
+      "category": "methods",
       "exam_weight": 3,
-      "prerequisites": ["proofs.implication"],
+      "prerequisites": [
+        "proofs.implication"
+      ],
+      "theory_md": "## Direct proof of $P \\Rightarrow Q$\n\nAssume $P$, then deduce $Q$ by definitions and known facts.\n\n**Example.** \"$n$ even $\\Rightarrow n^2$ even.\" Assume $n = 2k$. Then\n$n^2 = 4k^2 = 2(2k^2)$, which is even. $\\blacksquare$\n\nStart by unpacking the definition of the hypothesis (write $n = 2k$).\n",
       "card": {
         "question": "In a direct proof that 'n even ⇒ n² even', you start by writing:",
         "answer": "n = 2k for some integer k",
         "distractors": [
-          "Assume n² is odd",
-          "Suppose n is odd, so n = 2k + 1",
-          "Assume √2 = a/b"
+          "n² = 2m for some integer m",
+          "Assume n is odd",
+          "Suppose n² is not even"
         ]
       }
     },
     {
       "id": "proofs.contrapositive",
       "name": "Proof by Contrapositive",
-      "category": "techniques",
+      "category": "methods",
       "exam_weight": 3,
-      "prerequisites": ["proofs.implication"],
+      "prerequisites": [
+        "proofs.direct"
+      ],
+      "theory_md": "## Prove the contrapositive\n\nTo prove $P \\Rightarrow Q$, instead prove the equivalent $\\lnot Q \\Rightarrow \\lnot P$.\nUseful when $\\lnot Q$ is easier to work with than $P$.\n\n**Example.** \"$n^2$ even $\\Rightarrow n$ even.\" Contrapositive: \"$n$ odd\n$\\Rightarrow n^2$ odd.\" Assume $n = 2k+1$; then $n^2 = 2(2k^2+2k)+1$ is odd.\n",
       "card": {
         "question": "To prove 'n² even ⇒ n even' by contrapositive, you instead prove:",
         "answer": "n odd ⇒ n² odd",
         "distractors": [
           "n even ⇒ n² even",
           "n² odd ⇒ n odd",
-          "Assume n² even and n odd, then derive a contradiction"
+          "n² even ⇒ n odd"
         ]
       }
     },
     {
       "id": "proofs.contradiction",
       "name": "Proof by Contradiction",
-      "category": "techniques",
+      "category": "methods",
       "exam_weight": 3,
-      "prerequisites": ["proofs.direct"],
+      "prerequisites": [
+        "proofs.direct"
+      ],
+      "theory_md": "## Assume the opposite\n\nTo prove $S$, assume $\\lnot S$ and derive an impossibility; conclude $S$.\n\n**Example.** $\\sqrt 2$ irrational: assume $\\sqrt 2 = a/b$ in lowest terms, square to\n$a^2 = 2b^2$, so $a$ is even, then $b$ is even — contradicting \"lowest terms.\"\n",
       "card": {
         "question": "A proof by contradiction that √2 is irrational begins by assuming:",
         "answer": "√2 = a/b in lowest terms",
         "distractors": [
           "√2 is irrational",
-          "a and b are both even",
-          "√2 = a/b where a and b share a common factor"
+          "a² = 2b²",
+          "√2 is rational and equal to some decimal"
         ]
       }
     },
     {
       "id": "proofs.induction",
       "name": "Mathematical Induction",
-      "category": "techniques",
+      "category": "methods",
       "exam_weight": 3,
-      "prerequisites": ["proofs.direct"],
+      "prerequisites": [
+        "proofs.direct"
+      ],
+      "theory_md": "## Induction\n\nTo prove $P(n)$ for all $n \\ge n_0$:\n\n1. **Base case:** show $P(n_0)$.\n2. **Inductive step:** assume $P(n)$ (the *hypothesis*) and prove $P(n+1)$.\n\n**Strong induction** assumes $P(n_0), \\dots, P(n)$ to prove $P(n+1)$ — handy when\n$n+1$ depends on smaller cases (e.g. prime factorization).\n",
       "card": {
         "question": "The inductive step of a proof by induction establishes:",
         "answer": "If the statement holds for n, then it holds for n + 1",
         "distractors": [
-          "The statement holds for the base case n = 1",
-          "The statement holds for all n at once",
+          "The statement holds for n = 1",
+          "The statement holds for all n directly",
           "The statement fails for some n"
+        ]
+      }
+    },
+    {
+      "id": "proofs.counterexample",
+      "name": "Disproof by Counterexample",
+      "category": "methods",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.quantifiers"
+      ],
+      "theory_md": "## Disproving a universal\n\nTo disprove $\\forall x\\, P(x)$ it suffices to exhibit **one** $x$ with $\\lnot P(x)$\n— a *counterexample*. One counterexample is a complete disproof; no number of\nexamples proves a $\\forall$ statement.\n\n**Example.** \"All primes are odd\" is false: $2$ is an even prime.\n",
+      "card": {
+        "question": "To disprove the statement 'for all n, P(n)', it suffices to:",
+        "answer": "Give one counterexample: an n with ¬P(n)",
+        "distractors": [
+          "Check P(n) for many n",
+          "Prove P(n) ⇒ P(n+1)",
+          "Assume ¬P(n) and find a contradiction"
+        ]
+      }
+    },
+    {
+      "id": "proofs.induction_sum",
+      "name": "Summation Formulas (induction targets)",
+      "category": "methods",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.induction"
+      ],
+      "theory_md": "## Closed forms you prove by induction\n\n$$\\sum_{i=1}^n i = \\frac{n(n+1)}{2}, \\quad\n  \\sum_{i=1}^n i^2 = \\frac{n(n+1)(2n+1)}{6}, \\quad\n  \\sum_{i=1}^n i^3 = \\left(\\frac{n(n+1)}{2}\\right)^2.$$\n\nAlso the first $n$ odd numbers sum to $n^2$. Evaluating these builds intuition for\nthe induction proofs of them.\n",
+      "generator": {
+        "kind": "induction_sum",
+        "params": {
+          "ask": [
+            "sum_i",
+            "sum_i2",
+            "sum_cubes",
+            "sum_odd"
+          ]
+        }
+      }
+    },
+    {
+      "id": "proofs.divisibility",
+      "name": "Divisibility",
+      "category": "number_theory",
+      "exam_weight": 3,
+      "prerequisites": [
+        "proofs.direct"
+      ],
+      "theory_md": "## a divides b\n\n$a \\mid b$ means there is an integer $k$ with $b = ak$. To use it in a proof, write\nthat $k$ explicitly.\n\n**Key properties** (provable directly):\n- Transitive: $a \\mid b$ and $b \\mid c \\Rightarrow a \\mid c$ (write $b=ak$, $c=bl$,\n  so $c = a(kl)$).\n- Antisymmetric for positives: $a \\mid b$ and $b \\mid a \\Rightarrow a = b$.\n",
+      "card": {
+        "question": "By definition, \"a divides b\" (a | b) means:",
+        "answer": "b = a·k for some integer k",
+        "distractors": [
+          "a = b·k for some integer k",
+          "b / a is not an integer",
+          "a and b share no common factor"
+        ]
+      }
+    },
+    {
+      "id": "proofs.divides_transitive",
+      "name": "Divisibility Proof: first move",
+      "category": "number_theory",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.divisibility"
+      ],
+      "theory_md": "## Starting a divisibility proof\n\nTo prove $a \\mid b \\land b \\mid c \\Rightarrow a \\mid c$, **unpack the hypotheses**:\nwrite $b = ak$ and $c = b\\ell$. Substitute: $c = (ak)\\ell = a(k\\ell)$, so $a \\mid c$.\n\nThe same first move (introduce the witnessing integers) starts almost every\ndivisibility argument.\n",
+      "card": {
+        "question": "To prove 'a|b and b|c ⇒ a|c', the right first step is:",
+        "answer": "Write b = ak and c = bℓ for integers k, ℓ",
+        "distractors": [
+          "Assume a does not divide c",
+          "Write a = bk and b = cℓ",
+          "Check the statement for a = b = c = 1"
+        ]
+      }
+    },
+    {
+      "id": "proofs.primes",
+      "name": "Primes",
+      "category": "number_theory",
+      "exam_weight": 3,
+      "prerequisites": [
+        "proofs.divisibility"
+      ],
+      "theory_md": "## Prime numbers\n\nAn integer $p > 1$ is **prime** if its only positive divisors are $1$ and $p$.\n\n- The **least divisor $> 1$** of any $n > 1$ is prime (if it factored, a smaller\n  divisor would exist).\n- **Trial division:** $n>1$ is prime iff it has no prime divisor $p$ with\n  $p^2 \\le n$ (a composite $n=ab$ has a factor $\\le \\sqrt n$).\n",
+      "card": {
+        "question": "If k is the least divisor greater than 1 of an integer n > 1, then k is:",
+        "answer": "Prime",
+        "distractors": [
+          "Composite",
+          "Equal to n",
+          "Even"
+        ]
+      }
+    },
+    {
+      "id": "proofs.number_theory",
+      "name": "Divisibility & GCD drills",
+      "category": "number_theory",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.primes"
+      ],
+      "theory_md": "## Remainders, gcd, factors\n\n- $b \\bmod m$ is the remainder, $0 \\le b\\bmod m < m$.\n- $a \\mid b \\iff b \\bmod a = 0$.\n- $\\gcd(a,b)$ via the Euclidean algorithm (repeated remainders).\n- The **least prime factor** of $n$ is found by trial dividing $2,3,5,\\dots$\n",
+      "generator": {
+        "kind": "number_theory",
+        "params": {
+          "ask": [
+            "mod",
+            "divides",
+            "gcd",
+            "least_prime_factor"
+          ]
+        }
+      }
+    },
+    {
+      "id": "proofs.congruence",
+      "name": "Modular Congruence",
+      "category": "number_theory",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.number_theory"
+      ],
+      "theory_md": "## Congruence mod m\n\n$a \\equiv b \\pmod m$ means $m \\mid (a-b)$ — $a$ and $b$ leave the same remainder\nmod $m$. Congruence respects $+$ and $\\times$:\n$$a\\equiv a',\\ b\\equiv b' \\Rightarrow a+b\\equiv a'+b',\\ ab\\equiv a'b' \\pmod m.$$\nThis is why arithmetic on remainder classes is **well-defined**.\n",
+      "card": {
+        "question": "a ≡ b (mod m) means:",
+        "answer": "m divides (a − b)",
+        "distractors": [
+          "a divides (b − m)",
+          "a and b are both prime",
+          "a − b = m"
+        ]
+      }
+    },
+    {
+      "id": "proofs.modular",
+      "name": "Modular Arithmetic drills",
+      "category": "number_theory",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.congruence"
+      ],
+      "theory_md": "## Computing mod m\n\nReduce after each operation: $(a+b)\\bmod m$, $(a\\cdot b)\\bmod m$, and\n$a^k \\bmod m$ (reduce as you go to keep numbers small). The result always lies in\n$\\{0,1,\\dots,m-1\\}$.\n",
+      "generator": {
+        "kind": "modular",
+        "params": {
+          "ask": [
+            "add",
+            "mul",
+            "pow"
+          ]
+        }
+      }
+    },
+    {
+      "id": "proofs.set_builder",
+      "name": "Set-Builder Notation",
+      "category": "sets",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.quantifiers"
+      ],
+      "theory_md": "## Reading {x | P(x)}\n\n$\\{x \\in U \\mid P(x)\\}$ is \"all $x$ in $U$ for which $P(x)$ holds.\" Membership is a\nlogical test: $a \\in \\{x \\mid P(x)\\} \\iff P(a)$.\n\n**Example.** Naturals expressible as a sum of three squares:\n$\\{\\, n \\in \\mathbb N \\mid \\exists a,b,c \\in \\mathbb N,\\ n = a^2+b^2+c^2 \\,\\}$.\n",
+      "card": {
+        "question": "The set {x ∈ ℤ | x = 2k for some k ∈ ℤ} is:",
+        "answer": "The set of even integers",
+        "distractors": [
+          "The set of odd integers",
+          "The set of all integers",
+          "The set of positive integers"
         ]
       }
     },
@@ -102,15 +370,80 @@
       "name": "Set Equality & Subset Proofs",
       "category": "sets",
       "exam_weight": 2,
-      "prerequisites": ["proofs.quantifiers"],
+      "prerequisites": [
+        "proofs.set_builder"
+      ],
+      "theory_md": "## Proving A = B and A ⊆ B\n\n- $A \\subseteq B$: take an arbitrary $x \\in A$ and show $x \\in B$.\n- $A = B$: prove **double inclusion** $A \\subseteq B$ **and** $B \\subseteq A$.\n- $A - B = \\varnothing \\iff A \\subseteq B$ (nothing in $A$ lies outside $B$).\n\nIdentities like $(A-B)\\cap(A-C) = A-(B\\cup C)$ are proved by chasing an element\nthrough both sides.\n",
       "card": {
         "question": "The standard way to prove two sets A = B is to:",
         "answer": "Show A ⊆ B and B ⊆ A (double inclusion)",
         "distractors": [
-          "Show A and B have the same number of elements",
-          "Exhibit a bijection between A and B",
-          "Show A ∩ B = A"
+          "Show A ∩ B = ∅",
+          "Show |A| = |B|",
+          "Find one element in both"
         ]
+      }
+    },
+    {
+      "id": "proofs.demorgan_sets",
+      "name": "De Morgan's Laws (sets)",
+      "category": "sets",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.sets"
+      ],
+      "theory_md": "## Complements of ∪ and ∩\n\n$$(A \\cup B)^c = A^c \\cap B^c, \\qquad (A \\cap B)^c = A^c \\cup B^c.$$\n\nMirror of the logical laws (membership is a proposition). Also\n$A-(B\\cup C) = (A-B)\\cap(A-C)$.\n",
+      "card": {
+        "question": "(A ∪ B)ᶜ equals:",
+        "answer": "Aᶜ ∩ Bᶜ",
+        "distractors": [
+          "Aᶜ ∪ Bᶜ",
+          "A ∩ B",
+          "(A ∩ B)ᶜ"
+        ]
+      }
+    },
+    {
+      "id": "proofs.power_set",
+      "name": "Power Sets",
+      "category": "sets",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.sets"
+      ],
+      "theory_md": "## P(A): all subsets\n\n$\\mathcal P(A)$ is the set of **all** subsets of $A$, including $\\varnothing$ and\n$A$. If $|A| = n$ then $|\\mathcal P(A)| = 2^n$ (each element is in or out).\n\n**Example.** $\\mathcal P(\\{1,\\{1,2\\}\\}) =\n\\{\\varnothing,\\ \\{1\\},\\ \\{\\{1,2\\}\\},\\ \\{1,\\{1,2\\}\\}\\}$ — $2^2 = 4$ elements.\nTreat $\\{1,2\\}$ as a single element here.\n",
+      "card": {
+        "question": "How many elements does P({1, {1,2}}) have?",
+        "answer": "4",
+        "distractors": [
+          "2",
+          "3",
+          "8"
+        ]
+      }
+    },
+    {
+      "id": "proofs.set_counting",
+      "name": "Set Counting (inclusion–exclusion)",
+      "category": "sets",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.power_set"
+      ],
+      "theory_md": "## Cardinalities\n\n- $|A \\cup B| = |A| + |B| - |A \\cap B|$ (so $|A\\cap B| = |A|+|B|-|A\\cup B|$).\n- $|B - A| = |B| - |A \\cap B|$.\n- $|A \\times B| = |A|\\,|B|$; ordered pairs of $A$ with $x\\ne y$: $n^2 - n$.\n- $|\\mathcal P(A)| = 2^{|A|}$.\n",
+      "generator": {
+        "kind": "set_counting",
+        "params": {
+          "ask": [
+            "union2",
+            "intersection",
+            "difference",
+            "powerset",
+            "cartesian",
+            "offdiag",
+            "union3"
+          ]
+        }
       }
     },
     {
@@ -118,43 +451,251 @@
       "name": "Injective / Surjective / Bijective",
       "category": "functions",
       "exam_weight": 3,
-      "prerequisites": ["proofs.quantifiers"],
+      "prerequisites": [
+        "proofs.sets"
+      ],
+      "theory_md": "## Three properties of $f: A \\to B$\n\n- **Injective** (one-to-one): $f(a)=f(b) \\Rightarrow a=b$.\n- **Surjective** (onto): every $b \\in B$ has some $a$ with $f(a)=b$\n  ($\\operatorname{Im} f = B$).\n- **Bijective:** both — a perfect pairing (has an inverse).\n\nTo prove injectivity, assume $f(a)=f(b)$ and derive $a=b$. To prove surjectivity,\ntake arbitrary $b$ and construct a preimage.\n",
       "card": {
         "question": "To prove a function f is injective, you assume:",
         "answer": "f(a) = f(b) and derive a = b",
         "distractors": [
-          "For every y there exists x with f(x) = y",
           "a = b and derive f(a) = f(b)",
-          "f has an inverse, so it must be injective"
+          "f is onto",
+          "every b has a preimage"
         ]
       }
     },
     {
-      "id": "proofs.set_counting",
-      "name": "Set Counting (Inclusion–Exclusion, Power Sets)",
-      "category": "sets",
+      "id": "proofs.image",
+      "name": "Image & Preimage",
+      "category": "functions",
       "exam_weight": 2,
-      "prerequisites": ["proofs.sets"],
-      "generator": {
-        "kind": "set_counting",
-        "params": { "ask": ["union2", "powerset", "cartesian", "union3"] }
+      "prerequisites": [
+        "proofs.functions"
+      ],
+      "theory_md": "## Image and preimage\n\n- **Image** of $S \\subseteq A$: $f(S) = \\{ f(x) \\mid x \\in S\\}$. Then $f$ is onto\n  iff $\\operatorname{Im}(f) = B$.\n- **Preimage** of $T \\subseteq B$: $f^{-1}(T) = \\{ x \\mid f(x) \\in T\\}$ (defined\n  even when $f$ has no inverse).\n\n$f$ injective $\\iff$ $f(X\\cap Y) = f(X)\\cap f(Y)$ for all $X,Y$.\n",
+      "card": {
+        "question": "The image f(S) of a set S ⊆ A is:",
+        "answer": "{ f(x) | x ∈ S }",
+        "distractors": [
+          "{ x | f(x) ∈ S }",
+          "the inverse of f on S",
+          "{ x ∈ A | x ∈ S }"
+        ]
       }
-    },
-    {
-      "id": "proofs.truth_table",
-      "name": "Truth Tables",
-      "category": "logic",
-      "exam_weight": 2,
-      "prerequisites": ["proofs.implication"],
-      "generator": { "kind": "truth_table", "params": { "ask": ["true_rows"] } }
     },
     {
       "id": "proofs.function_count",
       "name": "Counting Functions",
       "category": "functions",
       "exam_weight": 2,
-      "prerequisites": ["proofs.functions"],
-      "generator": { "kind": "function_count", "params": { "ask": ["count"] } }
+      "prerequisites": [
+        "proofs.functions"
+      ],
+      "theory_md": "## How many maps?\n\nFrom a size-$m$ domain to a size-$n$ codomain:\n- **All functions:** $n^m$.\n- **Injections:** $n(n-1)\\cdots(n-m+1) = \\dfrac{n!}{(n-m)!}$ (0 if $m>n$).\n- **Bijections** (when $m=n$): $n!$.\n",
+      "generator": {
+        "kind": "function_count",
+        "params": {
+          "ask": [
+            "count",
+            "injections",
+            "bijections"
+          ]
+        }
+      }
+    },
+    {
+      "id": "proofs.perm_comb",
+      "name": "Permutations vs Combinations",
+      "category": "counting",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.function_count"
+      ],
+      "theory_md": "## Order matters?\n\n- **Permutation** $P(n,r) = \\dfrac{n!}{(n-r)!}$: ordered selections.\n- **Combination** $\\binom{n}{r} = \\dfrac{n!}{r!\\,(n-r)!}$: unordered selections.\n\nDecide by asking whether swapping two chosen items changes the outcome. Circular\narrangements of $n$: $(n-1)!$ (fix one seat to kill rotations).\n",
+      "card": {
+        "question": "You count selections where the order does NOT matter using:",
+        "answer": "Combinations, C(n, r)",
+        "distractors": [
+          "Permutations, P(n, r)",
+          "n! always",
+          "The power set size 2ⁿ"
+        ]
+      }
+    },
+    {
+      "id": "proofs.combinatorics",
+      "name": "Counting drills",
+      "category": "counting",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.perm_comb"
+      ],
+      "theory_md": "## Permutations, combinations, circular\n\n$P(n,r) = \\dfrac{n!}{(n-r)!}$, $\\ \\binom{n}{r} = \\dfrac{n!}{r!(n-r)!}$, and\ncircular arrangements of $n$ people $= (n-1)!$. Always ask: ordered or unordered?\n",
+      "generator": {
+        "kind": "combinatorics",
+        "params": {
+          "ask": [
+            "permutation",
+            "combination",
+            "circular"
+          ]
+        }
+      }
+    },
+    {
+      "id": "proofs.pigeonhole",
+      "name": "Pigeonhole Principle",
+      "category": "counting",
+      "exam_weight": 3,
+      "prerequisites": [
+        "proofs.functions"
+      ],
+      "theory_md": "## Pigeonhole\n\nIf $n$ items go into $k$ boxes and $n > k$, some box holds $\\ge 2$ items. More\nprecisely, some box holds at least $\\lceil n/k \\rceil$.\n\nSo **$k+1$ items** force a repeat among $k$ boxes. The hard part on exams is\nchoosing the right \"boxes\" (e.g. residues mod $m$, or pairwise distances).\n",
+      "generator": {
+        "kind": "pigeonhole",
+        "params": {
+          "ask": [
+            "min_force",
+            "guaranteed"
+          ]
+        }
+      }
+    },
+    {
+      "id": "proofs.equivalence",
+      "name": "Equivalence Relations",
+      "category": "relations",
+      "exam_weight": 3,
+      "prerequisites": [
+        "proofs.sets"
+      ],
+      "theory_md": "## Reflexive, symmetric, transitive\n\nA relation $R$ on a set is an **equivalence relation** if it is\n\n- **reflexive:** $x\\,R\\,x$,\n- **symmetric:** $x\\,R\\,y \\Rightarrow y\\,R\\,x$,\n- **transitive:** $x\\,R\\,y \\land y\\,R\\,z \\Rightarrow x\\,R\\,z$.\n\nTo show $R$ is *not* one, name the property that fails with a witness. E.g.\n$x R y \\iff y-x \\ge 0$ fails symmetry; $|y-x|<1$ fails transitivity.\n",
+      "card": {
+        "question": "On ℝ, x R y iff y − x ≥ 0. Which property FAILS (so R is not an equivalence relation)?",
+        "answer": "Symmetry",
+        "distractors": [
+          "Reflexivity",
+          "Transitivity",
+          "None — it is an equivalence relation"
+        ]
+      }
+    },
+    {
+      "id": "proofs.equivalence_class",
+      "name": "Equivalence Classes & Partitions",
+      "category": "relations",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.equivalence"
+      ],
+      "theory_md": "## Classes partition the set\n\nThe class of $a$ is $[a] = \\{x \\mid x\\,R\\,a\\}$. An equivalence relation's classes\n**partition** the set: every element is in exactly one class, and\n$[a]=[b] \\iff a\\,R\\,b$. Conversely every partition gives an equivalence relation.\n",
+      "card": {
+        "question": "The equivalence classes of an equivalence relation on a set always:",
+        "answer": "Partition the set (disjoint, covering every element)",
+        "distractors": [
+          "Overlap in exactly one element",
+          "Have the same size",
+          "Form a chain by inclusion"
+        ]
+      }
+    },
+    {
+      "id": "proofs.well_defined",
+      "name": "Well-Defined Operations",
+      "category": "relations",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.equivalence_class",
+        "proofs.congruence"
+      ],
+      "theory_md": "## Independence of representative\n\nAn operation on classes $[x] \\oplus [y] = [x+y]$ is **well-defined** only if the\nresult doesn't depend on which representatives you pick: if $x\\equiv x'$ and\n$y\\equiv y'$ then $x+y \\equiv x'+y'$.\n\nThis holds for $+,\\times$ mod $m$ (congruence respects them) but can fail for other\nrelations — always check.\n",
+      "card": {
+        "question": "An operation on equivalence classes is 'well-defined' when:",
+        "answer": "The result is independent of which representatives are chosen",
+        "distractors": [
+          "Every class has the same size",
+          "The relation is reflexive",
+          "The operation is commutative"
+        ]
+      }
+    },
+    {
+      "id": "proofs.countable",
+      "name": "Countable Sets",
+      "category": "cardinality",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.functions",
+        "proofs.equivalence"
+      ],
+      "theory_md": "## Counting infinite sets\n\n$X$ is **countable** if it is finite or there is a bijection $X \\to \\mathbb N$\n(equivalently, a surjection $\\mathbb N \\to X$, or an injection $X \\to \\mathbb N$).\n\n$\\mathbb Z$, $\\mathbb N\\times\\mathbb N$, $\\mathbb Q$, and the finite sequences\n$\\mathbb N^{<\\mathbb N}$ are all countable. A subset of a countable set is countable.\n",
+      "card": {
+        "question": "A set X is countable iff there is:",
+        "answer": "An injection from X into ℕ",
+        "distractors": [
+          "A surjection from X onto ℝ",
+          "A bijection from X to ℝ",
+          "No function from X to ℕ"
+        ]
+      }
+    },
+    {
+      "id": "proofs.uncountable",
+      "name": "Uncountable Sets",
+      "category": "cardinality",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.countable"
+      ],
+      "theory_md": "## Bigger than ℕ\n\n$\\mathbb R$ (and $\\{0,1\\}^{\\mathbb N}$) is **uncountable** — Cantor's diagonal\nargument builds a real differing from every entry of any proposed list.\n\n- A superset of an uncountable set is uncountable (HW7 Q1).\n- If there's an injection $\\mathbb R \\to X$, then $X$ is uncountable.\n",
+      "card": {
+        "question": "Cantor's diagonal argument shows that:",
+        "answer": "ℝ is uncountable",
+        "distractors": [
+          "ℚ is uncountable",
+          "ℕ × ℕ is uncountable",
+          "every infinite set is countable"
+        ]
+      }
+    },
+    {
+      "id": "proofs.csb",
+      "name": "Cantor–Schröder–Bernstein",
+      "category": "cardinality",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.uncountable"
+      ],
+      "theory_md": "## Comparing cardinalities\n\n**CSB:** if there are injections $A \\to B$ **and** $B \\to A$, then there is a\nbijection $A \\to B$, i.e. $|A| = |B|$.\n\nIt lets you prove $|A|=|B|$ by building two injections instead of one bijection —\ne.g. $|\\mathbb R| = |\\{0,1\\}^{\\mathbb N}|$.\n",
+      "card": {
+        "question": "The Cantor–Schröder–Bernstein theorem concludes |A| = |B| from:",
+        "answer": "Injections A → B and B → A",
+        "distractors": [
+          "A surjection A → B only",
+          "A and B both being countable",
+          "A bijection A → ℕ"
+        ]
+      }
+    },
+    {
+      "id": "proofs.floor",
+      "name": "The Floor Function",
+      "category": "order",
+      "exam_weight": 2,
+      "prerequisites": [
+        "proofs.number_theory"
+      ],
+      "theory_md": "## ⌊x⌋\n\n$\\lfloor x \\rfloor$ is the greatest integer $\\le x$. Each interval $[x,x+1)$\ncontains exactly one integer.\n\nUseful counts: the number of multiples of $d$ in $\\{1,\\dots,n\\}$ is\n$\\lfloor n/d \\rfloor$. The Archimedean property (\"there is an integer $> x$\")\nfollows from this.\n",
+      "generator": {
+        "kind": "floor",
+        "params": {
+          "ask": [
+            "floor_val",
+            "count_multiples"
+          ]
+        }
+      }
     }
   ]
 }

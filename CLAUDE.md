@@ -26,7 +26,7 @@ this generalizes its architecture to many subjects.
 |---|---|---|
 | `diffeq` | MATH 220 Differential Equations | generator |
 | `databases` | CS 480 Database Systems | generator (FD/normalization) + recall |
-| `proofs` | MATH 250 Intro to Advanced Maths | generator (set counting) + recall |
+| `proofs` | MATH 215 Introduction to Proofs | generator (logic, number theory, sets, functions, counting, floor) + recall |
 | `econ` | ECON 111 Freakonomics | generator (decision math) + recall |
 
 Generator subjects register both a `generators.py` (kinds) and a `solve.py`

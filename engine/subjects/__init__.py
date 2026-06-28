@@ -25,8 +25,9 @@ SUBJECTS: dict[str, SubjectInfo] = {
         "Mixed: normalization generators + recall cards for design/recovery/concurrency.",
     ),
     "proofs": SubjectInfo(
-        "proofs", "MATH 250 — Intro to Advanced Maths",
-        "Recall mode: definitions, theorems, and proof techniques.",
+        "proofs", "MATH 215 — Introduction to Proofs",
+        "Logic, proof methods, number theory, sets, functions, relations, and "
+        "cardinality — definitions, technique drills, and auto-graded counting.",
     ),
     "econ": SubjectInfo(
         "econ", "ECON 111 — Freakonomics",
