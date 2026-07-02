@@ -88,6 +88,16 @@ class MnemonicIn(BaseModel):
     text: str
 
 
+class SettingIn(BaseModel):
+    key: str
+    value: str
+
+
+class ExamDateIn(BaseModel):
+    subject: str
+    date: str | None = None  # ISO YYYY-MM-DD, or null to clear
+
+
 @api.get("/subjects")
 def get_subjects() -> list[dict]:
     return [
@@ -101,6 +111,9 @@ def start_session(body: StartIn) -> dict:
         raise HTTPException(422, f"unknown scope '{body.scope}'")
     db_id = dao.create_session(body.scope)
     sess = _Session(db_id=db_id, scope=body.scope)
+    # Missed concepts from earlier sessions are still owed a re-test — front-load
+    # them so an abandoned tab or a closed session never loses the errorful retry.
+    sess.retry_queue = [(cid, 0) for cid in dao.pending_retries()]
     from engine.tracing import infer
     sess.dkt_active = infer.dkt_is_active()
     if sess.dkt_active:
@@ -175,13 +188,19 @@ def next_item(session_id: int) -> dict:
 
 def _serve(sess: _Session, selection: policy.Selection) -> dict:
     """Build, log, and return one study item for a chosen concept."""
+    from engine.config import LEECH_LAPSES
     item = service.build_item(selection.concept, _rng, selection.reason)
     item_id = service.log_item_shown(sess.db_id, item)
     sess.items[item_id] = item
     sess.index += 1
     is_generator = item.kind != "recall"
     fmt = latexify if is_generator else (lambda s: s)
+    lapses = dao.get_lapses(item.concept_id)
     return {
+        # Leech: repeatedly forgotten — the UI slows the learner down (theory forced
+        # open, lapse count shown) because more raw reps demonstrably aren't working.
+        "leech": lapses >= LEECH_LAPSES,
+        "lapses": lapses,
         "done": False,
         "item_id": item_id,
         "concept_id": item.concept_id,
@@ -189,6 +208,8 @@ def _serve(sess: _Session, selection: policy.Selection) -> dict:
         "subject": item.subject,
         "reason": item.reason,
         "mode": "generator" if is_generator else "recall",
+        # High-mastery generator concepts drop the options: typed recall, not recognition.
+        "input_mode": "typed" if is_generator and not item.choices else "choices",
         "question": fmt(item.question),
         "choices": item.choices,  # raw — compared on grade + echoed back as the answer
         "note": dao.get_mnemonic(item.concept_id),
@@ -214,6 +235,10 @@ def submit_answer(body: AnswerIn) -> dict:
     store.save(new_state)
     next_review_days = _days_until(new_state.due)
 
+    if correct:
+        dao.remove_pending_retry(item.concept_id)  # debt paid, if any
+    else:
+        dao.add_pending_retry(item.concept_id)  # owed a re-test even across sessions
     if not correct and item.reason != "retry":
         from engine.config import RETRY_GAP
         sess.retry_queue.append((item.concept_id, sess.index + RETRY_GAP))
@@ -236,6 +261,11 @@ def submit_answer(body: AnswerIn) -> dict:
     )
     why_wrong = "" if correct else service.explanation_for(body.answer, item)
     fmt = latexify if item.kind != "recall" else (lambda s: s)
+    # A leech needs a reformulation, not more reps — ask for a mnemonic even after
+    # a correct answer while none is saved.
+    from engine.config import LEECH_LAPSES
+    is_leech = dao.get_lapses(item.concept_id) >= LEECH_LAPSES
+    no_mnemonic = dao.get_mnemonic(item.concept_id) is None
     return {
         "is_correct": correct,
         "correct_answer": item.correct,  # raw — frontend matches it against a choice
@@ -250,13 +280,42 @@ def submit_answer(body: AnswerIn) -> dict:
         "theory": item.theory,  # authored markdown/LaTeX — rendered client-side, not latexified
         "why_wrong": why_wrong,
         "fatigued": fatigued,
-        "ask_mnemonic": (not correct) and dao.get_mnemonic(item.concept_id) is None,
+        "ask_mnemonic": no_mnemonic and (not correct or is_leech),
     }
 
 
 @api.post("/mnemonic")
 def save_mnemonic(body: MnemonicIn) -> dict:
     dao.save_mnemonic(body.concept_id, body.text)
+    return {"ok": True}
+
+
+@api.get("/settings")
+def get_settings() -> list[dict]:
+    """User-tunable settings with current values, defaults, and descriptions."""
+    from engine import settings
+    return settings.all_settings()
+
+
+@api.post("/settings")
+def put_setting(body: SettingIn) -> dict:
+    from engine import settings
+    try:
+        settings.set_value(body.key, body.value)
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {"ok": True, "settings": settings.all_settings()}
+
+
+@api.post("/exam_date")
+def set_exam_date(body: ExamDateIn) -> dict:
+    """Set or clear a subject's exam date — drives the countdown and daily pace."""
+    if body.subject not in SUBJECTS:
+        raise HTTPException(422, f"unknown subject '{body.subject}'")
+    try:
+        dao.set_exam_date(body.subject, body.date)
+    except ValueError as exc:
+        raise HTTPException(422, f"bad date '{body.date}' (want YYYY-MM-DD)") from exc
     return {"ok": True}
 
 
@@ -283,6 +342,13 @@ def progress() -> dict:
         "active": infer.dkt_is_active(),
         "answered": dao.count_answered_interactions(),
         "gate": DKT_MIN_INTERACTIONS,
+    }
+    from engine.config import FSRS_MIN_REVIEWS
+    from engine.scheduler.optimize import stored_parameters
+    result["fsrs_fit"] = {
+        "fitted": stored_parameters() is not None,
+        "reviews": dao.count_answered_interactions(),
+        "gate": FSRS_MIN_REVIEWS,
     }
     return result
 

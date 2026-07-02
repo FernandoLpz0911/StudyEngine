@@ -205,6 +205,82 @@ def get_mnemonic(concept_id: str) -> str | None:
     return row["text"] if row else None
 
 
+def get_setting(key: str) -> str | None:
+    """Raw stored value for a user setting, or None when unset (config default applies)."""
+    with get_connection() as conn:
+        row = conn.execute("SELECT value FROM setting WHERE key = ?", (key,)).fetchone()
+    return row["value"] if row else None
+
+
+def set_setting(key: str, value: str) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO setting (key, value) VALUES (?, ?)", (key, value)
+        )
+
+
+def set_exam_date(subject: str, iso_date: str | None) -> None:
+    """Set (or clear with None) the exam date for a subject, ISO YYYY-MM-DD."""
+    key = f"exam_date.{subject}"
+    with get_connection() as conn:
+        if iso_date is None:
+            conn.execute("DELETE FROM setting WHERE key = ?", (key,))
+        else:
+            date.fromisoformat(iso_date)  # validate before storing
+            conn.execute(
+                "INSERT OR REPLACE INTO setting (key, value) VALUES (?, ?)",
+                (key, iso_date),
+            )
+
+
+def get_exam_date(subject: str) -> date | None:
+    raw = get_setting(f"exam_date.{subject}")
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        return None
+
+
+def add_pending_retry(concept_id: str) -> None:
+    """Queue a missed concept for re-testing that survives the end of the session."""
+    now = datetime.now(UTC).isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO pending_retry (concept_id, created_at) VALUES (?, ?)",
+            (concept_id, now),
+        )
+
+
+def remove_pending_retry(concept_id: str) -> None:
+    with get_connection() as conn:
+        conn.execute("DELETE FROM pending_retry WHERE concept_id = ?", (concept_id,))
+
+
+def pending_retries() -> list[str]:
+    """Missed concepts still owed a re-test, oldest first."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT concept_id FROM pending_retry ORDER BY created_at"
+        ).fetchall()
+    return [r["concept_id"] for r in rows]
+
+
+def count_new_concepts_today(today: date | None = None) -> int:
+    """Concepts first shown on the current local day (drives the new-per-day cap)."""
+    today = (today or _local_today()).isoformat()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM ("
+            "  SELECT concept_id, MIN(shown_at) AS first_shown FROM interaction"
+            "  GROUP BY concept_id"
+            ") WHERE date(first_shown, ?) = ?",
+            (_tz_modifier(), today),
+        ).fetchone()
+    return row["n"] if row else 0
+
+
 def all_concept_ids() -> list[str]:
     """Every concept id across all subjects, sorted (the global DKT index order)."""
     with get_connection() as conn:
@@ -333,6 +409,15 @@ def leeches() -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def get_lapses(concept_id: str) -> int:
+    """How many times this concept has been forgotten after being learned."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT lapses FROM card_state WHERE concept_id = ?", (concept_id,)
+        ).fetchone()
+    return row["lapses"] if row else 0
+
+
 def personal_bests() -> dict:
     """Fastest correct answer, best single day, and longest-ever correct run."""
     with get_connection() as conn:
@@ -369,6 +454,21 @@ def due_count() -> int:
             (now,),
         ).fetchone()
     return row["n"] if row else 0
+
+
+def graded_reviews() -> list[tuple[str, int, str, int]]:
+    """Every graded interaction as (concept_id, grade, answered_at, elapsed_ms),
+    oldest first — the raw material for fitting personal FSRS parameters."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT concept_id, grade, answered_at, COALESCE(elapsed_ms, 0) AS ms
+            FROM interaction
+            WHERE grade IS NOT NULL AND answered_at IS NOT NULL
+            ORDER BY answered_at
+            """
+        ).fetchall()
+    return [(r["concept_id"], r["grade"], r["answered_at"], r["ms"]) for r in rows]
 
 
 def get_interaction_history_timed(

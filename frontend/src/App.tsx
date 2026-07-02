@@ -2,10 +2,11 @@ import { useState } from "react";
 import Dashboard from "./components/Dashboard";
 import KnowledgeMap from "./components/KnowledgeMap";
 import NudgeBell from "./components/NudgeBell";
+import Settings from "./components/Settings";
 import StudyView from "./components/StudyView";
 import "./App.css";
 
-type Tab = "study" | "dashboard" | "map";
+type Tab = "study" | "dashboard" | "map" | "settings";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("study");
@@ -14,6 +15,7 @@ export default function App() {
     ["study", "Study"],
     ["dashboard", "Dashboard"],
     ["map", "Knowledge Map"],
+    ["settings", "⚙"],
   ];
 
   const study = (scope: string) => {
@@ -43,6 +45,7 @@ export default function App() {
         {tab === "study" && <StudyView key={studyScope} initialScope={studyScope} />}
         {tab === "dashboard" && <Dashboard onStudy={study} />}
         {tab === "map" && <KnowledgeMap onStudy={study} />}
+        {tab === "settings" && <Settings />}
       </main>
     </div>
   );

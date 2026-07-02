@@ -17,6 +17,17 @@ class Selection:
     reason: str  # "review" | "new"
 
 
+def _new_budget_left() -> bool:
+    """Whether today's cap on newly introduced concepts still has room.
+
+    Every new concept turns into several near-term reviews, so an uncapped first
+    session floods the queue days later. The frontier simply closes for the day
+    once the cap is hit; reviews are never limited.
+    """
+    from engine import settings
+    return dao.count_new_concepts_today() < settings.get_int("new_per_day")
+
+
 def select_next(subject: str) -> Selection | None:
     """Pick the next concept to study for `subject`, with the reason it was chosen.
 
@@ -46,7 +57,7 @@ def select_next(subject: str) -> Selection | None:
 
     if overdue:
         return Selection(max(overdue, key=lambda x: x[0])[1], "review")
-    if frontier:
+    if frontier and _new_budget_left():
         return Selection(max(frontier, key=lambda x: x[0])[1], "new")
     return None
 
@@ -103,7 +114,7 @@ def select_global(
             return (1.0 - mastery) * concept.exam_weight * penalty(concept)
 
         return Selection(max(reviews, key=review_key), "review")
-    if frontier:
+    if frontier and _new_budget_left():
         return Selection(
             max(frontier, key=lambda c: c.exam_weight * penalty(c)), "new"
         )

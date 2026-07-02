@@ -6,7 +6,7 @@ is identical everywhere.
 """
 from __future__ import annotations
 
-from engine.config import DAILY_GOAL
+from engine import settings
 from engine.db import dao
 from engine.engagement import level_for_xp
 
@@ -24,31 +24,45 @@ def profile() -> dict:
         "streak_days": dao.daily_streak(),
         "studied_today": answered_today > 0,
         "answered_today": answered_today,
-        "daily_goal": DAILY_GOAL,
+        "daily_goal": settings.get_int("daily_goal"),
         "due_count": dao.due_count(),
         "freezes": dao.freeze_status()["earned"],
     }
 
 
 def achievements() -> list[dict]:
-    """Local badges derived purely from the log — milestones worth chasing."""
+    """Local badges derived purely from the log — milestones worth chasing.
+
+    Each unearned badge carries its progress fraction: "5/7 days" pulls far harder
+    than a grey trophy, so the near-misses are the point of the list.
+    """
     p = profile()
     bests = dao.personal_bests()
     answered = dao.count_answered_interactions()
     days = len(dao.study_days())
+    fastest = bests["fastest_ms"]
+    # (id, name, desc, current, target); earned == current >= target.
     defs = [
-        ("first_steps", "🎓 First Steps", "Answer your first item", answered >= 1),
-        ("century", "💯 Century", "Earn 100 XP", p["xp"] >= 100),
-        ("level_5", "⭐ Rising", "Reach level 5", p["level"] >= 5),
-        ("week_warrior", "🔥 Week Warrior", "7-day streak", p["streak_days"] >= 7),
+        ("first_steps", "🎓 First Steps", "Answer your first item", answered, 1),
+        ("century", "💯 Century", "Earn 100 XP", p["xp"], 100),
+        ("level_5", "⭐ Rising", "Reach level 5", p["level"], 5),
+        ("week_warrior", "🔥 Week Warrior", "7-day streak", p["streak_days"], 7),
         ("sharpshooter", "🎯 Sharpshooter", "10 correct in a row",
-         bests["longest_run"] >= 10),
-        ("dedicated", "📅 Dedicated", "Study on 30 days", days >= 30),
+         bests["longest_run"], 10),
+        ("dedicated", "📅 Dedicated", "Study on 30 days", days, 30),
         ("speed_demon", "⚡ Speed Demon", "Correct in under 3s",
-         bool(bests["fastest_ms"]) and bests["fastest_ms"] < 3000),
+         1 if fastest and fastest < 3000 else 0, 1),
     ]
     return [
-        {"id": i, "name": n, "desc": d, "earned": bool(e)} for i, n, d, e in defs
+        {
+            "id": i,
+            "name": n,
+            "desc": d,
+            "earned": current >= target,
+            "progress": min(1.0, current / target),
+            "progress_text": f"{min(current, target)}/{target}",
+        }
+        for i, n, d, current, target in defs
     ]
 
 

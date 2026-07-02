@@ -87,17 +87,39 @@ def subject_readiness(subject: str) -> dict:
 
     readiness = weighted_mastery / weight_sum if weight_sum else 0.0
     stats = dao.subject_stats(subject)
+    seen = sum(1 for r in rows if r["reps"] > 0)
     return {
         "subject": subject,
         "domain": concepts[0].domain if concepts else None,
         "readiness": round(readiness, 3),
         "n_concepts": len(concepts),
-        "seen": sum(1 for r in rows if r["reps"] > 0),
+        "seen": seen,
         "mastered": sum(1 for r in rows if r["mastery"] >= MASTERY_THRESHOLD),
         "due": sum(1 for r in rows if r["due"]),
         "answered": stats["answered"],
         "accuracy": stats["accuracy"],
+        **_exam_countdown(subject, len(concepts) - seen, now),
         "concepts": rows,
+    }
+
+
+def _exam_countdown(subject: str, unseen: int, now: datetime) -> dict:
+    """Deadline framing: days to the exam and the new-concept pace it implies.
+
+    A visible per-day pace turns an abstract syllabus into a daily quota — and an
+    approaching exam date is the honest urgency no synthetic streak can match.
+    """
+    exam = dao.get_exam_date(subject)
+    if exam is None:
+        return {"exam_date": None, "days_left": None, "pace_new_per_day": None}
+    days_left = (exam - now.date()).days
+    pace = None
+    if days_left > 0 and unseen > 0:
+        pace = round(unseen / days_left, 1)
+    return {
+        "exam_date": exam.isoformat(),
+        "days_left": days_left,
+        "pace_new_per_day": pace,
     }
 
 

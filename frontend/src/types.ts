@@ -22,6 +22,15 @@ export interface Achievement {
   name: string;
   desc: string;
   earned: boolean;
+  progress: number;
+  progress_text: string;
+}
+
+export interface Setting {
+  key: string;
+  value: number;
+  default: number;
+  description: string;
 }
 
 export interface Bests {
@@ -60,11 +69,14 @@ export interface NextItem {
   subject?: string;
   reason?: string;
   mode?: string;
+  input_mode?: "typed" | "choices";
   question?: string;
   choices?: string[];
   note?: string | null;
   theory?: string | null;
   cold?: boolean;
+  leech?: boolean;
+  lapses?: number;
   summary?: SessionSummary;
 }
 
@@ -105,6 +117,9 @@ export interface SubjectProgress {
   due: number;
   answered: number;
   accuracy: number;
+  exam_date: string | null;
+  days_left: number | null;
+  pace_new_per_day: number | null;
   concepts: ConceptRow[];
 }
 
@@ -112,4 +127,5 @@ export interface Progress {
   combined_readiness: number;
   subjects: SubjectProgress[];
   dkt: { active: boolean; answered: number; gate: number };
+  fsrs_fit: { fitted: boolean; reviews: number; gate: number };
 }

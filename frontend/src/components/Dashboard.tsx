@@ -119,8 +119,17 @@ export default function Dashboard({ onStudy }: { onStudy: (scope: string) => voi
           </div>
           <div className="badges">
             {me.achievements.map((a) => (
-              <span key={a.id} className={a.earned ? "badge earned" : "badge"} title={a.desc}>
+              <span
+                key={a.id}
+                className={a.earned ? "badge earned" : "badge"}
+                title={a.earned ? a.desc : `${a.desc} — ${a.progress_text}`}
+              >
                 {a.name}
+                {!a.earned && (
+                  <span className="badge-progress">
+                    <span style={{ width: `${Math.round(a.progress * 100)}%` }} />
+                  </span>
+                )}
               </span>
             ))}
           </div>
@@ -148,6 +157,13 @@ export default function Dashboard({ onStudy }: { onStudy: (scope: string) => voi
             ? "DKT active — the global model is driving selection."
             : `DKT warming up — ${p.dkt.answered}/${p.dkt.gate} interactions until it activates.`}
         </div>
+        {p.fsrs_fit && (
+          <div className="muted small">
+            {p.fsrs_fit.fitted
+              ? "🧠 FSRS personally fitted — intervals match how you forget."
+              : `🧠 Personal FSRS fit at ${Math.min(p.fsrs_fit.reviews, p.fsrs_fit.gate)}/${p.fsrs_fit.gate} reviews (then run engine.cli.fsrs_fit).`}
+          </div>
+        )}
       </section>
 
       {Object.keys(groupByDomain(p.subjects)).sort().map((domain) => (
@@ -170,6 +186,17 @@ export default function Dashboard({ onStudy }: { onStudy: (scope: string) => voi
                   {started
                     ? `seen ${s.seen}/${s.n_concepts} · mastered ${s.mastered} · due ${s.due} · ${Math.round(s.accuracy * 100)}% correct`
                     : `${s.n_concepts} concepts · not started yet`}
+                  {s.days_left !== null && (
+                    <span className={s.days_left <= 14 ? "exam-soon" : ""}>
+                      {" · 📅 "}
+                      {s.days_left < 0
+                        ? "exam passed"
+                        : s.days_left === 0
+                          ? "exam today!"
+                          : `${s.days_left}d to exam`}
+                      {s.pace_new_per_day !== null && ` · ${s.pace_new_per_day} new/day to cover it`}
+                    </span>
+                  )}
                 </div>
               </button>
             );

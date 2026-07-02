@@ -36,6 +36,18 @@ class StudyItem:
     params: dict
     theory: str | None = None
     explanations: dict = field(default_factory=dict)
+    tolerance: float = 1e-3
+
+
+def _serve_typed(concept: Concept) -> bool:
+    """Whether a generator concept has outgrown multiple choice.
+
+    Recognition is easier than recall: once mastery is high the four options give
+    the answer away, so the item switches to a typed free response.
+    """
+    from engine import settings
+    from engine.analytics.readiness import concept_mastery
+    return concept_mastery(concept.id) >= settings.get_float("typed_answer_mastery")
 
 
 def build_item(concept: Concept, rng: np.random.Generator, reason: str = "") -> StudyItem:
@@ -45,12 +57,13 @@ def build_item(concept: Concept, rng: np.random.Generator, reason: str = "") -> 
         ask = pick_ask(spec["params"]["ask"])
         seed = random_seed()
         problem = generate(spec["kind"], ask, spec["params"], seed)
+        choices = [] if _serve_typed(concept) else (problem.choices or [])
         return StudyItem(
             concept.id, concept.name, concept.subject, reason,
-            f"{spec['kind']}:{ask}", problem.statement, problem.choices or [],
+            f"{spec['kind']}:{ask}", problem.statement, choices,
             f"{problem.correct_answer:.3f}",
             worked_solution(spec["kind"], ask, problem.params), seed, problem.params,
-            theory=concept.theory_md,
+            theory=concept.theory_md, tolerance=problem.tolerance,
         )
     question = as_question(concept, rng)
     return StudyItem(
@@ -84,10 +97,33 @@ def is_correct(answer: str, item: StudyItem) -> bool:
     answer = answer.strip()
     if answer.lower() in LETTERS and LETTERS.index(answer.lower()) < len(item.choices):
         return item.choices[LETTERS.index(answer.lower())] == item.correct
-    return grade_answer(answer, item.correct)
+    tolerance = item.tolerance
+    if not item.choices:
+        # Typed free response: the key is rounded to 3 decimals, and the learner may
+        # round differently, so widen to a relative tolerance around the true value.
+        from engine.config import TYPED_REL_TOLERANCE
+        try:
+            tolerance = max(tolerance, abs(float(item.correct)) * TYPED_REL_TOLERANCE)
+        except ValueError:
+            pass
+    return grade_answer(answer, item.correct, tolerance)
 
 
 def grade(answer: str, elapsed_ms: int, item: StudyItem) -> tuple[bool, int]:
-    """Return (is_correct, derived FSRS grade) for an answer — purely data-based."""
+    """Return (is_correct, derived FSRS grade) for an answer — purely data-based.
+
+    Recall cards and multi-step generator problems have different natural response
+    times, so each mode grades speed against its own thresholds.
+    """
+    from engine.config import (
+        GRADE_FAST_MS,
+        GRADE_FAST_MS_GEN,
+        GRADE_SLOW_MS,
+        GRADE_SLOW_MS_GEN,
+    )
     correct = is_correct(answer, item)
-    return correct, derive_grade(correct, elapsed_ms)
+    if item.kind == "recall":
+        fast, slow = GRADE_FAST_MS, GRADE_SLOW_MS
+    else:
+        fast, slow = GRADE_FAST_MS_GEN, GRADE_SLOW_MS_GEN
+    return correct, derive_grade(correct, elapsed_ms, fast, slow)

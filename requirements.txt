@@ -1,6 +1,7 @@
 # Core engine — generators, FSRS, recall, analytics, CLI, HTTP API, tests.
 # Knowledge-tracing (DKT) is an optional extra: see requirements-dkt.txt.
-fsrs>=4.0.0
+# [optimizer] pulls torch/pandas for the personal FSRS weight fit (engine.cli.fsrs_fit).
+fsrs[optimizer]>=6.0.0
 numpy>=1.26
 scipy>=1.11
 fastapi>=0.110

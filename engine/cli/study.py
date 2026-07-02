@@ -96,13 +96,22 @@ def _run_item(concept, session_id: int, rng: np.random.Generator, reason: str = 
     item = service.build_item(concept, rng, reason)
     item_id = service.log_item_shown(session_id, item)
 
+    typed = not item.choices
     print(f"\n[{concept.name}]  {item.question}")
+    if typed:
+        print("   ✍️  no options this time — you know this one; type the value")
+    # Leech: repeatedly forgotten — slow down and re-read; more raw reps aren't working.
+    from engine.config import LEECH_LAPSES
+    lapses = dao.get_lapses(concept.id)
+    leech = lapses >= LEECH_LAPSES
+    if leech:
+        print(f"   ⚠️  leech — missed {lapses}× before. Slow down; re-read first.")
     # Cold start: not yet learned (never seen / never correct / low mastery) — give
     # the explanation up front so it isn't a blind guess.
     from engine.analytics.readiness import concept_mastery
     from engine.config import COLD_START_MASTERY
     cold = concept_mastery(concept.id) < COLD_START_MASTERY
-    if cold and item.theory:
+    if (cold or leech) and item.theory:
         print(f"   📖 Start here: {item.theory}")
     note = dao.get_mnemonic(concept.id)
     if note:
@@ -111,7 +120,7 @@ def _run_item(concept, session_id: int, rng: np.random.Generator, reason: str = 
         print(f"   {letter}) {choice}")
 
     start = time.monotonic()
-    raw = _prompt("Your answer (letter): ")
+    raw = _prompt("Your answer: " if typed else "Your answer (letter): ")
     elapsed_ms = int((time.monotonic() - start) * 1000)
 
     correct, grade = service.grade(raw, elapsed_ms, item)
@@ -124,18 +133,24 @@ def _run_item(concept, session_id: int, rng: np.random.Generator, reason: str = 
         if why:
             print(f"   ✗ {why}")
     # Surface the concept explanation right or wrong (skip if it was already shown
-    # as the up-front cold-start intro).
-    if item.theory and not cold:
+    # as the up-front cold-start / leech intro).
+    if item.theory and not cold and not leech:
         print(f"   📖 {item.theory}")
 
     dao.log_answered(item_id, raw or None, correct, grade, elapsed_ms)
+    if correct:
+        dao.remove_pending_retry(concept.id)  # debt paid, if any
+    else:
+        dao.add_pending_retry(concept.id)  # owed a re-test even across sessions
     new_state = store.apply_rating(store.get_or_create(concept.id), grade)
     store.save(new_state)
     days = _days_until(new_state.due)
     if days is not None:
         print(f"   ↩️  back in {days} day(s)")
 
-    if not correct and note is None:
+    # A leech needs a reformulation, not more reps — ask for the hint even after a
+    # correct answer while none is saved.
+    if note is None and (not correct or leech):
         hint = _prompt("Add a hint for next time (Enter to skip): ").strip()
         if hint:
             dao.save_mnemonic(concept.id, hint)
@@ -166,7 +181,11 @@ def run(subject: str, n: int) -> None:
     streak = 0
     answered = correct_count = 0
     prev_tier = ""
-    retry: list[tuple[str, int]] = []
+    # Missed concepts from earlier sessions are owed a re-test — front-load them.
+    subject_pending = {c.id for c in dao.get_concepts(subject)}
+    retry: list[tuple[str, int]] = [
+        (cid, 0) for cid in dao.pending_retries() if cid in subject_pending
+    ]
     recent: list[bool] = []
     fatigued = False
     for i in range(n):
@@ -229,7 +248,7 @@ def run_global(n: int) -> None:
     touched: set[str] = set()
     streak = 0
     prev_tier = ""
-    retry: list[tuple[str, int]] = []
+    retry: list[tuple[str, int]] = [(cid, 0) for cid in dao.pending_retries()]
     fatigued = False
     for i in range(n):
         if dkt_active and i > 0 and i % 5 == 0:

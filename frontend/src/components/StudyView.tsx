@@ -5,6 +5,7 @@ import Markdown from "./Markdown";
 import Tex from "./Math";
 import QuestionTimer from "./QuestionTimer";
 import { playCorrect, playLevelUp, playWrong } from "./sound";
+import { unlockedAt } from "../themes";
 
 const REASON_LABEL: Record<string, string> = {
   new: "🌱 New",
@@ -13,6 +14,8 @@ const REASON_LABEL: Record<string, string> = {
 };
 
 const SOUND_KEY = "studyengine.sound";
+const AUTO_ADVANCE_KEY = "studyengine.autoadvance";
+const AUTO_ADVANCE_MS = 1400;
 
 function StatsBar({ p }: { p: Profile }) {
   const xpPct = Math.round((100 * p.xp_into_level) / p.xp_for_next);
@@ -107,8 +110,13 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
   const [hintSaved, setHintSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sound, setSound] = useState(localStorage.getItem(SOUND_KEY) === "1");
+  const [autoAdvance, setAutoAdvance] = useState(
+    localStorage.getItem(AUTO_ADVANCE_KEY) !== "0",
+  );
+  const [typed, setTyped] = useState("");
   const shownAt = useRef<number>(Date.now());
   const restartRef = useRef<(s: string) => void>(() => {});
+  const advanceTimer = useRef<number | null>(null);
 
   useEffect(() => {
     api.subjects().then(setSubjects).catch(() => {});
@@ -118,17 +126,32 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
     api.stats().then(setProfile).catch(() => {});
   }, []);
 
-  // Fanfare when XP crosses a level boundary.
+  // Fanfare when XP crosses a level boundary — plus the theme it unlocks, so the
+  // level number pays out something visible.
   const prevLevel = useRef<number | null>(null);
+  const [levelNote, setLevelNote] = useState<string | null>(null);
   useEffect(() => {
     if (!profile) return;
-    if (prevLevel.current !== null && profile.level > prevLevel.current) playLevelUp();
+    if (prevLevel.current !== null && profile.level > prevLevel.current) {
+      playLevelUp();
+      const unlocked = unlockedAt(profile.level);
+      setLevelNote(
+        unlocked.length
+          ? `⭐ Level ${profile.level}! Theme unlocked: ${unlocked.map((t) => t.name).join(", ")} → Settings`
+          : `⭐ Level ${profile.level}!`,
+      );
+    }
     prevLevel.current = profile.level;
   }, [profile]);
 
   const loadNext = useCallback(async (sid: number) => {
+    if (advanceTimer.current !== null) {
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = null;
+    }
     setFeedback(null);
     setSelected(null);
+    setTyped("");
     setHint("");
     setHintSaved(false);
     try {
@@ -165,6 +188,13 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
     startSession(scope);
   }, [scope, startSession]);
 
+  useEffect(
+    () => () => {
+      if (advanceTimer.current !== null) window.clearTimeout(advanceTimer.current);
+    },
+    [],
+  );
+
   const choose = async (choice: string) => {
     if (feedback || !item?.item_id || sessionId === null) return;
     setSelected(choice);
@@ -174,6 +204,11 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
       if (res.is_correct) playCorrect(res.streak);
       else playWrong();
       refreshStats();
+      // Correct answers flow on by themselves; misses wait so the explanation is
+      // read, and a pending mnemonic ask (leech) waits for the input.
+      if (res.is_correct && autoAdvance && !res.fatigued && !res.ask_mnemonic) {
+        advanceTimer.current = window.setTimeout(() => loadNext(sessionId), AUTO_ADVANCE_MS);
+      }
     } catch (e) {
       if (String(e).includes("404")) startSession(scope);
       else setError(String(e));
@@ -206,6 +241,16 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
     setSound(next);
     localStorage.setItem(SOUND_KEY, next ? "1" : "0");
     if (next) playCorrect(3);
+  };
+
+  const toggleAutoAdvance = () => {
+    const next = !autoAdvance;
+    setAutoAdvance(next);
+    localStorage.setItem(AUTO_ADVANCE_KEY, next ? "1" : "0");
+    if (!next && advanceTimer.current !== null) {
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = null;
+    }
   };
 
   const saveHint = async () => {
@@ -263,6 +308,13 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
         <button className="bell" onClick={toggleSound} title="Sound effects">
           {sound ? "🔊" : "🔇"}
         </button>
+        <button
+          className="bell"
+          onClick={toggleAutoAdvance}
+          title="Auto-advance after a correct answer"
+        >
+          {autoAdvance ? "⏩" : "⏸"}
+        </button>
         <span className="muted small kbd-hint">a–d / 1–4 · Enter</span>
       </div>
 
@@ -273,10 +325,20 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
           <QuestionTimer startedAt={shownAt.current} frozen={!!feedback} />
         )}
       </div>
+      {levelNote && (
+        <div className="note" onClick={() => setLevelNote(null)}>
+          {levelNote} <span className="muted small">(click to dismiss)</span>
+        </div>
+      )}
+      {item.leech && (
+        <div className="note leech">
+          ⚠️ Leech — missed {item.lapses}× before. Slow down; re-read, then answer.
+        </div>
+      )}
       {item.note && <div className="note">📝 your note: {item.note}</div>}
       <div className="question"><Tex>{item.question}</Tex></div>
       {item.theory && (
-        <details className="theory" key={item.item_id} open={item.cold}>
+        <details className="theory" key={item.item_id} open={item.cold || item.leech}>
           <summary>
             {item.cold ? "📖 Start here — concept explained" : "📖 Learn this concept"}
           </summary>
@@ -284,13 +346,36 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
         </details>
       )}
 
-      <div className="choices">
-        {item.choices?.map((c) => (
-          <button key={c} className={choiceClass(c)} disabled={!!feedback} onClick={() => choose(c)}>
-            {c}
+      {item.input_mode === "typed" ? (
+        <form
+          className="typed-answer"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!feedback && typed.trim()) choose(typed.trim());
+          }}
+        >
+          <div className="muted small">✍️ You know this one — no options. Type the value:</div>
+          <input
+            autoFocus
+            inputMode="decimal"
+            placeholder="Your answer…"
+            value={typed}
+            disabled={!!feedback}
+            onChange={(e) => setTyped(e.target.value)}
+          />
+          <button className="btn" type="submit" disabled={!!feedback || !typed.trim()}>
+            Answer
           </button>
-        ))}
-      </div>
+        </form>
+      ) : (
+        <div className="choices">
+          {item.choices?.map((c) => (
+            <button key={c} className={choiceClass(c)} disabled={!!feedback} onClick={() => choose(c)}>
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
 
       {feedback && (
         <div className="feedback">

@@ -56,6 +56,16 @@ CREATE TABLE IF NOT EXISTS interaction (
     answered_at     TEXT
 );
 
+CREATE TABLE IF NOT EXISTS setting (
+    key         TEXT PRIMARY KEY,
+    value       TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pending_retry (
+    concept_id  TEXT PRIMARY KEY REFERENCES concept(id),
+    created_at  TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS mnemonic (
     concept_id  TEXT PRIMARY KEY REFERENCES concept(id),
     text        TEXT NOT NULL,

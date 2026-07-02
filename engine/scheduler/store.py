@@ -13,8 +13,18 @@ from engine.db.connection import get_connection
 
 
 @lru_cache(maxsize=8)
-def _scheduler(desired_retention: float) -> Scheduler:
-    return Scheduler(desired_retention=desired_retention)
+def _scheduler(
+    desired_retention: float, parameters: tuple[float, ...] | None
+) -> Scheduler:
+    if parameters is None:
+        return Scheduler(desired_retention=desired_retention)
+    return Scheduler(parameters=parameters, desired_retention=desired_retention)
+
+
+def _current_scheduler() -> Scheduler:
+    """Scheduler using the learner's fitted FSRS weights when a fit exists."""
+    from engine.scheduler.optimize import stored_parameters
+    return _scheduler(TARGET_RETENTION, stored_parameters())
 
 
 @dataclass
@@ -53,7 +63,7 @@ def get_or_create(concept_id: str) -> CardState:
 
 def apply_rating(card_state: CardState, rating: int) -> CardState:
     """Run a py-fsrs review and return the updated card state (not yet persisted)."""
-    scheduler = _scheduler(TARGET_RETENTION)
+    scheduler = _current_scheduler()
     updated, _ = scheduler.review_card(_to_fsrs_card(card_state), Rating(rating))
     was_lapse = card_state.state == "review" and Rating(rating) == Rating.Again
     new_reps = card_state.reps + 1

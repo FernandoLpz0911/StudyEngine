@@ -15,8 +15,13 @@ SUBJECTS_DIR: str = os.getenv("SUBJECTS_DIR", "data/subjects")
 
 # Objective FSRS grading from response time (no self-rating): a correct answer
 # under FAST_MS is graded Easy, over SLOW_MS is graded Hard, otherwise Good.
+# Recall cards are recognition (fast by nature); generator problems need multi-step
+# work, so they get their own, much wider thresholds — otherwise every generator
+# answer grades Hard and FSRS under-spaces them.
 GRADE_FAST_MS: int = int(os.getenv("GRADE_FAST_MS", "8000"))
 GRADE_SLOW_MS: int = int(os.getenv("GRADE_SLOW_MS", "30000"))
+GRADE_FAST_MS_GEN: int = int(os.getenv("GRADE_FAST_MS_GEN", "25000"))
+GRADE_SLOW_MS_GEN: int = int(os.getenv("GRADE_SLOW_MS_GEN", "90000"))
 
 # Mastery for the progress dashboard: full rep-confidence is reached at
 # MASTERY_TARGET_REPS reviews; a concept counts as "mastered" at/above
@@ -65,6 +70,18 @@ EXAM_TIMER_TARGET_S: int = int(os.getenv("EXAM_TIMER_TARGET_S", "180"))
 # the streak alive. Small enough to hit on a busy day (habit > heroics).
 DAILY_GOAL: int = int(os.getenv("DAILY_GOAL", "20"))
 
+# Cap on brand-new concepts introduced per day. Every new concept becomes several
+# future reviews; without a cap an eager first session floods the review queue
+# three days later and buries the learner. (Anki's default is comparable.)
+NEW_PER_DAY: int = int(os.getenv("NEW_PER_DAY", "8"))
+
+# Generator concepts at/above this measured mastery are served as free-response
+# (typed answer) instead of multiple choice: recognition is easier than recall, so
+# once a concept is known the four options give it away and stop testing anything.
+TYPED_ANSWER_MASTERY: float = float(os.getenv("TYPED_ANSWER_MASTERY", "0.75"))
+# Relative tolerance for grading a typed numeric answer (choices are exact-match).
+TYPED_REL_TOLERANCE: float = float(os.getenv("TYPED_REL_TOLERANCE", "0.005"))
+
 # Global interleaved sessions: down-weight a candidate from the subject just
 # studied so consecutive items come from different subjects (interleaving). Each
 # session opens with WARMUP and closes with COOLDOWN "confidence builders" (items
@@ -72,6 +89,10 @@ DAILY_GOAL: int = int(os.getenv("DAILY_GOAL", "20"))
 INTERLEAVE_PENALTY: float = float(os.getenv("INTERLEAVE_PENALTY", "0.5"))
 GLOBAL_WARMUP: int = int(os.getenv("GLOBAL_WARMUP", "2"))
 GLOBAL_COOLDOWN: int = int(os.getenv("GLOBAL_COOLDOWN", "2"))
+
+# Personal FSRS fit: re-fitting the 21 FSRS weights to the learner's own review
+# log needs enough data to beat the population defaults it starts from.
+FSRS_MIN_REVIEWS: int = int(os.getenv("FSRS_MIN_REVIEWS", "400"))
 
 # Global DKT (deep knowledge tracing): the trained model drives weak-concept
 # selection only once it clears both gates — enough graded interactions and a

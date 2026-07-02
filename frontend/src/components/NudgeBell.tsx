@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api";
 
 const KEY = "studyengine.nudge";
+const STREAK_NUDGE_KEY = "studyengine.streaknudge";
+const STREAK_NUDGE_HOUR = 18;
 const POLL_MS = 60_000;
 
 /** Header bell: live "reviews waiting" badge + opt-in browser nudges.
@@ -24,13 +26,29 @@ export default function NudgeBell() {
     new Notification("StudyEngine", { body: `${count} review(s) waiting.${tail}` });
   }, [on]);
 
+  // Evening loss-aversion nudge: streak alive but nothing answered today — the
+  // one notification worth interrupting for. Fires at most once per local day.
+  const notifyStreakAtRisk = useCallback((days: number, answeredToday: number) => {
+    if (!on || days === 0 || answeredToday > 0) return;
+    if (Notification.permission !== "granted") return;
+    const now = new Date();
+    if (now.getHours() < STREAK_NUDGE_HOUR) return;
+    const today = now.toISOString().slice(0, 10);
+    if (localStorage.getItem(STREAK_NUDGE_KEY) === today) return;
+    localStorage.setItem(STREAK_NUDGE_KEY, today);
+    new Notification("StudyEngine", {
+      body: `🔥 Your ${days}-day streak dies at midnight — one quick session saves it.`,
+    });
+  }, [on]);
+
   const poll = useCallback(() => {
     api.stats().then((p) => {
       setDue(p.due_count);
       setStreak(p.streak_days);
       notifyIfDue(p.due_count, p.streak_days);
+      notifyStreakAtRisk(p.streak_days, p.answered_today);
     }).catch(() => {});
-  }, [notifyIfDue]);
+  }, [notifyIfDue, notifyStreakAtRisk]);
 
   useEffect(() => {
     poll();

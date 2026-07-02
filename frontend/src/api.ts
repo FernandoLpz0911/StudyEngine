@@ -5,6 +5,7 @@ import type {
   NextItem,
   Profile,
   Progress,
+  Setting,
   Subject,
   SubjectProgress,
 } from "./types";
@@ -42,6 +43,11 @@ export const api = {
   mnemonic: (conceptId: string, text: string) =>
     post<{ ok: boolean }>("/mnemonic", { concept_id: conceptId, text }),
   stats: () => get<Profile>("/stats"),
+  settings: () => get<Setting[]>("/settings"),
+  setExamDate: (subject: string, date: string | null) =>
+    post<{ ok: boolean }>("/exam_date", { subject, date }),
+  setSetting: (key: string, value: string) =>
+    post<{ ok: boolean; settings: Setting[] }>("/settings", { key, value }),
   me: () => get<Me>("/me"),
   progress: () => get<Progress>("/progress"),
   subjectProgress: (subject: string) => get<SubjectProgress>(`/progress/${subject}`),
