@@ -11,8 +11,14 @@ class TestGradeAnswer:
         assert grade_answer("2.000", "2.000")
 
     def test_numeric_within_tolerance(self):
-        assert grade_answer("2.0", "2.0004")
+        assert grade_answer("2.0", "2.000004")
         assert not grade_answer("2.0", "2.5")
+
+    def test_default_tolerance_is_tight(self):
+        # The default is deliberately strict (1e-5); wider tolerances are passed
+        # explicitly by callers that know the answer's precision (typed answers).
+        assert not grade_answer("2.0", "2.0004")
+        assert grade_answer("2.0", "2.0004", tolerance=1e-3)
 
     def test_non_numeric_mismatch_is_false(self):
         assert not grade_answer("", "1.000")
