@@ -219,6 +219,77 @@ def set_setting(key: str, value: str) -> None:
         )
 
 
+USER_CARD_PREFIX = "user."
+
+
+def create_user_card(
+    subject: str,
+    question: str,
+    answer: str,
+    distractors: list[str],
+    theory_md: str | None = None,
+) -> str:
+    """Insert a learner-authored recall card; returns its concept id.
+
+    User cards live in the same concept table (id prefixed "user.") so the
+    scheduler, grading, and analytics treat them like seeded content. Seed
+    reloads use INSERT OR REPLACE by id and never touch this prefix.
+    """
+    now_ms = int(datetime.now(UTC).timestamp() * 1000)
+    concept_id = f"{USER_CARD_PREFIX}{subject}.{now_ms}"
+    with get_connection() as conn:
+        conn.execute(
+            """
+            INSERT INTO concept
+                (id, subject, name, category, mode,
+                 card_question, card_answer, card_distractors, theory_md, exam_weight)
+            VALUES (?, ?, ?, 'My cards', 'recall', ?, ?, ?, ?, 1)
+            """,
+            (
+                concept_id,
+                subject,
+                question[:60] + ("…" if len(question) > 60 else ""),
+                question,
+                answer,
+                json.dumps(distractors),
+                theory_md,
+            ),
+        )
+    return concept_id
+
+
+def list_user_cards() -> list[dict]:
+    """Learner-authored cards, newest first."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT id, subject, card_question AS question, card_answer AS answer, "
+            "card_distractors AS distractors FROM concept "
+            "WHERE id LIKE ? ORDER BY id DESC",
+            (f"{USER_CARD_PREFIX}%",),
+        ).fetchall()
+    return [
+        {**dict(r), "distractors": json.loads(r["distractors"] or "[]")} for r in rows
+    ]
+
+
+def delete_user_card(concept_id: str) -> bool:
+    """Remove a learner-authored card and all its traces; False if not a user card."""
+    if not concept_id.startswith(USER_CARD_PREFIX):
+        return False
+    with get_connection() as conn:
+        exists = conn.execute(
+            "SELECT 1 FROM concept WHERE id = ?", (concept_id,)
+        ).fetchone()
+        if not exists:
+            return False
+        # Owner deletes their own card: its study history goes with it (FK order).
+        for table in ("interaction", "card_state", "mnemonic", "pending_retry"):
+            conn.execute(f"DELETE FROM {table} WHERE concept_id = ?", (concept_id,))
+        conn.execute("DELETE FROM concept_prereq WHERE concept_id = ?", (concept_id,))
+        conn.execute("DELETE FROM concept WHERE id = ?", (concept_id,))
+    return True
+
+
 def set_exam_date(subject: str, iso_date: str | None) -> None:
     """Set (or clear with None) the exam date for a subject, ISO YYYY-MM-DD."""
     key = f"exam_date.{subject}"

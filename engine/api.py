@@ -98,6 +98,14 @@ class ExamDateIn(BaseModel):
     date: str | None = None  # ISO YYYY-MM-DD, or null to clear
 
 
+class CardIn(BaseModel):
+    subject: str
+    question: str
+    answer: str
+    distractors: list[str]
+    theory: str | None = None
+
+
 @api.get("/subjects")
 def get_subjects() -> list[dict]:
     return [
@@ -305,6 +313,39 @@ def put_setting(body: SettingIn) -> dict:
     except (KeyError, ValueError) as exc:
         raise HTTPException(422, str(exc)) from exc
     return {"ok": True, "settings": settings.all_settings()}
+
+
+@api.get("/cards")
+def list_cards() -> list[dict]:
+    """Learner-authored recall cards (IKEA effect: own content sticks harder)."""
+    return dao.list_user_cards()
+
+
+@api.post("/cards")
+def create_card(body: CardIn) -> dict:
+    if body.subject not in SUBJECTS:
+        raise HTTPException(422, f"unknown subject '{body.subject}'")
+    question = body.question.strip()
+    answer = body.answer.strip()
+    distractors = [d.strip() for d in body.distractors if d.strip()]
+    if not question or not answer:
+        raise HTTPException(422, "question and answer are required")
+    if not distractors:
+        raise HTTPException(422, "at least one distractor is required")
+    if answer in distractors:
+        raise HTTPException(422, "a distractor equals the answer")
+    concept_id = dao.create_user_card(
+        body.subject, question, answer, distractors[:3],
+        (body.theory or "").strip() or None,
+    )
+    return {"ok": True, "concept_id": concept_id}
+
+
+@api.delete("/cards/{concept_id}")
+def delete_card(concept_id: str) -> dict:
+    if not dao.delete_user_card(concept_id):
+        raise HTTPException(404, "not a user card or not found")
+    return {"ok": True}
 
 
 @api.post("/exam_date")

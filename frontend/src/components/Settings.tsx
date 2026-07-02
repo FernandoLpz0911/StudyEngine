@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { THEMES, applyTheme, currentTheme } from "../themes";
-import type { Setting, SubjectProgress } from "../types";
+import type { Setting, SubjectProgress, UserCard } from "../types";
+
+const EMPTY_CARD = { question: "", answer: "", d1: "", d2: "", d3: "" };
 
 const LABEL: Record<string, string> = {
   daily_goal: "🎯 Daily goal",
@@ -32,6 +34,37 @@ export default function Settings() {
   const pickTheme = (id: string) => {
     applyTheme(id);
     setTheme(id);
+  };
+
+  const [cards, setCards] = useState<UserCard[]>([]);
+  const [cardSubject, setCardSubject] = useState("");
+  const [draft, setDraft] = useState(EMPTY_CARD);
+  const [cardError, setCardError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.cards().then(setCards).catch(() => {});
+  }, []);
+
+  const addCard = async () => {
+    setCardError(null);
+    const distractors = [draft.d1, draft.d2, draft.d3].filter((d) => d.trim());
+    try {
+      await api.addCard({
+        subject: cardSubject || subjects[0]?.subject,
+        question: draft.question,
+        answer: draft.answer,
+        distractors,
+      });
+      setDraft(EMPTY_CARD);
+      setCards(await api.cards());
+    } catch (e) {
+      setCardError(String(e));
+    }
+  };
+
+  const removeCard = async (id: string) => {
+    await api.deleteCard(id);
+    setCards((cs) => cs.filter((c) => c.id !== id));
   };
 
   const saveExamDate = async (subject: string, date: string) => {
@@ -120,6 +153,65 @@ export default function Settings() {
           {saved === `exam.${s.subject}` && <span className="verdict ok">✓</span>}
         </div>
       ))}
+      <h3>📝 My cards</h3>
+      <p className="muted small">
+        Write your own recall cards — they join the same scheduler as everything
+        else and show up under "My cards" in their subject.
+      </p>
+      <div className="card-form">
+        <select value={cardSubject || subjects[0]?.subject || ""} onChange={(e) => setCardSubject(e.target.value)}>
+          {subjects.map((s) => (
+            <option key={s.subject} value={s.subject}>{s.subject}</option>
+          ))}
+        </select>
+        <input
+          placeholder="Question"
+          value={draft.question}
+          onChange={(e) => setDraft({ ...draft, question: e.target.value })}
+        />
+        <input
+          placeholder="Correct answer"
+          value={draft.answer}
+          onChange={(e) => setDraft({ ...draft, answer: e.target.value })}
+        />
+        <input
+          placeholder="Wrong option 1"
+          value={draft.d1}
+          onChange={(e) => setDraft({ ...draft, d1: e.target.value })}
+        />
+        <input
+          placeholder="Wrong option 2 (optional)"
+          value={draft.d2}
+          onChange={(e) => setDraft({ ...draft, d2: e.target.value })}
+        />
+        <input
+          placeholder="Wrong option 3 (optional)"
+          value={draft.d3}
+          onChange={(e) => setDraft({ ...draft, d3: e.target.value })}
+        />
+        <button
+          className="btn"
+          disabled={!draft.question.trim() || !draft.answer.trim() || !draft.d1.trim()}
+          onClick={addCard}
+        >
+          Add card
+        </button>
+        {cardError && <div className="error">{cardError}</div>}
+      </div>
+      {cards.map((c) => (
+        <div className="setting-row" key={c.id}>
+          <div className="grow">
+            <div>{c.question}</div>
+            <div className="muted small">
+              {c.subject} · ✓ {c.answer} · ✗ {c.distractors.join(", ")}
+            </div>
+          </div>
+          <button className="btn ghost" onClick={() => removeCard(c.id)}>
+            Delete
+          </button>
+        </div>
+      ))}
+
       <p className="muted small">
         Changes apply from the next item served. Sound and auto-advance are on the
         study screen itself.

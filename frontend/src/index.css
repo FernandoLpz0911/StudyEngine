@@ -199,6 +199,13 @@ code { background: var(--surface2); padding: 1px 6px; border-radius: 4px; }
 .theme-swatch .dot { width: 26px; height: 26px; border-radius: 50%; }
 .theme-swatch.active { border-color: var(--accent); }
 .theme-swatch:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.card-form { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border-radius: 10px; padding: 16px; }
+.card-form input, .card-form select {
+  background: var(--surface2); color: var(--text);
+  border: 1px solid var(--surface2); border-radius: 8px; padding: 10px 12px; font-size: 14px;
+}
+.card-form input:focus { border-color: var(--accent); outline: none; }
 .leeches { margin-top: 10px; border-left: 3px solid var(--red); padding-left: 12px; }
 
 /* Knowledge map */

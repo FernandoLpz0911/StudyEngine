@@ -33,6 +33,14 @@ export interface Setting {
   description: string;
 }
 
+export interface UserCard {
+  id: string;
+  subject: string;
+  question: string;
+  answer: string;
+  distractors: string[];
+}
+
 export interface Bests {
   fastest_ms: number | null;
   best_day: number;

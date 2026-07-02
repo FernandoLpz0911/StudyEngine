@@ -8,6 +8,7 @@ import type {
   Setting,
   Subject,
   SubjectProgress,
+  UserCard,
 } from "./types";
 
 const BASE = "/api";
@@ -46,6 +47,20 @@ export const api = {
   settings: () => get<Setting[]>("/settings"),
   setExamDate: (subject: string, date: string | null) =>
     post<{ ok: boolean }>("/exam_date", { subject, date }),
+  cards: () => get<UserCard[]>("/cards"),
+  addCard: (card: {
+    subject: string;
+    question: string;
+    answer: string;
+    distractors: string[];
+    theory?: string;
+  }) => post<{ ok: boolean; concept_id: string }>("/cards", card),
+  deleteCard: async (id: string): Promise<void> => {
+    const resp = await fetch(`${BASE}/cards/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (!resp.ok) throw new Error(`DELETE /cards/${id} → ${resp.status}`);
+  },
   setSetting: (key: string, value: string) =>
     post<{ ok: boolean; settings: Setting[] }>("/settings", { key, value }),
   me: () => get<Me>("/me"),
