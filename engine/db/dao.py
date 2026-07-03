@@ -338,10 +338,20 @@ def suspend_concept(concept_id: str) -> None:
 
 
 def bury_concept(concept_id: str) -> None:
-    """'Not today' — hidden until the next local day, then back automatically."""
+    """'Not today' — hidden until the next local day, then back automatically.
+
+    A no-op on a suspended concept: burying must not silently demote an
+    indefinite 'I know this' into a one-day hide.
+    """
     now = datetime.now(UTC).isoformat()
     until = (_local_today() + timedelta(days=1)).isoformat()
     with get_connection() as conn:
+        row = conn.execute(
+            "SELECT until FROM concept_suppression WHERE concept_id = ?",
+            (concept_id,),
+        ).fetchone()
+        if row and row["until"] is None:
+            return
         conn.execute(
             "INSERT OR REPLACE INTO concept_suppression (concept_id, until, created_at) "
             "VALUES (?, ?, ?)",
@@ -631,12 +641,13 @@ def get_lapses(concept_id: str) -> int:
 
 
 def record_baselines(today: date | None = None) -> dict:
-    """Prior bests to beat for live 'new record' pops — excluding what's in flight.
+    """Prior bests to beat for live 'new record' pops, snapshotted per session.
 
-    Unlike personal_bests (a display aggregate), each baseline excludes the thing
-    currently being extended, so a record fires once at the crossing instead of on
-    every subsequent answer: best_day ignores today, longest_run ignores the
-    still-running trailing streak. fastest_ms is naturally self-limiting.
+    Unlike personal_bests (a display aggregate), best_day excludes today so the
+    daily record fires once at the crossing. longest_run includes every logged
+    run — nothing is in flight at snapshot time — and detect_records advances it
+    in memory as runs end. Stamped with the local day so a session that crosses
+    midnight can detect staleness (ensure_fresh_baselines).
     """
     today = (today or _local_today()).isoformat()
     with get_connection() as conn:
@@ -653,23 +664,27 @@ def record_baselines(today: date | None = None) -> dict:
         seq = conn.execute(
             "SELECT is_correct FROM interaction WHERE is_correct IS NOT NULL ORDER BY id"
         ).fetchall()
-    # Longest completed run, excluding the trailing run still in progress (it is
-    # the run the learner may be extending right now).
-    runs: list[int] = []
-    run = 0
+    run = longest = 0
     for r in seq:
-        if r["is_correct"]:
-            run += 1
-        else:
-            if run:
-                runs.append(run)
-            run = 0
-    longest = max(runs) if runs else 0
+        run = run + 1 if r["is_correct"] else 0
+        longest = max(longest, run)
     return {
+        "day": today,
         "fastest_ms": fastest,
         "best_day": best_day or 0,
         "longest_run": longest,
     }
+
+
+def ensure_fresh_baselines(baselines: dict) -> None:
+    """Re-snapshot record baselines in place when the local day has rolled over.
+
+    A session left open past midnight would otherwise keep yesterday's best_day
+    (which excluded yesterday) and fire a spurious 'biggest day' record.
+    """
+    if baselines.get("day") != _local_today().isoformat():
+        baselines.clear()
+        baselines.update(record_baselines())
 
 
 def personal_bests() -> dict:

@@ -190,6 +190,8 @@ def _pop_retry(sess: _Session, force: bool) -> policy.Selection | None:
     Suppressed concepts are skipped (left queued): the retry path bypasses policy,
     so it must honor bury/suspend itself or a just-hidden concept comes right back.
     """
+    if not sess.retry_queue:
+        return None
     suppressed = dao.suppressed_concept_ids()
     for i, (cid, ready) in enumerate(sess.retry_queue):
         if cid in suppressed:
@@ -228,6 +230,9 @@ def next_item(session_id: int) -> dict:
     if selection is None:
         selection = _pop_retry(sess, force=True)  # drain pending re-tests before ending
     if selection is None:
+        # The session is over: close it in the DB so the ended_at guard applies
+        # to web sessions too and stale tabs can't resurrect it days later.
+        dao.close_session(sess.db_id)
         answered = len(sess.recent)
         correct = sum(sess.recent)
         return {
@@ -294,13 +299,13 @@ def submit_answer(body: AnswerIn) -> dict:
     # Read before this answer lands in the log, or it can never beat the record.
     answered_today_before = dao.count_answered_today()
     dao.log_answered(body.item_id, body.answer or None, correct, grade, body.elapsed_ms)
-    # Bank any quest the answer just completed — quests must not depend on the
-    # learner happening to open a quest view before midnight.
-    from engine.quests import todays_quests
-    todays_quests()
     new_state = store.apply_rating(store.get_or_create(item.concept_id), grade)
     store.save(new_state)
     next_review_days = _days_until(new_state.due)
+    # Bank any quest this answer completed — after store.save, so clean_queue can
+    # bank on the very answer that clears the last due review.
+    from engine.quests import settle
+    settle()
 
     if correct:
         dao.remove_pending_retry(item.concept_id)  # debt paid, if any
@@ -316,9 +321,10 @@ def submit_answer(body: AnswerIn) -> dict:
     sess.streak = sess.streak + 1 if correct else 0
     sess.best_streak = max(sess.best_streak, sess.streak)
     from engine.engagement import combo_break_message, detect_records
+    dao.ensure_fresh_baselines(sess.record_baselines)
     records = detect_records(
         sess.record_baselines, answered_today_before, correct, body.elapsed_ms,
-        sess.streak,
+        sess.streak, prev_run=prev_streak,
     )
     combo_break = "" if correct else combo_break_message(prev_streak, sess.best_streak)
     xp_gained = 0

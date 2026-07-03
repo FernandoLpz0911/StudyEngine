@@ -71,6 +71,28 @@ class TestRebuild:
         with _client() as client:
             assert client.get("/api/session/424242/next").status_code == 404
 
+    def test_done_summary_closes_the_session(self, db):
+        from engine import settings
+        from engine.db import dao
+        settings.set_value("new_per_day", 1)
+        with _client() as client:
+            sid = client.post(
+                "/api/session", json={"scope": "diffeq"}
+            ).json()["session_id"]
+            for _ in range(4):  # answer the one new item, then hit done
+                nxt = client.get(f"/api/session/{sid}/next").json()
+                if nxt.get("done"):
+                    break
+                correct = api._sessions[sid].items[nxt["item_id"]].correct
+                client.post("/api/answer", json={
+                    "session_id": sid, "item_id": nxt["item_id"],
+                    "answer": correct, "elapsed_ms": 1000,
+                })
+            assert dao.get_session(sid)["ended_at"] is not None
+            # After a restart, the finished session must not resurrect.
+            api._sessions.clear()
+            assert client.get(f"/api/session/{sid}/next").status_code == 404
+
     def test_ended_session_is_not_resurrected(self, db):
         from engine.db import dao
         with _client() as client:

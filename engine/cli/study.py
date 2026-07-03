@@ -91,6 +91,8 @@ def _pop_retry(retry: list[tuple[str, int]], index: int, force: bool):
     Suppressed concepts are skipped (left queued): the retry path bypasses policy,
     so it must honor bury/suspend itself or a just-hidden concept comes right back.
     """
+    if not retry:
+        return None
     suppressed = dao.suppressed_concept_ids()
     for i, (cid, ready) in enumerate(retry):
         if cid in suppressed:
@@ -104,8 +106,8 @@ def _pop_retry(retry: list[tuple[str, int]], index: int, force: bool):
 
 
 def _run_item(
-    concept, session_id: int, rng: np.random.Generator,
-    reason: str = "", run_length: int = 0, baselines: dict | None = None,
+    concept, session_id: int, rng: np.random.Generator, baselines: dict,
+    reason: str = "", run_length: int = 0,
 ) -> bool:
     item = service.build_item(concept, rng, reason)
     item_id = service.log_item_shown(session_id, item)
@@ -154,14 +156,11 @@ def _run_item(
     # Read before the answer lands in the log, or it can never beat the record.
     answered_today_before = dao.count_answered_today()
     dao.log_answered(item_id, raw or None, correct, grade, elapsed_ms)
-    # Bank any quest the answer just completed (not only when the HUD renders).
-    from engine.quests import todays_quests
-    todays_quests()
     from engine.engagement import detect_records
+    dao.ensure_fresh_baselines(baselines)
     for record in detect_records(
-        baselines if baselines is not None else dao.record_baselines(),
-        answered_today_before, correct, elapsed_ms,
-        run_length + 1 if correct else 0,
+        baselines, answered_today_before, correct, elapsed_ms,
+        run_length + 1 if correct else 0, prev_run=run_length,
     ):
         print(f"   {record}")
     if correct:
@@ -170,6 +169,10 @@ def _run_item(
         dao.add_pending_retry(concept.id)  # owed a re-test even across sessions
     new_state = store.apply_rating(store.get_or_create(concept.id), grade)
     store.save(new_state)
+    # Bank any quest this answer completed — after store.save, so clean_queue can
+    # bank on the very answer that clears the last due review.
+    from engine.quests import settle
+    settle()
     days = _days_until(new_state.due)
     if days is not None:
         print(f"   ↩️  back in {days} day(s)")
@@ -227,7 +230,7 @@ def run(subject: str, n: int) -> None:
         tag = {"new": "NEW", "review": "review", "retry": "RETRY"}[reason]
         print(f"\n--- item {i + 1}/{n}  ({tag}) ---", end="")
         correct = _run_item(
-            concept, session_id, rng, reason, run_length=streak, baselines=baselines
+            concept, session_id, rng, baselines, reason, run_length=streak
         )
         answered += 1
         correct_count += correct
@@ -305,7 +308,7 @@ def run_global(n: int) -> None:
         label = SUBJECTS[concept.subject].title.split("—")[0].strip()
         print(f"\n--- item {i + 1}/{n}  [{label}]{builder} ---", end="")
         correct = _run_item(
-            concept, session_id, rng, reason, run_length=streak, baselines=baselines
+            concept, session_id, rng, baselines, reason, run_length=streak
         )
         if not correct and reason != "retry":
             retry.append((concept.id, i + RETRY_GAP))

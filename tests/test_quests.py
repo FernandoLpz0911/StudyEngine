@@ -77,6 +77,19 @@ class TestSettleOnAnswer:
         assert dao.claimed_quests(day) >= {q["id"] for q in done_now}
 
 
+class TestSettle:
+    def test_settle_early_outs_once_all_claimed(self, db, monkeypatch):
+        day = dao._local_today().isoformat()
+        for quest_id in ("a", "b", "c"):
+            dao.claim_quest(day, quest_id, 25)
+        called = []
+        monkeypatch.setattr(
+            quests, "todays_quests", lambda: called.append(1)
+        )
+        quests.settle()
+        assert called == []  # pool computation skipped once the draw is claimed
+
+
 class TestEndpoint:
     def test_quests_endpoint_shape(self, db):
         with TestClient(api.app) as client:

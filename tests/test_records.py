@@ -39,6 +39,17 @@ class TestDetectRecords:
         assert not detect_records(_baselines(), 10, True, 6000, 10)
         assert not detect_records(_baselines(), 10, True, 6000, 8)
 
+    def test_ended_record_run_blocks_stale_crossing(self):
+        baselines = _baselines()
+        assert detect_records(baselines, 10, True, 6000, 9)  # record ×9 fires
+        # Run continues to 20, then breaks: the wrong answer folds it in.
+        detect_records(baselines, 10, False, 6000, 0, prev_run=20)
+        assert baselines["longest_run"] == 20
+        # A later run reaching the old crossing must stay silent...
+        assert not detect_records(baselines, 10, True, 6000, 9)
+        # ...and a genuine new record past 20 still fires.
+        assert detect_records(baselines, 10, True, 6000, 21)
+
     def test_short_runs_never_records(self):
         small = {"fastest_ms": 5000, "best_day": 40, "longest_run": 1}
         assert not any(

@@ -91,6 +91,14 @@ def subject_readiness(subject: str) -> dict:
     readiness = weighted_mastery / weight_sum if weight_sum else 0.0
     stats = dao.subject_stats(subject)
     seen = sum(1 for r in rows if r["reps"] > 0)
+    # Exam pace only counts concepts the policy can still serve: an indefinitely
+    # suspended never-studied concept is not coverable and must not inflate the
+    # daily quota (symmetric with policy treating suspended prereqs as introduced).
+    suspended = dao.suspended_concept_ids()
+    coverable_unseen = sum(
+        1 for c, r in zip(concepts, rows, strict=True)
+        if r["reps"] == 0 and c.id not in suspended
+    )
     return {
         "subject": subject,
         "domain": concepts[0].domain if concepts else None,
@@ -101,7 +109,7 @@ def subject_readiness(subject: str) -> dict:
         "due": sum(1 for r in rows if r["due"]),
         "answered": stats["answered"],
         "accuracy": stats["accuracy"],
-        **_exam_countdown(subject, len(concepts) - seen),
+        **_exam_countdown(subject, coverable_unseen),
         "concepts": rows,
     }
 

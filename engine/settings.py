@@ -37,14 +37,20 @@ def get_float(key: str) -> float:
 
 
 def _get(key: str) -> object:
-    default, caster, _, _ = USER_SETTINGS[key]
+    """Stored value if it parses and sits in range; the config default otherwise.
+
+    The range check guards rows written before validation existed (or edited
+    directly in SQLite) — they must not bypass what set_value now enforces.
+    """
+    default, caster, _, (lo, hi) = USER_SETTINGS[key]
     raw = dao.get_setting(key)
     if raw is None:
         return default
     try:
-        return caster(raw)
+        cast = caster(raw)
     except ValueError:
         return default
+    return cast if lo <= cast <= hi else default
 
 
 def set_value(key: str, value: object) -> None:

@@ -39,6 +39,25 @@ class TestStorage:
         dao.bury_concept("diffeq.cauchy_euler")
         assert dao.suspended_concept_ids() == {"diffeq.separable"}
 
+    def test_bury_does_not_demote_suspension(self, db):
+        dao.suspend_concept("diffeq.separable")
+        dao.bury_concept("diffeq.separable")  # must be a no-op
+        assert "diffeq.separable" in dao.suspended_concept_ids()
+        assert [s["id"] for s in dao.list_suspended()] == ["diffeq.separable"]
+
+    def test_suspending_unseen_concepts_lowers_exam_pace(self, db):
+        from datetime import timedelta
+
+        from engine.analytics.readiness import subject_readiness
+        dao.set_exam_date(
+            "diffeq", (dao._local_today() + timedelta(days=10)).isoformat()
+        )
+        before = subject_readiness("diffeq")["pace_new_per_day"]
+        for concept in dao.get_concepts("diffeq")[:5]:
+            dao.suspend_concept(concept.id)
+        after = subject_readiness("diffeq")["pace_new_per_day"]
+        assert after < before  # unreachable concepts no longer inflate the quota
+
 
 class TestPolicy:
     def test_suppressed_never_selected(self, db):

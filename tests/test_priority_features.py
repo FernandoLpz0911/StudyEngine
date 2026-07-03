@@ -45,6 +45,12 @@ class TestSettings:
             settings.set_value("typed_answer_mastery", 1.5)
         settings.set_value("new_per_day", 0)  # 0 is legal: reviews only
 
+    def test_stored_out_of_range_value_falls_back_to_default(self, db):
+        # Rows written before validation existed must not bypass the range.
+        dao.set_setting("daily_goal", "0")
+        from engine.config import DAILY_GOAL
+        assert settings.get_int("daily_goal") == DAILY_GOAL
+
     def test_api_get_and_set(self, db):
         with _client() as client:
             keys = {s["key"] for s in client.get("/api/settings").json()}
