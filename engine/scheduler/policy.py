@@ -37,9 +37,18 @@ def select_next(subject: str) -> Selection | None:
     """
     concepts = dao.get_concepts(subject)
     states = {c.id: store.get_or_create(c.id) for c in concepts}
-    introduced = {cid: cs.reps >= 1 for cid, cs in states.items()}
+    suppressed = dao.suppressed_concept_ids()
+    suspended = dao.suspended_concept_ids()
+    # A *suspended* prerequisite ("I know this") counts as introduced, or
+    # suspending it would lock every concept behind it forever. A one-day bury
+    # implies no such mastery and must not unlock dependents.
+    introduced = {
+        cid: cs.reps >= 1 or cid in suspended for cid, cs in states.items()
+    }
     available = [
-        c for c in concepts if all(introduced.get(p, False) for p in c.prerequisites)
+        c for c in concepts
+        if c.id not in suppressed
+        and all(introduced.get(p, False) for p in c.prerequisites)
     ]
     if not available:
         return None
@@ -90,11 +99,17 @@ def select_global(
         return concept_mastery(concept.id, now)
     reviews: list[Concept] = []
     frontier: list[Concept] = []
+    suppressed = dao.suppressed_concept_ids()
+    suspended = dao.suspended_concept_ids()
     for subject in subjects:
         concepts = dao.get_concepts(subject)
         states = {c.id: store.get_or_create(c.id) for c in concepts}
-        introduced = {cid: cs.reps >= 1 for cid, cs in states.items()}
+        introduced = {
+            cid: cs.reps >= 1 or cid in suspended for cid, cs in states.items()
+        }
         for concept in concepts:
+            if concept.id in suppressed:
+                continue
             if not all(introduced.get(p, False) for p in concept.prerequisites):
                 continue
             cs = states[concept.id]

@@ -51,6 +51,7 @@ class _Session:
     recent: list[bool] = field(default_factory=list)
     items: dict = field(default_factory=dict)
     retry_queue: list[tuple[str, int]] = field(default_factory=list)
+    record_baselines: dict = field(default_factory=dict)
 
 
 _sessions: dict[int, _Session] = {}
@@ -119,15 +120,25 @@ def start_session(body: StartIn) -> dict:
         raise HTTPException(422, f"unknown scope '{body.scope}'")
     db_id = dao.create_session(body.scope)
     sess = _Session(db_id=db_id, scope=body.scope)
-    # Missed concepts from earlier sessions are still owed a re-test — front-load
-    # them so an abandoned tab or a closed session never loses the errorful retry.
+    _init_live_state(sess)
+    _sessions[db_id] = sess
+    return {"session_id": db_id, "scope": body.scope, "dkt_active": sess.dkt_active}
+
+
+def _init_live_state(sess: _Session) -> None:
+    """State every live session needs, fresh or rebuilt after a restart.
+
+    Missed concepts from earlier sessions are still owed a re-test — front-load
+    them so an abandoned tab or a closed session never loses the errorful retry.
+    Record baselines are snapshotted once here and updated in Python per answer,
+    instead of re-scanning the whole interaction log on every submit.
+    """
     sess.retry_queue = [(cid, 0) for cid in dao.pending_retries()]
+    sess.record_baselines = dao.record_baselines()
     from engine.tracing import infer
     sess.dkt_active = infer.dkt_is_active()
     if sess.dkt_active:
         sess.p_correct = infer.predict(dao.get_interaction_history_timed())
-    _sessions[db_id] = sess
-    return {"session_id": db_id, "scope": body.scope, "dkt_active": sess.dkt_active}
 
 
 def _days_until(due) -> int | None:
@@ -140,9 +151,49 @@ def _days_until(due) -> int | None:
     return max(0, (d - now).days)
 
 
+def _rebuild_session(session_id: int) -> _Session | None:
+    """Restore a live session from the database after a server restart.
+
+    Everything except the served-but-unanswered item survives: results, streaks,
+    session XP, the serving index, and the persisted retry queue. The learner
+    keeps their in-flight session instead of silently starting over.
+    """
+    row = dao.get_session(session_id)
+    if row is None or row["ended_at"]:
+        return None  # never resurrect a finished session — the client starts fresh
+    sess = _Session(db_id=session_id, scope=row["subject"])
+    results = dao.session_results(session_id)
+    streak = best = xp = 0
+    for r in results:
+        streak = streak + 1 if r["is_correct"] else 0
+        best = max(best, streak)
+        if r["is_correct"]:
+            xp += (r["grade"] or 0) * r["exam_weight"]
+    sess.recent = [bool(r["is_correct"]) for r in results]
+    sess.streak = streak
+    sess.best_streak = best
+    sess.xp_session = xp
+    sess.index = dao.count_shown(session_id)
+    sess.last_subject = results[-1]["subject"] if results else None
+    _init_live_state(sess)
+    _sessions[session_id] = sess
+    return sess
+
+
+def _get_or_rebuild(session_id: int) -> _Session | None:
+    return _sessions.get(session_id) or _rebuild_session(session_id)
+
+
 def _pop_retry(sess: _Session, force: bool) -> policy.Selection | None:
-    """Serve a queued missed concept whose spacing gap has elapsed (errorful retry)."""
+    """Serve a queued missed concept whose spacing gap has elapsed (errorful retry).
+
+    Suppressed concepts are skipped (left queued): the retry path bypasses policy,
+    so it must honor bury/suspend itself or a just-hidden concept comes right back.
+    """
+    suppressed = dao.suppressed_concept_ids()
     for i, (cid, ready) in enumerate(sess.retry_queue):
+        if cid in suppressed:
+            continue
         if force or sess.index >= ready:
             concept = dao.get_concept(cid)
             sess.retry_queue.pop(i)
@@ -153,7 +204,7 @@ def _pop_retry(sess: _Session, force: bool) -> policy.Selection | None:
 
 @api.get("/session/{session_id}/next")
 def next_item(session_id: int) -> dict:
-    sess = _sessions.get(session_id)
+    sess = _get_or_rebuild(session_id)
     if sess is None:
         raise HTTPException(404, "unknown session")
 
@@ -230,15 +281,23 @@ def _serve(sess: _Session, selection: policy.Selection) -> dict:
 
 @api.post("/answer")
 def submit_answer(body: AnswerIn) -> dict:
-    sess = _sessions.get(body.session_id)
+    sess = _get_or_rebuild(body.session_id)
     if sess is None:
         raise HTTPException(404, "unknown session")
     item = sess.items.get(body.item_id)
     if item is None:
+        # Served before a restart — the built item is gone, so it can't be graded.
+        # The client just asks for the next item on the same (rebuilt) session.
         raise HTTPException(404, "unknown item for this session")
 
     correct, grade = service.grade(body.answer, body.elapsed_ms, item)
+    # Read before this answer lands in the log, or it can never beat the record.
+    answered_today_before = dao.count_answered_today()
     dao.log_answered(body.item_id, body.answer or None, correct, grade, body.elapsed_ms)
+    # Bank any quest the answer just completed — quests must not depend on the
+    # learner happening to open a quest view before midnight.
+    from engine.quests import todays_quests
+    todays_quests()
     new_state = store.apply_rating(store.get_or_create(item.concept_id), grade)
     store.save(new_state)
     next_review_days = _days_until(new_state.due)
@@ -253,8 +312,15 @@ def submit_answer(body: AnswerIn) -> dict:
 
     sess.recent.append(correct)
     sess.last_subject = item.subject
+    prev_streak = sess.streak
     sess.streak = sess.streak + 1 if correct else 0
     sess.best_streak = max(sess.best_streak, sess.streak)
+    from engine.engagement import combo_break_message, detect_records
+    records = detect_records(
+        sess.record_baselines, answered_today_before, correct, body.elapsed_ms,
+        sess.streak,
+    )
+    combo_break = "" if correct else combo_break_message(prev_streak, sess.best_streak)
     xp_gained = 0
     if correct:
         concept = dao.get_concept(item.concept_id)
@@ -281,6 +347,8 @@ def submit_answer(body: AnswerIn) -> dict:
         "label": GRADE_LABEL[grade],
         "steps": [fmt(s) for s in item.explain],
         "reward": reward_message(correct, sess.streak, _rng),
+        "records": records,
+        "combo_break": combo_break,
         "streak": sess.streak,
         "combo": combo_label(sess.streak),
         "xp_gained": xp_gained,
@@ -348,6 +416,39 @@ def delete_card(concept_id: str) -> dict:
     return {"ok": True}
 
 
+def _known_concept_or_404(concept_id: str) -> None:
+    if dao.get_concept(concept_id) is None:
+        raise HTTPException(404, f"unknown concept '{concept_id}'")
+
+
+@api.post("/concepts/{concept_id}/suspend")
+def suspend(concept_id: str) -> dict:
+    """'I know this' — out of rotation until resumed from settings."""
+    _known_concept_or_404(concept_id)
+    dao.suspend_concept(concept_id)
+    return {"ok": True}
+
+
+@api.post("/concepts/{concept_id}/bury")
+def bury(concept_id: str) -> dict:
+    """'Not today' — hidden until tomorrow, then back automatically."""
+    _known_concept_or_404(concept_id)
+    dao.bury_concept(concept_id)
+    return {"ok": True}
+
+
+@api.post("/concepts/{concept_id}/resume")
+def resume(concept_id: str) -> dict:
+    _known_concept_or_404(concept_id)
+    dao.resume_concept(concept_id)
+    return {"ok": True}
+
+
+@api.get("/concepts/suspended")
+def suspended() -> list[dict]:
+    return dao.list_suspended()
+
+
 @api.post("/exam_date")
 def set_exam_date(body: ExamDateIn) -> dict:
     """Set or clear a subject's exam date — drives the countdown and daily pace."""
@@ -364,6 +465,13 @@ def set_exam_date(body: ExamDateIn) -> dict:
 def stats() -> dict:
     """Streak, level, XP, daily-goal progress, reviews waiting — the home HUD."""
     return profile()
+
+
+@api.get("/quests")
+def quests() -> list[dict]:
+    """Today's rotating quests with live progress (bonus XP banks automatically)."""
+    from engine.quests import todays_quests
+    return todays_quests()
 
 
 @api.get("/me")

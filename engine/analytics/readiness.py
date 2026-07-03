@@ -58,6 +58,7 @@ def subject_readiness(subject: str) -> dict:
     """Per-concept mastery plus the exam-weighted readiness for one subject."""
     concepts = dao.get_concepts(subject)
     now = datetime.now(UTC)
+    suppressed = dao.suppressed_concept_ids()
 
     rows = []
     weight_sum = 0.0
@@ -68,10 +69,12 @@ def subject_readiness(subject: str) -> dict:
         # Endowed progress: the displayed value never drops below the baseline,
         # so the map glows faintly from the start rather than reading 0%.
         displayed = max(mastery, ENDOWED_BASELINE)
+        # Same rule as dao.due_count: a suppressed concept is not waiting.
         due = (
             cs.reps > 0
             and cs.due is not None
             and _aware(cs.due) <= now
+            and concept.id not in suppressed
         )
         rows.append({
             "id": concept.id,
@@ -98,12 +101,12 @@ def subject_readiness(subject: str) -> dict:
         "due": sum(1 for r in rows if r["due"]),
         "answered": stats["answered"],
         "accuracy": stats["accuracy"],
-        **_exam_countdown(subject, len(concepts) - seen, now),
+        **_exam_countdown(subject, len(concepts) - seen),
         "concepts": rows,
     }
 
 
-def _exam_countdown(subject: str, unseen: int, now: datetime) -> dict:
+def _exam_countdown(subject: str, unseen: int) -> dict:
     """Deadline framing: days to the exam and the new-concept pace it implies.
 
     A visible per-day pace turns an abstract syllabus into a daily quota — and an
@@ -112,7 +115,9 @@ def _exam_countdown(subject: str, unseen: int, now: datetime) -> dict:
     exam = dao.get_exam_date(subject)
     if exam is None:
         return {"exam_date": None, "days_left": None, "pace_new_per_day": None}
-    days_left = (exam - now.date()).days
+    # Same local-day boundary as streaks/goals, so the countdown flips at the
+    # learner's midnight rather than UTC's.
+    days_left = (exam - dao._local_today()).days
     pace = None
     if days_left > 0 and unseen > 0:
         pace = round(unseen / days_left, 1)

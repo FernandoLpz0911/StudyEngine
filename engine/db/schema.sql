@@ -66,6 +66,19 @@ CREATE TABLE IF NOT EXISTS pending_retry (
     created_at  TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS concept_suppression (
+    concept_id  TEXT PRIMARY KEY REFERENCES concept(id),
+    until       TEXT,                   -- NULL: suspended indefinitely; else local ISO date
+    created_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS quest_log (
+    day         TEXT NOT NULL,          -- local ISO date the quest was completed
+    quest_id    TEXT NOT NULL,
+    bonus_xp    INTEGER NOT NULL,
+    PRIMARY KEY (day, quest_id)
+);
+
 CREATE TABLE IF NOT EXISTS mnemonic (
     concept_id  TEXT PRIMARY KEY REFERENCES concept(id),
     text        TEXT NOT NULL,

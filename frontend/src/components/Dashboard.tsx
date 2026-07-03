@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import type { Me, Progress, SubjectProgress } from "../types";
+import type { DailyQuest, Me, Progress, SubjectProgress } from "../types";
 
 const SUBJECT_ICON: Record<string, string> = {
   examp: "🎲",
@@ -73,11 +73,13 @@ function ranked(subjects: SubjectProgress[]): SubjectProgress[] {
 export default function Dashboard({ onStudy }: { onStudy: (scope: string) => void }) {
   const [p, setP] = useState<Progress | null>(null);
   const [me, setMe] = useState<Me | null>(null);
+  const [quests, setQuests] = useState<DailyQuest[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.progress().then(setP).catch((e) => setError(String(e)));
     api.me().then(setMe).catch(() => {});
+    api.quests().then(setQuests).catch(() => {});
   }, []);
 
   if (error) return <div className="error">{error}</div>;
@@ -108,6 +110,25 @@ export default function Dashboard({ onStudy }: { onStudy: (scope: string) => voi
           {due > 0 ? "Review now →" : "Study →"}
         </button>
       </section>
+
+      {quests.length > 0 && (
+        <section className="card">
+          <h3>Today's quests</h3>
+          {quests.map((q) => (
+            <div className="quest" key={q.id}>
+              <div className="srow-head">
+                <span className={q.done ? "quest-done" : ""}>
+                  {q.name} <span className="muted small">— {q.desc}</span>
+                </span>
+                <span className="muted small">
+                  {q.done ? `✓ +${q.bonus_xp} XP` : `${q.progress}/${q.target}`}
+                </span>
+              </div>
+              <Bar frac={q.progress / q.target} />
+            </div>
+          ))}
+        </section>
+      )}
 
       {me && (
         <section className="card">

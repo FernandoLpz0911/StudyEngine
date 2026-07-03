@@ -94,6 +94,38 @@ def create_session(subject: str) -> int:
         return cur.lastrowid
 
 
+def get_session(session_id: int) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT id, subject, started_at, ended_at FROM session WHERE id = ?",
+            (session_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def session_results(session_id: int) -> list[dict]:
+    """Graded answers of one session in order — enough to rebuild its live state."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT i.is_correct, i.grade, COALESCE(c.exam_weight, 1) AS exam_weight, "
+            "i.subject FROM interaction i "
+            "LEFT JOIN concept c ON c.id = i.concept_id "
+            "WHERE i.session_id = ? AND i.is_correct IS NOT NULL ORDER BY i.id",
+            (session_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def count_shown(session_id: int) -> int:
+    """Items served in a session (answered or not) — restores the serving index."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM interaction WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+    return row["n"] if row else 0
+
+
 def close_session(session_id: int) -> None:
     now = datetime.now(UTC).isoformat()
     with get_connection() as conn:
@@ -290,6 +322,75 @@ def delete_user_card(concept_id: str) -> bool:
     return True
 
 
+def suspend_concept(concept_id: str) -> None:
+    """'I know this / stop showing it' — out of rotation until resumed.
+
+    A suspended concept owes nothing, so any pending re-test goes with it.
+    """
+    now = datetime.now(UTC).isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO concept_suppression (concept_id, until, created_at) "
+            "VALUES (?, NULL, ?)",
+            (concept_id, now),
+        )
+        conn.execute("DELETE FROM pending_retry WHERE concept_id = ?", (concept_id,))
+
+
+def bury_concept(concept_id: str) -> None:
+    """'Not today' — hidden until the next local day, then back automatically."""
+    now = datetime.now(UTC).isoformat()
+    until = (_local_today() + timedelta(days=1)).isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO concept_suppression (concept_id, until, created_at) "
+            "VALUES (?, ?, ?)",
+            (concept_id, until, now),
+        )
+
+
+def resume_concept(concept_id: str) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "DELETE FROM concept_suppression WHERE concept_id = ?", (concept_id,)
+        )
+
+
+def suspended_concept_ids() -> set[str]:
+    """Only the indefinitely suspended ('I know this') concepts — not buried ones.
+
+    Suspension implies mastery, so these count as introduced prerequisites; a
+    one-day bury implies nothing and must not unlock dependents.
+    """
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT concept_id FROM concept_suppression WHERE until IS NULL"
+        ).fetchall()
+    return {r["concept_id"] for r in rows}
+
+
+def suppressed_concept_ids(today: date | None = None) -> set[str]:
+    """Concepts currently out of rotation (suspended, or buried and not yet due back)."""
+    today = (today or _local_today()).isoformat()
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT concept_id FROM concept_suppression WHERE until IS NULL OR until > ?",
+            (today,),
+        ).fetchall()
+    return {r["concept_id"] for r in rows}
+
+
+def list_suspended() -> list[dict]:
+    """Indefinitely suspended concepts, for the resume list in settings."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT cs.concept_id AS id, c.name AS name, c.subject AS subject "
+            "FROM concept_suppression cs JOIN concept c ON c.id = cs.concept_id "
+            "WHERE cs.until IS NULL ORDER BY c.subject, c.name"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def set_exam_date(subject: str, iso_date: str | None) -> None:
     """Set (or clear with None) the exam date for a subject, ISO YYYY-MM-DD."""
     key = f"exam_date.{subject}"
@@ -383,7 +484,7 @@ def total_xp() -> int:
             WHERE i.is_correct = 1
             """
         ).fetchone()
-    return int(row["xp"]) if row else 0
+    return (int(row["xp"]) if row else 0) + quest_bonus_xp()
 
 
 def _answered_days() -> list[date]:
@@ -467,6 +568,46 @@ def count_answered_today(today: date | None = None) -> int:
     return row["n"] if row else 0
 
 
+def today_interactions(today: date | None = None) -> list[dict]:
+    """Today's graded answers as (subject, is_correct, elapsed_ms) — quest fuel."""
+    today = (today or _local_today()).isoformat()
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT subject, is_correct, COALESCE(elapsed_ms, 0) AS elapsed_ms "
+            "FROM interaction "
+            "WHERE is_correct IS NOT NULL AND date(answered_at, ?) = ?",
+            (_tz_modifier(), today),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def claim_quest(day: str, quest_id: str, bonus_xp: int) -> bool:
+    """Record a completed quest once; True only on the first claim."""
+    with get_connection() as conn:
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO quest_log (day, quest_id, bonus_xp) VALUES (?, ?, ?)",
+            (day, quest_id, bonus_xp),
+        )
+    return cur.rowcount > 0
+
+
+def claimed_quests(day: str) -> set[str]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT quest_id FROM quest_log WHERE day = ?", (day,)
+        ).fetchall()
+    return {r["quest_id"] for r in rows}
+
+
+def quest_bonus_xp() -> int:
+    """Lifetime XP earned from completed daily quests."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COALESCE(SUM(bonus_xp), 0) AS xp FROM quest_log"
+        ).fetchone()
+    return int(row["xp"]) if row else 0
+
+
 def leeches() -> list[dict]:
     """Concepts repeatedly forgotten (lapses ≥ LEECH_LAPSES) — the costly few."""
     from engine.config import LEECH_LAPSES
@@ -487,6 +628,48 @@ def get_lapses(concept_id: str) -> int:
             "SELECT lapses FROM card_state WHERE concept_id = ?", (concept_id,)
         ).fetchone()
     return row["lapses"] if row else 0
+
+
+def record_baselines(today: date | None = None) -> dict:
+    """Prior bests to beat for live 'new record' pops — excluding what's in flight.
+
+    Unlike personal_bests (a display aggregate), each baseline excludes the thing
+    currently being extended, so a record fires once at the crossing instead of on
+    every subsequent answer: best_day ignores today, longest_run ignores the
+    still-running trailing streak. fastest_ms is naturally self-limiting.
+    """
+    today = (today or _local_today()).isoformat()
+    with get_connection() as conn:
+        fastest = conn.execute(
+            "SELECT MIN(elapsed_ms) AS ms FROM interaction "
+            "WHERE is_correct = 1 AND elapsed_ms > 0"
+        ).fetchone()["ms"]
+        best_day = conn.execute(
+            "SELECT MAX(n) AS m FROM (SELECT COUNT(*) AS n FROM interaction "
+            "WHERE answered_at IS NOT NULL AND date(answered_at, ?) != ? "
+            "GROUP BY date(answered_at, ?))",
+            (_tz_modifier(), today, _tz_modifier()),
+        ).fetchone()["m"]
+        seq = conn.execute(
+            "SELECT is_correct FROM interaction WHERE is_correct IS NOT NULL ORDER BY id"
+        ).fetchall()
+    # Longest completed run, excluding the trailing run still in progress (it is
+    # the run the learner may be extending right now).
+    runs: list[int] = []
+    run = 0
+    for r in seq:
+        if r["is_correct"]:
+            run += 1
+        else:
+            if run:
+                runs.append(run)
+            run = 0
+    longest = max(runs) if runs else 0
+    return {
+        "fastest_ms": fastest,
+        "best_day": best_day or 0,
+        "longest_run": longest,
+    }
 
 
 def personal_bests() -> dict:
@@ -516,13 +699,19 @@ def personal_bests() -> dict:
 
 
 def due_count() -> int:
-    """Concepts whose FSRS review is due now (the 'reviews waiting' open loop)."""
+    """Concepts whose FSRS review is due now (the 'reviews waiting' open loop).
+
+    Suppressed concepts don't count — a suspended card must not nag forever.
+    """
     now = datetime.now(UTC).isoformat()
+    today = _local_today().isoformat()
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT COUNT(*) AS n FROM card_state "
-            "WHERE reps > 0 AND due IS NOT NULL AND due <= ?",
-            (now,),
+            "SELECT COUNT(*) AS n FROM card_state cs "
+            "WHERE cs.reps > 0 AND cs.due IS NOT NULL AND cs.due <= ? "
+            "AND NOT EXISTS (SELECT 1 FROM concept_suppression s "
+            "  WHERE s.concept_id = cs.concept_id AND (s.until IS NULL OR s.until > ?))",
+            (now, today),
         ).fetchone()
     return row["n"] if row else 0
 

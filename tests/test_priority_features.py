@@ -36,6 +36,15 @@ class TestSettings:
         with pytest.raises(ValueError):
             settings.set_value("daily_goal", "not-a-number")
 
+    def test_out_of_range_rejected(self, db):
+        with pytest.raises(ValueError):
+            settings.set_value("daily_goal", 0)  # would auto-complete quests
+        with pytest.raises(ValueError):
+            settings.set_value("new_per_day", -1)
+        with pytest.raises(ValueError):
+            settings.set_value("typed_answer_mastery", 1.5)
+        settings.set_value("new_per_day", 0)  # 0 is legal: reviews only
+
     def test_api_get_and_set(self, db):
         with _client() as client:
             keys = {s["key"] for s in client.get("/api/settings").json()}

@@ -33,6 +33,16 @@ export interface Setting {
   description: string;
 }
 
+export interface DailyQuest {
+  id: string;
+  name: string;
+  desc: string;
+  target: number;
+  progress: number;
+  done: boolean;
+  bonus_xp: number;
+}
+
 export interface UserCard {
   id: string;
   subject: string;
@@ -95,6 +105,8 @@ export interface AnswerResult {
   label: string;
   steps: string[];
   reward: string;
+  records: string[];
+  combo_break: string;
   streak: number;
   combo: string;
   xp_gained: number;

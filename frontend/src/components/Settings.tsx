@@ -45,6 +45,18 @@ export default function Settings() {
     api.cards().then(setCards).catch(() => {});
   }, []);
 
+  const [suspendedList, setSuspendedList] = useState<
+    { id: string; name: string; subject: string }[]
+  >([]);
+  useEffect(() => {
+    api.suspendedConcepts().then(setSuspendedList).catch(() => {});
+  }, []);
+
+  const resumeOne = async (id: string) => {
+    await api.resumeConcept(id);
+    setSuspendedList((xs) => xs.filter((x) => x.id !== id));
+  };
+
   const addCard = async () => {
     setCardError(null);
     const distractors = [draft.d1, draft.d2, draft.d3].filter((d) => d.trim());
@@ -211,6 +223,25 @@ export default function Settings() {
           </button>
         </div>
       ))}
+
+      {suspendedList.length > 0 && (
+        <>
+          <h3>✋ Suspended concepts</h3>
+          <p className="muted small">
+            Marked "I know this" — out of rotation until you resume them.
+          </p>
+          {suspendedList.map((s) => (
+            <div className="setting-row" key={s.id}>
+              <div className="grow">
+                {s.name} <span className="muted small">({s.subject})</span>
+              </div>
+              <button className="btn ghost" onClick={() => resumeOne(s.id)}>
+                Resume
+              </button>
+            </div>
+          ))}
+        </>
+      )}
 
       <p className="muted small">
         Changes apply from the next item served. Sound and auto-advance are on the

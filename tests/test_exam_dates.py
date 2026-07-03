@@ -37,7 +37,7 @@ class TestCountdown:
         assert r["pace_new_per_day"] is None
 
     def test_days_left_and_pace(self, db):
-        exam = date.today() + timedelta(days=10)
+        exam = dao._local_today() + timedelta(days=10)
         dao.set_exam_date("diffeq", exam.isoformat())
         r = subject_readiness("diffeq")
         assert r["days_left"] == 10
@@ -45,7 +45,7 @@ class TestCountdown:
         assert r["pace_new_per_day"] == round(r["n_concepts"] / 10, 1)
 
     def test_past_exam_has_no_pace(self, db):
-        dao.set_exam_date("diffeq", (date.today() - timedelta(days=1)).isoformat())
+        dao.set_exam_date("diffeq", (dao._local_today() - timedelta(days=1)).isoformat())
         r = subject_readiness("diffeq")
         assert r["days_left"] == -1
         assert r["pace_new_per_day"] is None
@@ -53,7 +53,7 @@ class TestCountdown:
 
 class TestEndpoint:
     def test_set_and_surface_in_progress(self, db):
-        exam = (date.today() + timedelta(days=30)).isoformat()
+        exam = (dao._local_today() + timedelta(days=30)).isoformat()
         with _client() as client:
             res = client.post(
                 "/api/exam_date", json={"subject": "diffeq", "date": exam}

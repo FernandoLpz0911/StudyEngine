@@ -17,7 +17,7 @@ from engine import service, stats
 from engine.config import RETRY_GAP
 from engine.db import dao
 from engine.db.seed import load_all, load_subject
-from engine.engagement import combo_label, reward_message
+from engine.engagement import combo_break_message, combo_label, reward_message
 from engine.scheduler import policy, store
 from engine.service import GRADE_LABEL, LETTERS
 from engine.subjects import SUBJECTS
@@ -38,6 +38,10 @@ def _print_hud() -> None:
     done = " ✓" if p["answered_today"] >= p["daily_goal"] else ""
     waiting = f"  ·  {p['due_count']} review(s) waiting" if p["due_count"] else ""
     print(f"Today: {goal} toward daily goal{done}{waiting}")
+    from engine.quests import todays_quests
+    for q in todays_quests():
+        mark = "✓" if q["done"] else f"{q['progress']}/{q['target']}"
+        print(f"   {q['name']} — {q['desc']}  [{mark}]  +{q['bonus_xp']} XP")
 
 
 def _print_summary(label: str, answered: int, correct: int) -> None:
@@ -82,8 +86,15 @@ def _days_until(due) -> int | None:
 
 
 def _pop_retry(retry: list[tuple[str, int]], index: int, force: bool):
-    """Next queued missed concept whose spacing gap elapsed, or None (errorful retry)."""
+    """Next queued missed concept whose spacing gap elapsed, or None (errorful retry).
+
+    Suppressed concepts are skipped (left queued): the retry path bypasses policy,
+    so it must honor bury/suspend itself or a just-hidden concept comes right back.
+    """
+    suppressed = dao.suppressed_concept_ids()
     for i, (cid, ready) in enumerate(retry):
+        if cid in suppressed:
+            continue
         if force or index >= ready:
             concept = dao.get_concept(cid)
             retry.pop(i)
@@ -92,7 +103,10 @@ def _pop_retry(retry: list[tuple[str, int]], index: int, force: bool):
     return None
 
 
-def _run_item(concept, session_id: int, rng: np.random.Generator, reason: str = "") -> bool:
+def _run_item(
+    concept, session_id: int, rng: np.random.Generator,
+    reason: str = "", run_length: int = 0, baselines: dict | None = None,
+) -> bool:
     item = service.build_item(concept, rng, reason)
     item_id = service.log_item_shown(session_id, item)
 
@@ -137,7 +151,19 @@ def _run_item(concept, session_id: int, rng: np.random.Generator, reason: str = 
     if item.theory and not cold and not leech:
         print(f"   📖 {item.theory}")
 
+    # Read before the answer lands in the log, or it can never beat the record.
+    answered_today_before = dao.count_answered_today()
     dao.log_answered(item_id, raw or None, correct, grade, elapsed_ms)
+    # Bank any quest the answer just completed (not only when the HUD renders).
+    from engine.quests import todays_quests
+    todays_quests()
+    from engine.engagement import detect_records
+    for record in detect_records(
+        baselines if baselines is not None else dao.record_baselines(),
+        answered_today_before, correct, elapsed_ms,
+        run_length + 1 if correct else 0,
+    ):
+        print(f"   {record}")
     if correct:
         dao.remove_pending_retry(concept.id)  # debt paid, if any
     else:
@@ -178,9 +204,10 @@ def run(subject: str, n: int) -> None:
     print(f"\n=== {info.title} ===\n{info.blurb}")
     _print_hud()
 
-    streak = 0
+    streak = best_streak = 0
     answered = correct_count = 0
     prev_tier = ""
+    baselines = dao.record_baselines()
     # Missed concepts from earlier sessions are owed a re-test — front-load them.
     subject_pending = {c.id for c in dao.get_concepts(subject)}
     retry: list[tuple[str, int]] = [
@@ -199,13 +226,18 @@ def run(subject: str, n: int) -> None:
             concept, reason = selection.concept, selection.reason
         tag = {"new": "NEW", "review": "review", "retry": "RETRY"}[reason]
         print(f"\n--- item {i + 1}/{n}  ({tag}) ---", end="")
-        correct = _run_item(concept, session_id, rng, reason)
+        correct = _run_item(
+            concept, session_id, rng, reason, run_length=streak, baselines=baselines
+        )
         answered += 1
         correct_count += correct
         recent.append(correct)
         fatigued = _fatigue_note(recent, fatigued)
         if not correct and reason != "retry":
             retry.append((concept.id, i + RETRY_GAP))
+        best_streak = max(best_streak, streak + 1 if correct else streak)
+        if not correct and (msg := combo_break_message(streak, best_streak)):
+            print(f"   {msg}")
         streak = streak + 1 if correct else 0
         if msg := reward_message(correct, streak, rng):
             print(f"   {msg}")
@@ -246,8 +278,9 @@ def run_global(n: int) -> None:
     last_subject: str | None = None
     recent: list[bool] = []
     touched: set[str] = set()
-    streak = 0
+    streak = best_streak = 0
     prev_tier = ""
+    baselines = dao.record_baselines()
     retry: list[tuple[str, int]] = [(cid, 0) for cid in dao.pending_retries()]
     fatigued = False
     for i in range(n):
@@ -271,11 +304,16 @@ def run_global(n: int) -> None:
             builder = " · confidence builder" if is_builder else ""
         label = SUBJECTS[concept.subject].title.split("—")[0].strip()
         print(f"\n--- item {i + 1}/{n}  [{label}]{builder} ---", end="")
-        correct = _run_item(concept, session_id, rng, reason)
+        correct = _run_item(
+            concept, session_id, rng, reason, run_length=streak, baselines=baselines
+        )
         if not correct and reason != "retry":
             retry.append((concept.id, i + RETRY_GAP))
         recent.append(correct)
         fatigued = _fatigue_note(recent, fatigued)
+        best_streak = max(best_streak, streak + 1 if correct else streak)
+        if not correct and (msg := combo_break_message(streak, best_streak)):
+            print(f"   {msg}")
         streak = streak + 1 if correct else 0
         if msg := reward_message(correct, streak, rng):
             print(f"   {msg}")

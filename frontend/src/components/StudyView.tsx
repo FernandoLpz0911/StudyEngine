@@ -210,7 +210,9 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
         advanceTimer.current = window.setTimeout(() => loadNext(sessionId), AUTO_ADVANCE_MS);
       }
     } catch (e) {
-      if (String(e).includes("404")) startSession(scope);
+      // Item lost to a server restart: the session itself is rebuilt server-side,
+      // so just fetch the next item; loadNext restarts only if the session is gone.
+      if (String(e).includes("404")) loadNext(sessionId);
       else setError(String(e));
     }
   };
@@ -391,6 +393,12 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
               {feedback.combo} ×{feedback.streak}
             </div>
           )}
+          {feedback.records?.map((r) => (
+            <div className="reward" key={r}>{r}</div>
+          ))}
+          {feedback.combo_break && (
+            <div className="muted">{feedback.combo_break}</div>
+          )}
           {feedback.why_wrong && (
             <div className="theory-jit">✗ <Tex>{feedback.why_wrong}</Tex></div>
           )}
@@ -426,7 +434,29 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
             </div>
           )}
           {hintSaved && <div className="muted">Hint saved — you'll see it next time.</div>}
-          <button className="btn" onClick={() => loadNext(sessionId!)}>Next →</button>
+          <div className="feedback-actions">
+            <button className="btn" onClick={() => loadNext(sessionId!)}>Next →</button>
+            <button
+              className="btn ghost small-btn"
+              title="Hide this concept until tomorrow"
+              onClick={async () => {
+                await api.buryConcept(item.concept_id!);
+                loadNext(sessionId!);
+              }}
+            >
+              😴 Bury today
+            </button>
+            <button
+              className="btn ghost small-btn"
+              title="I know this — stop scheduling it (resume from Settings)"
+              onClick={async () => {
+                await api.suspendConcept(item.concept_id!);
+                loadNext(sessionId!);
+              }}
+            >
+              ✋ I know this
+            </button>
+          </div>
         </div>
       )}
     </div>

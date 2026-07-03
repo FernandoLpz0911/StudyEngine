@@ -206,6 +206,12 @@ code { background: var(--surface2); padding: 1px 6px; border-radius: 4px; }
   border: 1px solid var(--surface2); border-radius: 8px; padding: 10px 12px; font-size: 14px;
 }
 .card-form input:focus { border-color: var(--accent); outline: none; }
+
+.quest { margin: 8px 0; }
+.quest-done { color: var(--green); }
+
+.feedback-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.small-btn { font-size: 13px; padding: 8px 12px; }
 .leeches { margin-top: 10px; border-left: 3px solid var(--red); padding-left: 12px; }
 
 /* Knowledge map */

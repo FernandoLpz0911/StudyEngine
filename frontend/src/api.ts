@@ -1,6 +1,7 @@
 /** Client for the StudyEngine FastAPI backend (proxied at /api by Vite). */
 import type {
   AnswerResult,
+  DailyQuest,
   Me,
   NextItem,
   Profile,
@@ -44,6 +45,15 @@ export const api = {
   mnemonic: (conceptId: string, text: string) =>
     post<{ ok: boolean }>("/mnemonic", { concept_id: conceptId, text }),
   stats: () => get<Profile>("/stats"),
+  quests: () => get<DailyQuest[]>("/quests"),
+  suspendConcept: (id: string) =>
+    post<{ ok: boolean }>(`/concepts/${encodeURIComponent(id)}/suspend`, {}),
+  buryConcept: (id: string) =>
+    post<{ ok: boolean }>(`/concepts/${encodeURIComponent(id)}/bury`, {}),
+  resumeConcept: (id: string) =>
+    post<{ ok: boolean }>(`/concepts/${encodeURIComponent(id)}/resume`, {}),
+  suspendedConcepts: () =>
+    get<{ id: string; name: string; subject: string }[]>("/concepts/suspended"),
   settings: () => get<Setting[]>("/settings"),
   setExamDate: (subject: string, date: string | null) =>
     post<{ ok: boolean }>("/exam_date", { subject, date }),

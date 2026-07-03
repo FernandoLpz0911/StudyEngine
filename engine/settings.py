@@ -10,13 +10,20 @@ from __future__ import annotations
 from engine import config
 from engine.db import dao
 
-# key -> (default from config, type caster, human description)
-USER_SETTINGS: dict[str, tuple[object, type, str]] = {
-    "daily_goal": (config.DAILY_GOAL, int, "Items answered per day to fill the goal ring"),
-    "new_per_day": (config.NEW_PER_DAY, int, "Max brand-new concepts introduced per day"),
+# key -> (default from config, type caster, human description, (min, max))
+USER_SETTINGS: dict[str, tuple[object, type, str, tuple[float, float]]] = {
+    "daily_goal": (
+        config.DAILY_GOAL, int,
+        "Items answered per day to fill the goal ring", (1, 500),
+    ),
+    "new_per_day": (
+        config.NEW_PER_DAY, int,
+        "Max brand-new concepts introduced per day (0 = reviews only)", (0, 100),
+    ),
     "typed_answer_mastery": (
         config.TYPED_ANSWER_MASTERY, float,
         "Mastery above which generator problems switch to typed answers (1 disables)",
+        (0.0, 1.0),
     ),
 }
 
@@ -30,7 +37,7 @@ def get_float(key: str) -> float:
 
 
 def _get(key: str) -> object:
-    default, caster, _ = USER_SETTINGS[key]
+    default, caster, _, _ = USER_SETTINGS[key]
     raw = dao.get_setting(key)
     if raw is None:
         return default
@@ -41,11 +48,18 @@ def _get(key: str) -> object:
 
 
 def set_value(key: str, value: object) -> None:
-    """Validate against the declared type and persist; raises on unknown keys."""
+    """Validate type and range, then persist; raises on unknown keys or bad values.
+
+    Range matters: daily_goal=0 would auto-complete the overachiever quest and a
+    negative new_per_day would silently freeze the frontier.
+    """
     if key not in USER_SETTINGS:
         raise KeyError(f"unknown setting '{key}'")
-    _, caster, _ = USER_SETTINGS[key]
-    dao.set_setting(key, str(caster(value)))
+    _, caster, _, (lo, hi) = USER_SETTINGS[key]
+    cast = caster(value)
+    if not lo <= cast <= hi:
+        raise ValueError(f"'{key}' must be between {lo} and {hi}, got {cast}")
+    dao.set_setting(key, str(cast))
 
 
 def all_settings() -> list[dict]:
@@ -57,5 +71,5 @@ def all_settings() -> list[dict]:
             "default": default,
             "description": desc,
         }
-        for key, (default, _, desc) in USER_SETTINGS.items()
+        for key, (default, _, desc, _) in USER_SETTINGS.items()
     ]
