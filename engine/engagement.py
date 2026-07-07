@@ -6,6 +6,8 @@ variable-ratio schedule rather than constant reinforcement.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 
 PRAISE = [
@@ -83,6 +85,77 @@ def detect_records(
     if best_day >= 5 and answered_today_before == best_day:
         records.append(f"📈 New record: biggest day — {answered_today_before + 1} answered")
     return records
+
+
+@dataclass
+class RecordTracker:
+    """Live personal-best detection with a log-wide record run.
+
+    Unlike the session combo streak, ``run`` counts consecutive correct answers
+    across session boundaries (see docs/adr/0001) so a run that spans a restart
+    can still set the longest-run record. Baselines advance in place as records
+    are set, so each record fires once at its crossing.
+    """
+
+    fastest_ms: int | None
+    best_day: int
+    longest_run: int
+    run: int = 0
+    day: str = ""
+
+    @classmethod
+    def snapshot(cls) -> RecordTracker:
+        """Build from the interaction log — baselines plus the trailing run."""
+        from engine.db import dao
+        return cls._from_baselines(dao.record_baselines())
+
+    @classmethod
+    def _from_baselines(cls, b: dict) -> RecordTracker:
+        return cls(
+            fastest_ms=b["fastest_ms"],
+            best_day=b["best_day"],
+            longest_run=b["longest_run"],
+            run=b.get("current_run", 0),
+            day=b.get("day", ""),
+        )
+
+    def refresh(self) -> None:
+        """Re-snapshot when the local day has rolled over mid-session.
+
+        A session left open past midnight would otherwise keep yesterday's
+        best_day (which excluded yesterday) and fire a spurious daily record.
+        The live run carries over — a correct streak isn't broken by midnight.
+        """
+        from engine.db import dao
+        today = dao._local_today().isoformat()
+        if self.day == today:
+            return
+        fresh = dao.record_baselines()
+        self.fastest_ms = fresh["fastest_ms"]
+        self.best_day = fresh["best_day"]
+        self.longest_run = max(self.longest_run, fresh["longest_run"])
+        self.day = fresh["day"]
+
+    def detect(
+        self, correct: bool, elapsed_ms: int, answered_today_before: int
+    ) -> list[str]:
+        records: list[str] = []
+        if correct and elapsed_ms > 0 and self.fastest_ms and elapsed_ms < self.fastest_ms:
+            records.append(f"⚡ New record: fastest correct — {elapsed_ms / 1000:.1f}s")
+            self.fastest_ms = elapsed_ms  # only a strictly faster answer refires
+        if correct:
+            self.run += 1
+            # Fire once at the crossing; a longer peak is banked when the run ends.
+            if self.longest_run >= 3 and self.run == self.longest_run + 1:
+                records.append(f"🏅 New record: longest run — ×{self.run}")
+        else:
+            self.longest_run = max(self.longest_run, self.run)  # bank the peak
+            self.run = 0
+        if self.best_day >= 5 and answered_today_before == self.best_day:
+            records.append(
+                f"📈 New record: biggest day — {answered_today_before + 1} answered"
+            )
+        return records
 
 
 COMBO_BREAK_MIN = 3

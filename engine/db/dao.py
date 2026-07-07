@@ -673,6 +673,9 @@ def record_baselines(today: date | None = None) -> dict:
         "fastest_ms": fastest,
         "best_day": best_day or 0,
         "longest_run": longest,
+        # Trailing consecutive-correct count at the end of the log: the run a new
+        # session inherits, so a record run can span a session boundary.
+        "current_run": run,
     }
 
 
