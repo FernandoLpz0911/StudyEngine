@@ -109,6 +109,106 @@ def is_correct(answer: str, item: StudyItem) -> bool:
     return grade_answer(answer, item.correct, tolerance)
 
 
+@dataclass
+class AnswerOutcome:
+    """Everything an answer produces, computed once for both the API and CLI.
+
+    The caller renders these (JSON vs stdout) and folds streak/best back into its
+    own container; settle_answer owns the shared write sequence and the derived
+    values so the two front ends can never drift.
+    """
+    correct: bool
+    grade: int
+    records: list[str]
+    reward: str
+    combo: str
+    combo_break: str
+    streak: int
+    best_streak: int
+    xp: int
+    next_review_days: int | None
+    why_wrong: str
+    ask_mnemonic: bool
+
+
+def settle_answer(
+    item_id: int,
+    item: StudyItem,
+    raw_answer: str,
+    elapsed_ms: int,
+    tracker,
+    streak_in: int,
+    best_in: int,
+    rng: np.random.Generator,
+) -> AnswerOutcome:
+    """Grade and settle one answer: the single write path shared by API and CLI.
+
+    Logs the answer, advances FSRS state, banks quests, records the retry debt,
+    detects personal-best crossings, and derives the streak/combo/reward framing.
+    Does *not* touch caller-owned state (the in-session retry queue, the recent
+    list, the running XP total) — those differ between front ends.
+    """
+    from engine.config import LEECH_LAPSES
+    from engine.engagement import combo_break_message, combo_label, reward_message
+    from engine.quests import settle
+    from engine.scheduler import store
+
+    correct, grd = grade(raw_answer, elapsed_ms, item)
+    # Read before this answer lands in the log, or it can never beat the record.
+    answered_today_before = dao.count_answered_today()
+    dao.log_answered(item_id, raw_answer or None, correct, grd, elapsed_ms)
+
+    tracker.refresh()  # re-snapshot baselines if the local day rolled over
+    records = tracker.detect(correct, elapsed_ms, answered_today_before)
+
+    new_state = store.apply_rating(store.get_or_create(item.concept_id), grd)
+    store.save(new_state)
+    # Bank any quest this answer completed — after store.save, so a clean-queue
+    # quest can bank on the very answer that clears the last due review.
+    settle()
+
+    if correct:
+        dao.remove_pending_retry(item.concept_id)  # debt paid, if any
+    else:
+        dao.add_pending_retry(item.concept_id)  # owed a re-test even across sessions
+
+    streak = streak_in + 1 if correct else 0
+    best = max(best_in, streak)
+    combo_break = "" if correct else combo_break_message(streak_in, best)
+
+    xp = 0
+    if correct:
+        concept = dao.get_concept(item.concept_id)
+        xp = grd * (concept.exam_weight if concept else 1)
+
+    is_leech = dao.get_lapses(item.concept_id) >= LEECH_LAPSES
+    no_mnemonic = dao.get_mnemonic(item.concept_id) is None
+    return AnswerOutcome(
+        correct=correct,
+        grade=grd,
+        records=records,
+        reward=reward_message(correct, streak, rng),
+        combo=combo_label(streak),
+        combo_break=combo_break,
+        streak=streak,
+        best_streak=best,
+        xp=xp,
+        next_review_days=_days_until(new_state.due),
+        why_wrong="" if correct else explanation_for(raw_answer, item),
+        ask_mnemonic=no_mnemonic and (not correct or is_leech),
+    )
+
+
+def _days_until(due) -> int | None:
+    """Whole days until a card's next review (the 'back in N days' open loop)."""
+    if due is None:
+        return None
+    from datetime import UTC, datetime
+    now = datetime.now(UTC)
+    d = due if due.tzinfo else due.replace(tzinfo=UTC)
+    return max(0, (d - now).days)
+
+
 def grade(answer: str, elapsed_ms: int, item: StudyItem) -> tuple[bool, int]:
     """Return (is_correct, derived FSRS grade) for an answer — purely data-based.
 

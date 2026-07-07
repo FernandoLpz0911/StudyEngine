@@ -647,7 +647,7 @@ def record_baselines(today: date | None = None) -> dict:
     daily record fires once at the crossing. longest_run includes every logged
     run — nothing is in flight at snapshot time — and detect_records advances it
     in memory as runs end. Stamped with the local day so a session that crosses
-    midnight can detect staleness (ensure_fresh_baselines).
+    midnight can detect staleness (RecordTracker.refresh).
     """
     today = (today or _local_today()).isoformat()
     with get_connection() as conn:
@@ -677,17 +677,6 @@ def record_baselines(today: date | None = None) -> dict:
         # session inherits, so a record run can span a session boundary.
         "current_run": run,
     }
-
-
-def ensure_fresh_baselines(baselines: dict) -> None:
-    """Re-snapshot record baselines in place when the local day has rolled over.
-
-    A session left open past midnight would otherwise keep yesterday's best_day
-    (which excluded yesterday) and fire a spurious 'biggest day' record.
-    """
-    if baselines.get("day") != _local_today().isoformat():
-        baselines.clear()
-        baselines.update(record_baselines())
 
 
 def personal_bests() -> dict:

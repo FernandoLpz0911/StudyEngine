@@ -27,9 +27,9 @@ from engine.analytics.readiness import (
 from engine.config import COLD_START_MASTERY, GLOBAL_WARMUP
 from engine.db import dao
 from engine.db.seed import load_all
-from engine.engagement import combo_label, reward_message
+from engine.engagement import RecordTracker
 from engine.mathfmt import latexify
-from engine.scheduler import policy, store
+from engine.scheduler import policy
 from engine.service import GRADE_LABEL
 from engine.stats import profile
 from engine.subjects import SUBJECTS
@@ -51,7 +51,7 @@ class _Session:
     recent: list[bool] = field(default_factory=list)
     items: dict = field(default_factory=dict)
     retry_queue: list[tuple[str, int]] = field(default_factory=list)
-    record_baselines: dict = field(default_factory=dict)
+    record_tracker: RecordTracker | None = None
 
 
 _sessions: dict[int, _Session] = {}
@@ -134,21 +134,11 @@ def _init_live_state(sess: _Session) -> None:
     instead of re-scanning the whole interaction log on every submit.
     """
     sess.retry_queue = [(cid, 0) for cid in dao.pending_retries()]
-    sess.record_baselines = dao.record_baselines()
+    sess.record_tracker = RecordTracker.snapshot()
     from engine.tracing import infer
     sess.dkt_active = infer.dkt_is_active()
     if sess.dkt_active:
         sess.p_correct = infer.predict(dao.get_interaction_history_timed())
-
-
-def _days_until(due) -> int | None:
-    """Whole days until a card's next review (the 'back in N days' open loop)."""
-    if due is None:
-        return None
-    from datetime import UTC, datetime
-    now = datetime.now(UTC)
-    d = due if due.tzinfo else due.replace(tzinfo=UTC)
-    return max(0, (d - now).days)
 
 
 def _rebuild_session(session_id: int) -> _Session | None:
@@ -295,43 +285,22 @@ def submit_answer(body: AnswerIn) -> dict:
         # The client just asks for the next item on the same (rebuilt) session.
         raise HTTPException(404, "unknown item for this session")
 
-    correct, grade = service.grade(body.answer, body.elapsed_ms, item)
-    # Read before this answer lands in the log, or it can never beat the record.
-    answered_today_before = dao.count_answered_today()
-    dao.log_answered(body.item_id, body.answer or None, correct, grade, body.elapsed_ms)
-    new_state = store.apply_rating(store.get_or_create(item.concept_id), grade)
-    store.save(new_state)
-    next_review_days = _days_until(new_state.due)
-    # Bank any quest this answer completed — after store.save, so clean_queue can
-    # bank on the very answer that clears the last due review.
-    from engine.quests import settle
-    settle()
+    if sess.record_tracker is None:
+        sess.record_tracker = RecordTracker.snapshot()
+    outcome = service.settle_answer(
+        body.item_id, item, body.answer, body.elapsed_ms,
+        sess.record_tracker, sess.streak, sess.best_streak, _rng,
+    )
 
-    if correct:
-        dao.remove_pending_retry(item.concept_id)  # debt paid, if any
-    else:
-        dao.add_pending_retry(item.concept_id)  # owed a re-test even across sessions
-    if not correct and item.reason != "retry":
+    # Fold the outcome into caller-owned session state the service doesn't touch.
+    if not outcome.correct and item.reason != "retry":
         from engine.config import RETRY_GAP
         sess.retry_queue.append((item.concept_id, sess.index + RETRY_GAP))
-
-    sess.recent.append(correct)
+    sess.recent.append(outcome.correct)
     sess.last_subject = item.subject
-    prev_streak = sess.streak
-    sess.streak = sess.streak + 1 if correct else 0
-    sess.best_streak = max(sess.best_streak, sess.streak)
-    from engine.engagement import combo_break_message, detect_records
-    dao.ensure_fresh_baselines(sess.record_baselines)
-    records = detect_records(
-        sess.record_baselines, answered_today_before, correct, body.elapsed_ms,
-        sess.streak, prev_run=prev_streak,
-    )
-    combo_break = "" if correct else combo_break_message(prev_streak, sess.best_streak)
-    xp_gained = 0
-    if correct:
-        concept = dao.get_concept(item.concept_id)
-        xp_gained = grade * (concept.exam_weight if concept else 1)
-        sess.xp_session += xp_gained
+    sess.streak = outcome.streak
+    sess.best_streak = outcome.best_streak
+    sess.xp_session += outcome.xp
 
     from engine.config import FATIGUE_THRESHOLD, FATIGUE_WINDOW
     window = sess.recent[-FATIGUE_WINDOW:]
@@ -339,30 +308,24 @@ def submit_answer(body: AnswerIn) -> dict:
         len(window) >= FATIGUE_WINDOW
         and sum(window) / len(window) < FATIGUE_THRESHOLD
     )
-    why_wrong = "" if correct else service.explanation_for(body.answer, item)
     fmt = latexify if item.kind != "recall" else (lambda s: s)
-    # A leech needs a reformulation, not more reps — ask for a mnemonic even after
-    # a correct answer while none is saved.
-    from engine.config import LEECH_LAPSES
-    is_leech = dao.get_lapses(item.concept_id) >= LEECH_LAPSES
-    no_mnemonic = dao.get_mnemonic(item.concept_id) is None
     return {
-        "is_correct": correct,
+        "is_correct": outcome.correct,
         "correct_answer": item.correct,  # raw — frontend matches it against a choice
-        "grade": grade,
-        "label": GRADE_LABEL[grade],
+        "grade": outcome.grade,
+        "label": GRADE_LABEL[outcome.grade],
         "steps": [fmt(s) for s in item.explain],
-        "reward": reward_message(correct, sess.streak, _rng),
-        "records": records,
-        "combo_break": combo_break,
-        "streak": sess.streak,
-        "combo": combo_label(sess.streak),
-        "xp_gained": xp_gained,
-        "next_review_days": next_review_days,
+        "reward": outcome.reward,
+        "records": outcome.records,
+        "combo_break": outcome.combo_break,
+        "streak": outcome.streak,
+        "combo": outcome.combo,
+        "xp_gained": outcome.xp,
+        "next_review_days": outcome.next_review_days,
         "theory": item.theory,  # authored markdown/LaTeX — rendered client-side, not latexified
-        "why_wrong": why_wrong,
+        "why_wrong": outcome.why_wrong,
         "fatigued": fatigued,
-        "ask_mnemonic": no_mnemonic and (not correct or is_leech),
+        "ask_mnemonic": outcome.ask_mnemonic,
     }
 
 

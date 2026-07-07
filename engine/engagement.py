@@ -54,39 +54,6 @@ def combo_label(streak: int) -> str:
     return label
 
 
-def detect_records(
-    baselines: dict,
-    answered_today_before: int,
-    correct: bool,
-    elapsed_ms: int,
-    run_length: int,
-    prev_run: int = 0,
-) -> list[str]:
-    """New personal bests set by the answer just given. Fires once at the
-    *crossing*, not on every answer past it: `baselines` comes from
-    dao.record_baselines (best_day excludes today) and is advanced in place —
-    fastest_ms when beaten, longest_run when a run ends (`prev_run` is the run
-    a wrong answer just broke), so a later shorter run can't refire a stale
-    record.
-
-    First-ever answers don't count as records (everything would be one).
-    """
-    records: list[str] = []
-    fastest = baselines.get("fastest_ms")
-    if correct and elapsed_ms > 0 and fastest and elapsed_ms < fastest:
-        records.append(f"⚡ New record: fastest correct — {elapsed_ms / 1000:.1f}s")
-        baselines["fastest_ms"] = elapsed_ms  # only a strictly faster answer refires
-    longest = baselines.get("longest_run", 0)
-    if not correct and prev_run > longest:
-        baselines["longest_run"] = prev_run  # the record run just ended
-    if correct and longest >= 3 and run_length == longest + 1:
-        records.append(f"🏅 New record: longest run — ×{run_length}")
-    best_day = baselines.get("best_day", 0)
-    if best_day >= 5 and answered_today_before == best_day:
-        records.append(f"📈 New record: biggest day — {answered_today_before + 1} answered")
-    return records
-
-
 @dataclass
 class RecordTracker:
     """Live personal-best detection with a log-wide record run.

@@ -17,8 +17,8 @@ from engine import service, stats
 from engine.config import RETRY_GAP
 from engine.db import dao
 from engine.db.seed import load_all, load_subject
-from engine.engagement import combo_break_message, combo_label, reward_message
-from engine.scheduler import policy, store
+from engine.engagement import RecordTracker
+from engine.scheduler import policy
 from engine.service import GRADE_LABEL, LETTERS
 from engine.subjects import SUBJECTS
 
@@ -75,16 +75,6 @@ def _prompt(text: str) -> str:
         return ""
 
 
-def _days_until(due) -> int | None:
-    """Whole days until a card's next review, for the 'back in N days' open loop."""
-    if due is None:
-        return None
-    from datetime import UTC, datetime
-    now = datetime.now(UTC)
-    d = due if due.tzinfo else due.replace(tzinfo=UTC)
-    return max(0, (d - now).days)
-
-
 def _pop_retry(retry: list[tuple[str, int]], index: int, force: bool):
     """Next queued missed concept whose spacing gap elapsed, or None (errorful retry).
 
@@ -106,9 +96,9 @@ def _pop_retry(retry: list[tuple[str, int]], index: int, force: bool):
 
 
 def _run_item(
-    concept, session_id: int, rng: np.random.Generator, baselines: dict,
-    reason: str = "", run_length: int = 0,
-) -> bool:
+    concept, session_id: int, rng: np.random.Generator, tracker: RecordTracker,
+    reason: str = "", streak: int = 0, best_streak: int = 0,
+) -> service.AnswerOutcome:
     item = service.build_item(concept, rng, reason)
     item_id = service.log_item_shown(session_id, item)
 
@@ -139,51 +129,46 @@ def _run_item(
     raw = _prompt("Your answer: " if typed else "Your answer (letter): ")
     elapsed_ms = int((time.monotonic() - start) * 1000)
 
-    correct, grade = service.grade(raw, elapsed_ms, item)
-    verdict = "✓ Correct" if correct else f"✗ Incorrect — answer: {item.correct}"
-    print(f"{verdict}   [{GRADE_LABEL[grade]}, {elapsed_ms / 1000:.1f}s]")
+    outcome = service.settle_answer(
+        item_id, item, raw, elapsed_ms, tracker, streak, best_streak, rng,
+    )
+    verdict = "✓ Correct" if outcome.correct else f"✗ Incorrect — answer: {item.correct}"
+    print(f"{verdict}   [{GRADE_LABEL[outcome.grade]}, {elapsed_ms / 1000:.1f}s]")
     for step in item.explain:
         print(f"   · {step}")
-    if not correct:
-        why = service.explanation_for(raw, item)
-        if why:
-            print(f"   ✗ {why}")
+    if outcome.why_wrong:
+        print(f"   ✗ {outcome.why_wrong}")
     # Surface the concept explanation right or wrong (skip if it was already shown
     # as the up-front cold-start / leech intro).
     if item.theory and not cold and not leech:
         print(f"   📖 {item.theory}")
-
-    # Read before the answer lands in the log, or it can never beat the record.
-    answered_today_before = dao.count_answered_today()
-    dao.log_answered(item_id, raw or None, correct, grade, elapsed_ms)
-    from engine.engagement import detect_records
-    dao.ensure_fresh_baselines(baselines)
-    for record in detect_records(
-        baselines, answered_today_before, correct, elapsed_ms,
-        run_length + 1 if correct else 0, prev_run=run_length,
-    ):
+    for record in outcome.records:
         print(f"   {record}")
-    if correct:
-        dao.remove_pending_retry(concept.id)  # debt paid, if any
-    else:
-        dao.add_pending_retry(concept.id)  # owed a re-test even across sessions
-    new_state = store.apply_rating(store.get_or_create(concept.id), grade)
-    store.save(new_state)
-    # Bank any quest this answer completed — after store.save, so clean_queue can
-    # bank on the very answer that clears the last due review.
-    from engine.quests import settle
-    settle()
-    days = _days_until(new_state.due)
-    if days is not None:
-        print(f"   ↩️  back in {days} day(s)")
+    if outcome.next_review_days is not None:
+        print(f"   ↩️  back in {outcome.next_review_days} day(s)")
 
     # A leech needs a reformulation, not more reps — ask for the hint even after a
     # correct answer while none is saved.
-    if note is None and (not correct or leech):
+    if outcome.ask_mnemonic:
         hint = _prompt("Add a hint for next time (Enter to skip): ").strip()
         if hint:
             dao.save_mnemonic(concept.id, hint)
-    return correct
+    return outcome
+
+
+def _print_run_framing(outcome: service.AnswerOutcome, prev_tier: str) -> str:
+    """Print the combo-break / reward / tier lines for one answer; return the tier.
+
+    The tier prints only when it changes, so the caller threads the previous tier
+    through and takes back the new one.
+    """
+    if outcome.combo_break:
+        print(f"   {outcome.combo_break}")
+    if outcome.reward:
+        print(f"   {outcome.reward}")
+    if outcome.combo and outcome.combo != prev_tier:
+        print(f"   {outcome.combo} ×{outcome.streak}")
+    return outcome.combo
 
 
 def _fatigue_note(recent: list[bool], warned: bool) -> bool:
@@ -210,7 +195,7 @@ def run(subject: str, n: int) -> None:
     streak = best_streak = 0
     answered = correct_count = 0
     prev_tier = ""
-    baselines = dao.record_baselines()
+    tracker = RecordTracker.snapshot()
     # Missed concepts from earlier sessions are owed a re-test — front-load them.
     subject_pending = {c.id for c in dao.get_concepts(subject)}
     retry: list[tuple[str, int]] = [
@@ -229,25 +214,18 @@ def run(subject: str, n: int) -> None:
             concept, reason = selection.concept, selection.reason
         tag = {"new": "NEW", "review": "review", "retry": "RETRY"}[reason]
         print(f"\n--- item {i + 1}/{n}  ({tag}) ---", end="")
-        correct = _run_item(
-            concept, session_id, rng, baselines, reason, run_length=streak
+        outcome = _run_item(
+            concept, session_id, rng, tracker, reason, streak, best_streak
         )
+        correct = outcome.correct
         answered += 1
         correct_count += correct
         recent.append(correct)
         fatigued = _fatigue_note(recent, fatigued)
         if not correct and reason != "retry":
             retry.append((concept.id, i + RETRY_GAP))
-        best_streak = max(best_streak, streak + 1 if correct else streak)
-        if not correct and (msg := combo_break_message(streak, best_streak)):
-            print(f"   {msg}")
-        streak = streak + 1 if correct else 0
-        if msg := reward_message(correct, streak, rng):
-            print(f"   {msg}")
-        tier = combo_label(streak)
-        if tier and tier != prev_tier:
-            print(f"   {tier} ×{streak}")
-        prev_tier = tier
+        streak, best_streak = outcome.streak, outcome.best_streak
+        prev_tier = _print_run_framing(outcome, prev_tier)
 
     dao.close_session(session_id)
     _print_summary(f"{info.title} — session done", answered, correct_count)
@@ -283,7 +261,7 @@ def run_global(n: int) -> None:
     touched: set[str] = set()
     streak = best_streak = 0
     prev_tier = ""
-    baselines = dao.record_baselines()
+    tracker = RecordTracker.snapshot()
     retry: list[tuple[str, int]] = [(cid, 0) for cid in dao.pending_retries()]
     fatigued = False
     for i in range(n):
@@ -307,23 +285,16 @@ def run_global(n: int) -> None:
             builder = " · confidence builder" if is_builder else ""
         label = SUBJECTS[concept.subject].title.split("—")[0].strip()
         print(f"\n--- item {i + 1}/{n}  [{label}]{builder} ---", end="")
-        correct = _run_item(
-            concept, session_id, rng, baselines, reason, run_length=streak
+        outcome = _run_item(
+            concept, session_id, rng, tracker, reason, streak, best_streak
         )
+        correct = outcome.correct
         if not correct and reason != "retry":
             retry.append((concept.id, i + RETRY_GAP))
         recent.append(correct)
         fatigued = _fatigue_note(recent, fatigued)
-        best_streak = max(best_streak, streak + 1 if correct else streak)
-        if not correct and (msg := combo_break_message(streak, best_streak)):
-            print(f"   {msg}")
-        streak = streak + 1 if correct else 0
-        if msg := reward_message(correct, streak, rng):
-            print(f"   {msg}")
-        tier = combo_label(streak)
-        if tier and tier != prev_tier:
-            print(f"   {tier} ×{streak}")
-        prev_tier = tier
+        streak, best_streak = outcome.streak, outcome.best_streak
+        prev_tier = _print_run_framing(outcome, prev_tier)
         last_subject = concept.subject
         touched.add(concept.subject)
 
