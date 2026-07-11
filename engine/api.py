@@ -220,9 +220,11 @@ def next_item(session_id: int) -> dict:
     if selection is None:
         selection = _pop_retry(sess, force=True)  # drain pending re-tests before ending
     if selection is None:
-        # The session is over: close it in the DB so the ended_at guard applies
-        # to web sessions too and stale tabs can't resurrect it days later.
+        # The session is over: close it in the DB and evict the resident copy, so
+        # the ended_at guard applies on the next request (rebuild path) and a
+        # long-running server can't keep serving from the in-memory session.
         dao.close_session(sess.db_id)
+        _sessions.pop(sess.db_id, None)
         answered = len(sess.recent)
         correct = sum(sess.recent)
         return {

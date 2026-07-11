@@ -93,6 +93,28 @@ class TestRebuild:
             api._sessions.clear()
             assert client.get(f"/api/session/{sid}/next").status_code == 404
 
+    def test_resident_session_404s_after_done_without_a_restart(self, db):
+        # A long-running server keeps the session in memory. Once it hits done it
+        # must not keep serving from that resident copy — the done path evicts it,
+        # so the very next request 404s even though _sessions was never cleared.
+        from engine import settings
+        settings.set_value("new_per_day", 1)
+        with _client() as client:
+            sid = client.post(
+                "/api/session", json={"scope": "diffeq"}
+            ).json()["session_id"]
+            for _ in range(4):
+                nxt = client.get(f"/api/session/{sid}/next").json()
+                if nxt.get("done"):
+                    break
+                correct = api._sessions[sid].items[nxt["item_id"]].correct
+                client.post("/api/answer", json={
+                    "session_id": sid, "item_id": nxt["item_id"],
+                    "answer": correct, "elapsed_ms": 1000,
+                })
+            assert sid not in api._sessions  # evicted on close
+            assert client.get(f"/api/session/{sid}/next").status_code == 404
+
     def test_ended_session_is_not_resurrected(self, db):
         from engine.db import dao
         with _client() as client:
@@ -102,3 +124,13 @@ class TestRebuild:
             dao.close_session(sid)
             api._sessions.clear()
             assert client.get(f"/api/session/{sid}/next").status_code == 404
+
+
+class TestClose:
+    def test_close_session_is_idempotent(self, db):
+        from engine.db import dao
+        sid = dao.create_session("diffeq")
+        dao.close_session(sid)
+        first = dao.get_session(sid)["ended_at"]
+        dao.close_session(sid)  # a second close must not move the timestamp
+        assert dao.get_session(sid)["ended_at"] == first

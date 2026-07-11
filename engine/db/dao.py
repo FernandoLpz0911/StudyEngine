@@ -127,9 +127,15 @@ def count_shown(session_id: int) -> int:
 
 
 def close_session(session_id: int) -> None:
+    # Idempotent: only the first close stamps ended_at, so re-closing (a CLI
+    # double-close, or the web done-path after the DB row is already ended)
+    # can't overwrite the original end time.
     now = datetime.now(UTC).isoformat()
     with get_connection() as conn:
-        conn.execute("UPDATE session SET ended_at = ? WHERE id = ?", (now, session_id))
+        conn.execute(
+            "UPDATE session SET ended_at = ? WHERE id = ? AND ended_at IS NULL",
+            (now, session_id),
+        )
 
 
 def log_shown(
