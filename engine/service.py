@@ -74,6 +74,29 @@ def build_item(concept: Concept, rng: np.random.Generator, reason: str = "") -> 
     )
 
 
+def next_retry(
+    retry_queue: list[tuple[str, int]], index: int, force: bool
+) -> Concept | None:
+    """Pop the next queued missed concept whose spacing gap has elapsed.
+
+    Suppressed concepts are skipped (left queued): the retry path bypasses policy,
+    so it must honor bury/suspend itself or a just-hidden concept comes right back.
+    Shared by the API and CLI so the skip logic lives in one place.
+    """
+    if not retry_queue:
+        return None
+    suppressed = dao.suppressed_concept_ids()
+    for i, (cid, ready) in enumerate(retry_queue):
+        if cid in suppressed:
+            continue
+        if force or index >= ready:
+            concept = dao.get_concept(cid)
+            retry_queue.pop(i)
+            if concept is not None:
+                return concept
+    return None
+
+
 def explanation_for(answer: str, item: StudyItem) -> str:
     """Why the learner's wrong choice is wrong, if the author supplied one."""
     if not item.explanations:

@@ -75,26 +75,6 @@ def _prompt(text: str) -> str:
         return ""
 
 
-def _pop_retry(retry: list[tuple[str, int]], index: int, force: bool):
-    """Next queued missed concept whose spacing gap elapsed, or None (errorful retry).
-
-    Suppressed concepts are skipped (left queued): the retry path bypasses policy,
-    so it must honor bury/suspend itself or a just-hidden concept comes right back.
-    """
-    if not retry:
-        return None
-    suppressed = dao.suppressed_concept_ids()
-    for i, (cid, ready) in enumerate(retry):
-        if cid in suppressed:
-            continue
-        if force or index >= ready:
-            concept = dao.get_concept(cid)
-            retry.pop(i)
-            if concept is not None:
-                return concept
-    return None
-
-
 def _run_item(
     concept, session_id: int, rng: np.random.Generator, tracker: RecordTracker,
     reason: str = "", streak: int = 0, best_streak: int = 0,
@@ -204,7 +184,7 @@ def run(subject: str, n: int) -> None:
     recent: list[bool] = []
     fatigued = False
     for i in range(n):
-        concept = _pop_retry(retry, i, force=False)
+        concept = service.next_retry(retry, i, force=False)
         reason = "retry"
         if concept is None:
             selection = policy.select_next(subject)
@@ -267,7 +247,7 @@ def run_global(n: int) -> None:
     for i in range(n):
         if dkt_active and i > 0 and i % 5 == 0:
             p_correct = infer.predict(dao.get_interaction_history_timed())
-        concept = _pop_retry(retry, i, force=False)
+        concept = service.next_retry(retry, i, force=False)
         reason = "retry"
         builder = " · re-test (you missed this)"
         if concept is None:

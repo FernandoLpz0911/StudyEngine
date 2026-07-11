@@ -175,23 +175,9 @@ def _get_or_rebuild(session_id: int) -> _Session | None:
 
 
 def _pop_retry(sess: _Session, force: bool) -> policy.Selection | None:
-    """Serve a queued missed concept whose spacing gap has elapsed (errorful retry).
-
-    Suppressed concepts are skipped (left queued): the retry path bypasses policy,
-    so it must honor bury/suspend itself or a just-hidden concept comes right back.
-    """
-    if not sess.retry_queue:
-        return None
-    suppressed = dao.suppressed_concept_ids()
-    for i, (cid, ready) in enumerate(sess.retry_queue):
-        if cid in suppressed:
-            continue
-        if force or sess.index >= ready:
-            concept = dao.get_concept(cid)
-            sess.retry_queue.pop(i)
-            if concept is not None:
-                return policy.Selection(concept, "retry")
-    return None
+    """Serve a queued missed concept whose spacing gap has elapsed (errorful retry)."""
+    concept = service.next_retry(sess.retry_queue, sess.index, force)
+    return policy.Selection(concept, "retry") if concept is not None else None
 
 
 @api.get("/session/{session_id}/next")
