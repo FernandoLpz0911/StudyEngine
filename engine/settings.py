@@ -28,6 +28,11 @@ USER_SETTINGS: dict[str, tuple[object, type, str, tuple[float, float]]] = {
 }
 
 
+def _in_range(value: float, bounds: tuple[float, float]) -> bool:
+    lo, hi = bounds
+    return lo <= value <= hi
+
+
 def get_int(key: str) -> int:
     return int(_get(key))
 
@@ -42,7 +47,7 @@ def _get(key: str) -> object:
     The range check guards rows written before validation existed (or edited
     directly in SQLite) — they must not bypass what set_value now enforces.
     """
-    default, caster, _, (lo, hi) = USER_SETTINGS[key]
+    default, caster, _, bounds = USER_SETTINGS[key]
     raw = dao.get_setting(key)
     if raw is None:
         return default
@@ -50,7 +55,7 @@ def _get(key: str) -> object:
         cast = caster(raw)
     except ValueError:
         return default
-    return cast if lo <= cast <= hi else default
+    return cast if _in_range(cast, bounds) else default
 
 
 def set_value(key: str, value: object) -> None:
@@ -61,10 +66,12 @@ def set_value(key: str, value: object) -> None:
     """
     if key not in USER_SETTINGS:
         raise KeyError(f"unknown setting '{key}'")
-    _, caster, _, (lo, hi) = USER_SETTINGS[key]
+    _, caster, _, bounds = USER_SETTINGS[key]
     cast = caster(value)
-    if not lo <= cast <= hi:
-        raise ValueError(f"'{key}' must be between {lo} and {hi}, got {cast}")
+    if not _in_range(cast, bounds):
+        raise ValueError(
+            f"'{key}' must be between {bounds[0]} and {bounds[1]}, got {cast}"
+        )
     dao.set_setting(key, str(cast))
 
 

@@ -49,14 +49,17 @@ def _pool(rows: list[dict], daily_goal: int, rng: np.random.Generator) -> list[Q
     ]
 
 
-def todays_quests() -> list[dict]:
-    """The day's three quests with progress and completion, bonuses auto-banked."""
-    from engine import settings
-    day = dao._local_today().isoformat()
+def _evaluate(
+    rows: list[dict], day: str, claimed: set[str], daily_goal: int
+) -> list[dict]:
+    """Draw the day's quests, bank any newly completed bonus, return their state.
+
+    Pure over its inputs (no queries of its own) so both the view and the answer
+    path share one draw + one interaction scan + one claimed-set read.
+    """
     rng = np.random.default_rng(int(day.replace("-", "")))
-    pool = _pool(dao.today_interactions(), settings.get_int("daily_goal"), rng)
+    pool = _pool(rows, daily_goal, rng)
     picks = rng.permutation(len(pool))[:QUESTS_PER_DAY]
-    claimed = dao.claimed_quests(day)
     out = []
     for i in sorted(picks):
         q = pool[i]
@@ -76,13 +79,27 @@ def todays_quests() -> list[dict]:
     return out
 
 
+def todays_quests() -> list[dict]:
+    """The day's three quests with progress and completion, bonuses auto-banked."""
+    from engine import settings
+    day = dao._local_today().isoformat()
+    return _evaluate(
+        dao.today_interactions(), day, dao.claimed_quests(day),
+        settings.get_int("daily_goal"),
+    )
+
+
 def settle() -> None:
     """Bank any newly completed quests — the answer path's cheap entry point.
 
-    Early-outs on one indexed query once the day's draw is fully claimed, so a
-    long session doesn't pay the pool computation on every answer.
+    Reads the claimed set once and early-outs when the day's draw is fully
+    claimed, so a long session doesn't pay the pool computation on every answer.
     """
+    from engine import settings
     day = dao._local_today().isoformat()
-    if len(dao.claimed_quests(day)) >= QUESTS_PER_DAY:
+    claimed = dao.claimed_quests(day)
+    if len(claimed) >= QUESTS_PER_DAY:
         return
-    todays_quests()
+    _evaluate(
+        dao.today_interactions(), day, claimed, settings.get_int("daily_goal")
+    )
