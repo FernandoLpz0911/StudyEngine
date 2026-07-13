@@ -14,8 +14,9 @@ pip install -r requirements.txt
 python -m engine.cli.app        # → opens http://127.0.0.1:8000 in your browser
 ```
 
-That one command builds the app (first run needs [Node](https://nodejs.org)),
-serves it, and opens it. Pick a subject, answer questions by clicking `a`–`d` (or
+`requirements.txt` is all you need — the engine runs fully on FSRS alone. That one
+command builds the app (first run needs [Node](https://nodejs.org)), serves it, and
+opens it. Pick a subject, answer questions by clicking `a`–`d` (or
 typing a number), and it schedules your next review for you. Progress is saved in
 `data/app.db`, so you can close it and pick up where you left off.
 
@@ -33,7 +34,7 @@ Three tabs:
 |---|---|---|
 | `diffeq` | MATH 220 Differential Equations | computational problems |
 | `databases` | CS 480 Database Systems | problems + concept cards |
-| `proofs` | MATH 250 Intro to Advanced Maths | problems + concept cards |
+| `proofs` | MATH 215 Intro to Advanced Math | problems + concept cards |
 | `econ` | ECON 111 Freakonomics | problems + concept cards |
 | `examfm` | Exam FM (Financial Mathematics) | problems + concept cards |
 | `examp` | Exam P (Probability) | computational problems |
@@ -77,6 +78,9 @@ For a new **generator** subject, write generators in `engine/subjects/<key>/`
   uvicorn engine.api:app --port 8000
   cd frontend && npm install && npm run dev      # → http://localhost:5173
   ```
+  API is served under `/api/*`: `/api/subjects`, `/api/session`,
+  `/api/session/{id}/next`, `/api/answer`, `/api/mnemonic`, `/api/stats`,
+  `/api/me`, `/api/progress`, `/api/progress/{subject}`.
 - **Tests.**
   ```bash
   pytest
