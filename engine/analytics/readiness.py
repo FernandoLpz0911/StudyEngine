@@ -19,6 +19,7 @@ from engine.config import (
 )
 from engine.db import dao
 from engine.scheduler import store
+from engine.scheduler.availability import introduced, is_due
 from engine.scheduler.fsrs_core import retrievability
 from engine.scheduler.store import CardState
 
@@ -69,13 +70,7 @@ def subject_readiness(subject: str) -> dict:
         # Endowed progress: the displayed value never drops below the baseline,
         # so the map glows faintly from the start rather than reading 0%.
         displayed = max(mastery, ENDOWED_BASELINE)
-        # Same rule as dao.due_count: a suppressed concept is not waiting.
-        due = (
-            cs.reps > 0
-            and cs.due is not None
-            and _aware(cs.due) <= now
-            and concept.id not in suppressed
-        )
+        due = is_due(cs.reps, cs.due, now, concept.id in suppressed)
         rows.append({
             "id": concept.id,
             "name": concept.name,
@@ -97,7 +92,7 @@ def subject_readiness(subject: str) -> dict:
     suspended = dao.suspended_concept_ids()
     coverable_unseen = sum(
         1 for c, r in zip(concepts, rows, strict=True)
-        if r["reps"] == 0 and c.id not in suspended
+        if not introduced(r["reps"], c.id in suspended)
     )
     return {
         "subject": subject,
@@ -146,7 +141,3 @@ def overall_progress(subjects: list[str]) -> dict:
         else 0.0
     )
     return {"combined_readiness": round(combined, 3), "subjects": per_subject}
-
-
-def _aware(dt: datetime) -> datetime:
-    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)

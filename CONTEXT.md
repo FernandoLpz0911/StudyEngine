@@ -57,6 +57,16 @@ day rolls over mid-session.
 
 ## Concept availability
 
+**Introduced** — a concept that unlocks its dependents: seen at least once, *or*
+suspended. A prerequisite must be introduced before its children become
+selectable. One predicate, shared by selection and readiness, so the
+suspended-counts / buried-doesn't rule lives in one place.
+
+**Due** — a concept whose review is waiting *right now*: reviewed at least once,
+its FSRS due time reached, and not currently suppressed. The same predicate backs
+policy selection, the dashboard's per-concept flag, and the "reviews waiting"
+count — a suspended or buried card is never due.
+
 **Suspended** — taken out of rotation indefinitely by the learner ("I know
 this"), until manually resumed. Counts as *introduced* for prerequisite purposes:
 a suspended prereq does not block its children.

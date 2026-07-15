@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from engine.db import dao
 from engine.db.dao import Concept
 from engine.scheduler import store
+from engine.scheduler.availability import introduced, is_due
 from engine.scheduler.fsrs_core import retrievability
 from engine.scheduler.store import CardState
 
@@ -39,16 +40,13 @@ def select_next(subject: str) -> Selection | None:
     states = {c.id: store.get_or_create(c.id) for c in concepts}
     suppressed = dao.suppressed_concept_ids()
     suspended = dao.suspended_concept_ids()
-    # A *suspended* prerequisite ("I know this") counts as introduced, or
-    # suspending it would lock every concept behind it forever. A one-day bury
-    # implies no such mastery and must not unlock dependents.
-    introduced = {
-        cid: cs.reps >= 1 or cid in suspended for cid, cs in states.items()
+    introduced_map = {
+        cid: introduced(cs.reps, cid in suspended) for cid, cs in states.items()
     }
     available = [
         c for c in concepts
         if c.id not in suppressed
-        and all(introduced.get(p, False) for p in c.prerequisites)
+        and all(introduced_map.get(p, False) for p in c.prerequisites)
     ]
     if not available:
         return None
@@ -61,7 +59,7 @@ def select_next(subject: str) -> Selection | None:
         cs = states[concept.id]
         if cs.reps == 0:
             frontier.append((concept.exam_weight, concept))
-        elif cs.due is not None and cs.due <= now:
+        elif is_due(cs.reps, cs.due, now, suppressed=False):
             overdue.append((_urgency(cs, now) * concept.exam_weight, concept))
 
     if overdue:
@@ -104,18 +102,18 @@ def select_global(
     for subject in subjects:
         concepts = dao.get_concepts(subject)
         states = {c.id: store.get_or_create(c.id) for c in concepts}
-        introduced = {
-            cid: cs.reps >= 1 or cid in suspended for cid, cs in states.items()
+        introduced_map = {
+            cid: introduced(cs.reps, cid in suspended) for cid, cs in states.items()
         }
         for concept in concepts:
             if concept.id in suppressed:
                 continue
-            if not all(introduced.get(p, False) for p in concept.prerequisites):
+            if not all(introduced_map.get(p, False) for p in concept.prerequisites):
                 continue
             cs = states[concept.id]
             if cs.reps == 0:
                 frontier.append(concept)
-            elif cs.due is not None and cs.due <= now:
+            elif is_due(cs.reps, cs.due, now, suppressed=False):
                 reviews.append(concept)
 
     def penalty(concept: Concept) -> float:

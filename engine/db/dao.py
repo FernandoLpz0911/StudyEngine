@@ -714,19 +714,25 @@ def personal_bests() -> dict:
 def due_count() -> int:
     """Concepts whose FSRS review is due now (the 'reviews waiting' open loop).
 
-    Suppressed concepts don't count — a suspended card must not nag forever.
+    Suppressed concepts don't count — a suspended card must not nag forever. The
+    due rule itself lives in `availability.is_due`, shared with policy selection
+    and dashboard readiness so the three can't drift.
     """
-    now = datetime.now(UTC).isoformat()
-    today = _local_today().isoformat()
+    from engine.scheduler.availability import is_due
+    now = datetime.now(UTC)
+    suppressed = suppressed_concept_ids()
     with get_connection() as conn:
-        row = conn.execute(
-            "SELECT COUNT(*) AS n FROM card_state cs "
-            "WHERE cs.reps > 0 AND cs.due IS NOT NULL AND cs.due <= ? "
-            "AND NOT EXISTS (SELECT 1 FROM concept_suppression s "
-            "  WHERE s.concept_id = cs.concept_id AND (s.until IS NULL OR s.until > ?))",
-            (now, today),
-        ).fetchone()
-    return row["n"] if row else 0
+        rows = conn.execute(
+            "SELECT concept_id, reps, due FROM card_state "
+            "WHERE reps > 0 AND due IS NOT NULL"
+        ).fetchall()
+    return sum(
+        1 for r in rows
+        if is_due(
+            r["reps"], datetime.fromisoformat(r["due"]), now,
+            r["concept_id"] in suppressed,
+        )
+    )
 
 
 def graded_reviews() -> list[tuple[str, int, str, int]]:
