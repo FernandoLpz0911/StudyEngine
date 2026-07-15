@@ -16,6 +16,10 @@ from engine.subjects.databases import fd
 ATTRS = ["A", "B", "C", "D"]
 
 
+def _braced(attrs: frozenset[str]) -> str:
+    return "{" + "".join(sorted(attrs)) + "}"
+
+
 def _random_schema(rng: np.random.Generator) -> tuple[frozenset[str], list[fd.FD]]:
     all_attrs = frozenset(ATTRS)
     n_fds = int(rng.integers(2, 4))
@@ -48,7 +52,8 @@ def gen_fd_closure(ask: str, params: dict, seed: int) -> Problem:
     x_size = int(rng.integers(1, 3))
     x = frozenset(str(a) for a in rng.choice(ATTRS, size=x_size, replace=False))
 
-    answer = len(fd.closure(x, fds))
+    result = fd.closure(x, fds)
+    answer = len(result)
     x_str = "".join(sorted(x))
     statement = (
         f"Relation R(A, B, C, D) with functional dependencies: {fd.render_fds(fds)}. "
@@ -58,6 +63,12 @@ def gen_fd_closure(ask: str, params: dict, seed: int) -> Problem:
         "fd_closure", "closure_size", statement, float(answer),
         make_int_choices(answer, rng, lo=len(x), hi=4),
         params={"fds": _fds_param(fds), "x": sorted(x)}, seed=seed,
+        explain=[
+            f"Start from {_braced(x)} and apply the FDs {fd.render_fds(fds)} "
+            f"until nothing new is added.",
+            f"Closure {_braced(x)}⁺ = {_braced(result)}.",
+            f"It contains {answer} attribute(s).",
+        ],
     )
 
 
@@ -66,15 +77,22 @@ def gen_candidate_keys(ask: str, params: dict, seed: int) -> Problem:
     """Count the candidate keys of a schema."""
     rng = np.random.default_rng(seed)
     all_attrs, fds = _random_schema(rng)
-    answer = len(fd.candidate_keys(all_attrs, fds))
+    keys = fd.candidate_keys(all_attrs, fds)
+    answer = len(keys)
     statement = (
         f"Relation R(A, B, C, D) with functional dependencies: {fd.render_fds(fds)}. "
         f"How many candidate keys does R have?"
     )
+    listed = ", ".join(_braced(k) for k in keys) or "none"
     return Problem(
         "candidate_keys", "count", statement, float(answer),
         make_int_choices(answer, rng, lo=1, hi=4),
         params={"fds": _fds_param(fds)}, seed=seed,
+        explain=[
+            "A candidate key is a minimal attribute set whose closure is all of R.",
+            f"Minimal keys: {listed}.",
+            f"So R has {answer} candidate key(s).",
+        ],
     )
 
 
@@ -83,16 +101,25 @@ def gen_bcnf_check(ask: str, params: dict, seed: int) -> Problem:
     """Count the FDs that violate BCNF (non-trivial, left side not a superkey)."""
     rng = np.random.default_rng(seed)
     all_attrs, fds = _random_schema(rng)
-    answer = len(fd.bcnf_violations(all_attrs, fds))
+    violations = fd.bcnf_violations(all_attrs, fds)
+    answer = len(violations)
     statement = (
         f"Relation R(A, B, C, D) with functional dependencies: {fd.render_fds(fds)}. "
         f"How many of these FDs violate BCNF (a non-trivial FD whose left-hand "
         f"side is not a superkey)? (0 means R is in BCNF.)"
     )
+    listed = fd.render_fds(violations) if violations else "none"
+    tail = " R is in BCNF." if not violations else ""
     return Problem(
         "bcnf_check", "violation_count", statement, float(answer),
         make_int_choices(answer, rng, lo=0, hi=len(fds)),
         params={"fds": _fds_param(fds)}, seed=seed,
+        explain=[
+            "An FD X → Y violates BCNF when it is non-trivial and X is not "
+            "a superkey.",
+            f"Violating FDs: {listed}.",
+            f"Violation count = {answer}.{tail}",
+        ],
     )
 
 
@@ -113,6 +140,11 @@ def gen_prime_attributes(ask: str, params: dict, seed: int) -> Problem:
         "prime_attributes", "count", statement, float(answer),
         make_int_choices(answer, rng, lo=0, hi=4, prefer=(4, 4 - answer)),
         params={"fds": _fds_param(fds)}, seed=seed,
+        explain=[
+            "A prime attribute belongs to at least one candidate key.",
+            f"Candidate keys: {', '.join(_braced(k) for k in keys) or 'none'}.",
+            f"Prime attributes: {_braced(frozenset(prime))} — {answer} of them.",
+        ],
     )
 
 
@@ -124,9 +156,10 @@ def gen_superkey_count(ask: str, params: dict, seed: int) -> Problem:
     subsets = [frozenset(c) for size in (1, 2) for c in combinations(ATTRS, size)]
     chosen_idx = rng.choice(len(subsets), size=4, replace=False)
     chosen = [subsets[i] for i in chosen_idx]
-    answer = sum(fd.is_superkey(s, all_attrs, fds) for s in chosen)
+    supers = [s for s in chosen if fd.is_superkey(s, all_attrs, fds)]
+    answer = len(supers)
 
-    listed = ", ".join("{" + "".join(sorted(s)) + "}" for s in chosen)
+    listed = ", ".join(_braced(s) for s in chosen)
     statement = (
         f"Relation R(A, B, C, D) with functional dependencies: {fd.render_fds(fds)}. "
         f"Of these attribute sets — {listed} — how many are superkeys?"
@@ -135,4 +168,9 @@ def gen_superkey_count(ask: str, params: dict, seed: int) -> Problem:
         "superkey_count", "count", statement, float(answer),
         make_int_choices(answer, rng, lo=0, hi=4),
         params={"fds": _fds_param(fds), "sets": [sorted(s) for s in chosen]}, seed=seed,
+        explain=[
+            "A set is a superkey when its closure is all of R(A,B,C,D).",
+            f"Superkeys among them: {', '.join(_braced(s) for s in supers) or 'none'}.",
+            f"Count = {answer}.",
+        ],
     )

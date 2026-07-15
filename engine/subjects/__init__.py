@@ -47,7 +47,6 @@ SUBJECTS: dict[str, SubjectInfo] = {
 
 from engine.subjects import examp as _examp  # noqa: E402, F401
 from engine.subjects.databases import generators as _db_gen  # noqa: E402, F401
-from engine.subjects.databases import solve as _db_solve  # noqa: E402, F401
 from engine.subjects.diffeq import generators as _diffeq_gen  # noqa: E402, F401
 from engine.subjects.diffeq import solve as _diffeq_solve  # noqa: E402, F401
 from engine.subjects.econ import generators as _econ_gen  # noqa: E402, F401

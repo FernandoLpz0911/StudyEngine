@@ -15,7 +15,13 @@ import numpy as np
 
 @dataclass
 class Problem:
-    """A fully generated problem ready to serve."""
+    """A fully generated problem ready to serve.
+
+    `explain` is the worked solution, produced by the generator from the same
+    closed-form computation as `correct_answer` so the two cannot diverge. A
+    generator that hasn't been migrated leaves it empty; `service.build_item`
+    then falls back to the legacy `feedback.solve` registry.
+    """
 
     kind: str
     ask: str
@@ -25,6 +31,7 @@ class Problem:
     tolerance: float = 1e-3
     params: dict = field(default_factory=dict)
     seed: int = 0
+    explain: list[str] = field(default_factory=list)
 
 
 _generators: dict[str, Callable] = {}

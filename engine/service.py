@@ -58,11 +58,14 @@ def build_item(concept: Concept, rng: np.random.Generator, reason: str = "") -> 
         seed = random_seed()
         problem = generate(spec["kind"], ask, spec["params"], seed)
         choices = [] if _serve_typed(concept) else (problem.choices or [])
+        # Prefer the generator's own worked solution (shares the closed form);
+        # fall back to the legacy solver registry for unmigrated subjects.
+        explain = problem.explain or worked_solution(spec["kind"], ask, problem.params)
         return StudyItem(
             concept.id, concept.name, concept.subject, reason,
             f"{spec['kind']}:{ask}", problem.statement, choices,
             f"{problem.correct_answer:.3f}",
-            worked_solution(spec["kind"], ask, problem.params), seed, problem.params,
+            explain, seed, problem.params,
             theory=concept.theory_md, tolerance=problem.tolerance,
         )
     question = as_question(concept, rng)

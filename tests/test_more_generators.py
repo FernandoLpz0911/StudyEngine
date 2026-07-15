@@ -67,7 +67,7 @@ class TestDatabasesNew:
             keys = fd.candidate_keys(ALL, fds)
             prime = set().union(*keys) if keys else set()
             assert p.correct_answer == float(len(prime))
-            assert worked_solution("prime_attributes", "count", p.params)
+            assert p.explain  # databases folds its worked solution (ADR-0003)
 
     def test_superkey_count(self):
         for seed in SEEDS:
@@ -77,7 +77,7 @@ class TestDatabasesNew:
             expected = sum(fd.is_superkey(s, ALL, fds) for s in sets)
             assert p.correct_answer == float(expected)
             assert len(sets) == 4
-            assert worked_solution("superkey_count", "count", p.params)
+            assert f"Count = {int(expected)}." in p.explain[-1]
 
 
 class TestProofsNew:
