@@ -11,6 +11,23 @@ update spaced-repetition state, advance records, bank quests, record the retry
 debt. One answer, one settlement, regardless of whether it came from the web API
 or the CLI.
 
+## Study loop
+
+**Turn** — one served item plus its settlement: a concept is *selected*, an item
+*served*, an answer *settled*. The unit the study loop advances by. In the CLI a
+Turn is one pass of the loop; over the web API its two halves span two requests
+(`GET next` serves, `POST answer` settles) with a network round-trip between.
+
+**StudyLoop** — the live driver that advances Turns and owns all session-local
+state (serving index, recent-answers list, in-session retry queue, combo streak,
+best, session XP, last subject, the record tracker, DKT predictions). One
+implementation behind two methods — *select the next item* and *settle an answer*
+— that the CLI loop and each web request both drive, so the interleaving,
+warmup/stall/cooldown pacing, and [[settle]] fold can't drift between front ends.
+Distinct from the **session** *row* in the database (`create_session`): the
+StudyLoop is that row's live, in-memory form and can be rebuilt from it after a
+restart.
+
 ## Runs
 
 Two distinct consecutive-correct counts. They are *not* the same number and have

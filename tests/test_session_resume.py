@@ -39,15 +39,15 @@ class TestRebuild:
             nxt = client.get(f"/api/session/{sid}/next").json()
             first = _answer(client, sid, nxt, correct=True)
             assert first["is_correct"] is True
-            xp_live = api._sessions[sid].xp_session
+            xp_live = api._sessions[sid].xp
 
             api._sessions.clear()
             client.get(f"/api/session/{sid}/next")
             sess = api._sessions[sid]
             assert sess.recent == [True]
             assert sess.streak == 1
-            assert sess.best_streak == 1
-            assert sess.xp_session == xp_live
+            assert sess.best == 1
+            assert sess.xp == xp_live
             assert sess.scope == "diffeq"
             assert sess.index >= 2  # one answered + one just served
 

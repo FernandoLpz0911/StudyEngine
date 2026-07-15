@@ -10,15 +10,11 @@ from __future__ import annotations
 import argparse
 import time
 
-import numpy as np
-
 import engine.subjects  # noqa: F401  (registers the problem generators)
 from engine import service, stats
-from engine.config import RETRY_GAP
 from engine.db import dao
 from engine.db.seed import load_all, load_subject
-from engine.engagement import RecordTracker
-from engine.scheduler import policy
+from engine.loop import Done, StudyLoop, Turn
 from engine.service import GRADE_LABEL, LETTERS
 from engine.subjects import SUBJECTS
 
@@ -75,20 +71,16 @@ def _prompt(text: str) -> str:
         return ""
 
 
-def _run_item(
-    concept, session_id: int, rng: np.random.Generator, tracker: RecordTracker,
-    reason: str = "", streak: int = 0, best_streak: int = 0,
-) -> service.AnswerOutcome:
-    item = service.build_item(concept, rng, reason)
-    item_id = service.log_item_shown(session_id, item)
-
+def _run_item(loop: StudyLoop, turn: Turn) -> service.AnswerOutcome:
+    """Render one served Turn, read the answer, and settle it through the loop."""
+    item = turn.item
     typed = not item.choices
-    print(f"\n[{concept.name}]  {item.question}")
+    print(f"\n[{item.concept_name}]  {item.question}")
     if typed:
         print("   ✍️  no options this time — you know this one; type the value")
     # Leech: repeatedly forgotten — slow down and re-read; more raw reps aren't working.
     from engine.config import LEECH_LAPSES
-    lapses = dao.get_lapses(concept.id)
+    lapses = dao.get_lapses(item.concept_id)
     leech = lapses >= LEECH_LAPSES
     if leech:
         print(f"   ⚠️  leech — missed {lapses}× before. Slow down; re-read first.")
@@ -96,10 +88,10 @@ def _run_item(
     # the explanation up front so it isn't a blind guess.
     from engine.analytics.readiness import concept_mastery
     from engine.config import COLD_START_MASTERY
-    cold = concept_mastery(concept.id) < COLD_START_MASTERY
+    cold = concept_mastery(item.concept_id) < COLD_START_MASTERY
     if (cold or leech) and item.theory:
         print(f"   📖 Start here: {item.theory}")
-    note = dao.get_mnemonic(concept.id)
+    note = dao.get_mnemonic(item.concept_id)
     if note:
         print(f"   📝 your note: {note}")
     for letter, choice in zip(LETTERS, item.choices, strict=False):
@@ -109,9 +101,7 @@ def _run_item(
     raw = _prompt("Your answer: " if typed else "Your answer (letter): ")
     elapsed_ms = int((time.monotonic() - start) * 1000)
 
-    outcome = service.settle_answer(
-        item_id, item, raw, elapsed_ms, tracker, streak, best_streak, rng,
-    )
+    outcome = loop.settle(turn.item_id, raw, elapsed_ms)
     verdict = "✓ Correct" if outcome.correct else f"✗ Incorrect — answer: {item.correct}"
     print(f"{verdict}   [{GRADE_LABEL[outcome.grade]}, {elapsed_ms / 1000:.1f}s]")
     for step in item.explain:
@@ -132,7 +122,7 @@ def _run_item(
     if outcome.ask_mnemonic:
         hint = _prompt("Add a hint for next time (Enter to skip): ").strip()
         if hint:
-            dao.save_mnemonic(concept.id, hint)
+            dao.save_mnemonic(item.concept_id, hint)
     return outcome
 
 
@@ -166,49 +156,26 @@ def run(subject: str, n: int) -> None:
         print(f"Unknown subject '{subject}'. Choose from: {', '.join(SUBJECTS)}")
         return
     load_subject(subject)
-    session_id = dao.create_session(subject)
     info = SUBJECTS[subject]
-    rng = np.random.default_rng()
+    loop = StudyLoop.start(subject, n)
     print(f"\n=== {info.title} ===\n{info.blurb}")
     _print_hud()
 
-    streak = best_streak = 0
-    answered = correct_count = 0
     prev_tier = ""
-    tracker = RecordTracker.snapshot()
-    # Missed concepts from earlier sessions are owed a re-test — front-load them.
-    subject_pending = {c.id for c in dao.get_concepts(subject)}
-    retry: list[tuple[str, int]] = [
-        (cid, 0) for cid in dao.pending_retries() if cid in subject_pending
-    ]
-    recent: list[bool] = []
     fatigued = False
-    for i in range(n):
-        concept = service.next_retry(retry, i, force=False)
-        reason = "retry"
-        if concept is None:
-            selection = policy.select_next(subject)
-            if selection is None:
-                print("\nNothing due right now — all caught up. ✓")
-                break
-            concept, reason = selection.concept, selection.reason
-        tag = {"new": "NEW", "review": "review", "retry": "RETRY"}[reason]
-        print(f"\n--- item {i + 1}/{n}  ({tag}) ---", end="")
-        outcome = _run_item(
-            concept, session_id, rng, tracker, reason, streak, best_streak
-        )
-        correct = outcome.correct
-        answered += 1
-        correct_count += correct
-        recent.append(correct)
-        fatigued = _fatigue_note(recent, fatigued)
-        if not correct and reason != "retry":
-            retry.append((concept.id, i + RETRY_GAP))
-        streak, best_streak = outcome.streak, outcome.best_streak
+    while True:
+        step = loop.next()
+        if isinstance(step, Done):
+            break
+        tag = {"new": "NEW", "review": "review", "retry": "RETRY"}[step.item.reason]
+        print(f"\n--- item {loop.index}/{n}  ({tag}) ---", end="")
+        outcome = _run_item(loop, step)
+        fatigued = _fatigue_note(loop.recent, fatigued)
         prev_tier = _print_run_framing(outcome, prev_tier)
 
-    dao.close_session(session_id)
-    _print_summary(f"{info.title} — session done", answered, correct_count)
+    _print_summary(
+        f"{info.title} — session done", step.summary["answered"], step.summary["correct"]
+    )
 
 
 def run_global(n: int) -> None:
@@ -218,69 +185,36 @@ def run_global(n: int) -> None:
     studied so the queue interleaves. Opens and closes with confidence builders,
     and slips one in after two misses in a row to pace toward ~85% success.
     """
-    from engine.config import GLOBAL_COOLDOWN, GLOBAL_WARMUP
-
     load_all()
-    session_id = dao.create_session("global")
-    rng = np.random.default_rng()
-    subjects = list(SUBJECTS)
+    loop = StudyLoop.start("global", n)
     print("\n=== StudyEngine — Global Interleaved Session ===")
     print("Weakest-first across all subjects, interleaved. Start optimizing.")
     _print_hud()
-
-    from engine.tracing import infer
-    dkt_active = infer.dkt_is_active()
-    p_correct = (
-        infer.predict(dao.get_interaction_history_timed()) if dkt_active else None
-    )
-    if dkt_active:
+    if loop.dkt_active:
         print("DKT active — selection driven by the trained global model.")
 
-    last_subject: str | None = None
-    recent: list[bool] = []
-    touched: set[str] = set()
-    streak = best_streak = 0
     prev_tier = ""
-    tracker = RecordTracker.snapshot()
-    retry: list[tuple[str, int]] = [(cid, 0) for cid in dao.pending_retries()]
     fatigued = False
-    for i in range(n):
-        if dkt_active and i > 0 and i % 5 == 0:
-            p_correct = infer.predict(dao.get_interaction_history_timed())
-        concept = service.next_retry(retry, i, force=False)
-        reason = "retry"
-        builder = " · re-test (you missed this)"
-        if concept is None:
-            warm_or_cool = i < GLOBAL_WARMUP or i >= n - GLOBAL_COOLDOWN
-            stalling = recent[-2:] == [False, False]
-            mode = "confidence" if (warm_or_cool or stalling) else "weak"
-            selection = policy.select_global(
-                subjects, avoid_subject=last_subject, mode=mode, p_correct=p_correct
-            )
-            if selection is None:
-                print("\nNothing available yet — study a single subject to open new concepts.")
-                break
-            concept, reason = selection.concept, selection.reason
-            is_builder = mode == "confidence" and reason == "review"
-            builder = " · confidence builder" if is_builder else ""
-        label = SUBJECTS[concept.subject].title.split("—")[0].strip()
-        print(f"\n--- item {i + 1}/{n}  [{label}]{builder} ---", end="")
-        outcome = _run_item(
-            concept, session_id, rng, tracker, reason, streak, best_streak
-        )
-        correct = outcome.correct
-        if not correct and reason != "retry":
-            retry.append((concept.id, i + RETRY_GAP))
-        recent.append(correct)
-        fatigued = _fatigue_note(recent, fatigued)
-        streak, best_streak = outcome.streak, outcome.best_streak
+    while True:
+        step = loop.next()
+        if isinstance(step, Done):
+            break
+        item = step.item
+        if item.reason == "retry":
+            builder = " · re-test (you missed this)"
+        elif step.mode == "confidence" and item.reason == "review":
+            builder = " · confidence builder"
+        else:
+            builder = ""
+        label = SUBJECTS[item.subject].title.split("—")[0].strip()
+        print(f"\n--- item {loop.index}/{n}  [{label}]{builder} ---", end="")
+        outcome = _run_item(loop, step)
+        fatigued = _fatigue_note(loop.recent, fatigued)
         prev_tier = _print_run_framing(outcome, prev_tier)
-        last_subject = concept.subject
-        touched.add(concept.subject)
 
-    dao.close_session(session_id)
     _print_summary(
-        f"Global session — {len(touched)} subject(s)", len(recent), sum(recent)
+        f"Global session — {step.summary['subjects']} subject(s)",
+        step.summary["answered"], step.summary["correct"],
     )
     print("Run `python -m engine.cli.dashboard` to see your map light up.")
 

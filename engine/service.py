@@ -133,13 +133,23 @@ def is_correct(answer: str, item: StudyItem) -> bool:
 
 
 @dataclass
-class AnswerOutcome:
-    """Everything an answer produces, computed once for both the API and CLI.
+class SettleResult:
+    """The log-wide result of settling one answer — the canonical Settle (see
+    CONTEXT.md). No session-local state: `StudyLoop.settle` folds streak, combo,
+    reward, and XP on top of this."""
+    correct: bool
+    grade: int
+    records: list[str]
+    next_review_days: int | None
+    why_wrong: str
+    ask_mnemonic: bool
 
-    The caller renders these (JSON vs stdout) and folds streak/best back into its
-    own container; settle_answer owns the shared write sequence and the derived
-    values so the two front ends can never drift.
-    """
+
+@dataclass
+class AnswerOutcome:
+    """Everything an answer produces for rendering, assembled by `StudyLoop.settle`
+    from a `SettleResult` plus the session-local framing. The front ends only
+    render these (JSON vs stdout)."""
     correct: bool
     grade: int
     records: list[str]
@@ -160,19 +170,15 @@ def settle_answer(
     raw_answer: str,
     elapsed_ms: int,
     tracker,
-    streak_in: int,
-    best_in: int,
-    rng: np.random.Generator,
-) -> AnswerOutcome:
-    """Grade and settle one answer: the single write path shared by API and CLI.
+) -> SettleResult:
+    """Settle one answer's log-wide effects: the write path shared by both front
+    ends via `StudyLoop`.
 
     Logs the answer, advances FSRS state, banks quests, records the retry debt,
-    detects personal-best crossings, and derives the streak/combo/reward framing.
-    Does *not* touch caller-owned state (the in-session retry queue, the recent
-    list, the running XP total) — those differ between front ends.
+    and detects personal-best crossings. Session-local framing (streak, combo,
+    reward, XP) is *not* here — that is per-session state the StudyLoop owns.
     """
     from engine.config import LEECH_LAPSES
-    from engine.engagement import combo_break_message, combo_label, reward_message
     from engine.quests import settle
     from engine.scheduler import store
 
@@ -195,27 +201,12 @@ def settle_answer(
     else:
         dao.add_pending_retry(item.concept_id)  # owed a re-test even across sessions
 
-    streak = streak_in + 1 if correct else 0
-    best = max(best_in, streak)
-    combo_break = "" if correct else combo_break_message(streak_in, best)
-
-    xp = 0
-    if correct:
-        concept = dao.get_concept(item.concept_id)
-        xp = grd * (concept.exam_weight if concept else 1)
-
     is_leech = dao.get_lapses(item.concept_id) >= LEECH_LAPSES
     no_mnemonic = dao.get_mnemonic(item.concept_id) is None
-    return AnswerOutcome(
+    return SettleResult(
         correct=correct,
         grade=grd,
         records=records,
-        reward=reward_message(correct, streak, rng),
-        combo=combo_label(streak),
-        combo_break=combo_break,
-        streak=streak,
-        best_streak=best,
-        xp=xp,
         next_review_days=_days_until(new_state.due),
         why_wrong="" if correct else explanation_for(raw_answer, item),
         ask_mnemonic=no_mnemonic and (not correct or is_leech),
