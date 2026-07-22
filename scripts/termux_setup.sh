@@ -27,8 +27,20 @@ if [ ! -f frontend/dist/index.html ]; then
   (cd frontend && npm install && npm run build)
 fi
 
+# Android kills backgrounded apps by default — switching to Chrome can take
+# Termux (and this server) down with it. A wake lock stops the OS from
+# suspending Termux for CPU/doze reasons; it does NOT override a device's own
+# battery-optimization killer, so also set Termux to "Unrestricted" battery
+# under Android Settings > Apps > Termux > Battery, and don't swipe away
+# Termux's notification — that's what keeps the process alive in the background.
+if command -v termux-wake-lock >/dev/null 2>&1; then
+  termux-wake-lock
+fi
+
 echo "Starting StudyEngine at http://127.0.0.1:8000 — open that URL in Chrome," \
-     "then use Chrome's menu > 'Add to Home screen' to install it as an app icon."
+     "then use Chrome's menu > 'Add to Home screen' to install it as an app icon." \
+     "Keep Termux running in the background (see battery note above) or the" \
+     "server will die when you switch away."
 if command -v termux-open-url >/dev/null 2>&1; then
   termux-open-url http://127.0.0.1:8000 &
 fi
