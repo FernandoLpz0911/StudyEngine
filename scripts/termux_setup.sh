@@ -10,11 +10,14 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 if command -v pkg >/dev/null 2>&1; then
-  pkg install -y python nodejs git
+  # numpy/scipy have no PyPI wheels for Termux's bionic libc and are painfully
+  # slow (or fail) to build from source on-device — use Termux's own
+  # precompiled packages instead. rust/binutils are there because pydantic-core
+  # (a FastAPI dependency) is also unavailable as a wheel and must build.
+  pkg install -y python python-numpy python-scipy nodejs git rust binutils
 fi
 
-python -m pip install --quiet --upgrade pip
-python -m pip install --quiet fastapi uvicorn numpy scipy "fsrs>=6.0.0" httpx
+python -m pip install --quiet fastapi uvicorn "fsrs>=6.0.0" httpx
 
 if [ ! -f frontend/dist/index.html ]; then
   (cd frontend && npm install && npm run build)
