@@ -74,3 +74,24 @@
   padding: 28px 24px;
   flex: 1;
 }
+
+@media (max-width: 600px) {
+  .app-header {
+    padding: 10px 12px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .app-nav {
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-btn {
+    padding: 8px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .app-main {
+    padding: 16px 12px;
+  }
+}
