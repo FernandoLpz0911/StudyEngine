@@ -46,8 +46,8 @@ class TestPolicy:
 
     def test_locked_until_prereq_introduced(self, db):
         sel = policy.select_next("diffeq")
-        assert sel.concept.id == "diffeq.separable"  # only root is available first
-        store.save(store.apply_rating(store.get_or_create("diffeq.separable"), 3))
+        assert sel.concept.id == "diffeq.intro"  # only root is available first
+        store.save(store.apply_rating(store.get_or_create("diffeq.intro"), 3))
         ids = {policy.select_next("diffeq").concept.id for _ in range(1)}
         assert ids  # something is now selectable (root review or unlocked child)
 

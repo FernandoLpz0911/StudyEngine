@@ -55,6 +55,9 @@ def load_subject(subject: str, seed_path: Path | None = None) -> int:
                     c.get("exam_weight", 1),
                 ),
             )
+        # Edges in a second pass: a concept's prerequisites may be declared later
+        # in the file, and the FK on concept_prereq needs both rows to exist.
+        for c in concepts:
             for prereq in c.get("prerequisites", []):
                 conn.execute(
                     "INSERT OR IGNORE INTO concept_prereq (concept_id, prereq_id) VALUES (?, ?)",

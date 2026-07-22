@@ -37,7 +37,7 @@ class TestSelectGlobal:
         assert sel.reason == "new"
 
     def test_interleave_penalty_avoids_last_subject(self, db):
-        _overdue("diffeq.separable")
+        _overdue("diffeq.intro")
         _overdue("econ.incentives")
         assert policy.select_global(
             ["diffeq", "econ"], avoid_subject="diffeq"
@@ -47,15 +47,15 @@ class TestSelectGlobal:
         ).concept.subject == "diffeq"
 
     def test_weak_mode_picks_weakest(self, db):
-        _practice("diffeq.separable", "diffeq", correct=True)
+        _practice("diffeq.intro", "diffeq", correct=True)
         _practice("econ.incentives", "econ", correct=False)
         assert policy.select_global(
             ["diffeq", "econ"], mode="weak"
         ).concept.id == "econ.incentives"
 
     def test_confidence_mode_picks_strongest(self, db):
-        _practice("diffeq.separable", "diffeq", correct=True)
+        _practice("diffeq.intro", "diffeq", correct=True)
         _practice("econ.incentives", "econ", correct=False)
         assert policy.select_global(
             ["diffeq", "econ"], mode="confidence"
-        ).concept.id == "diffeq.separable"
+        ).concept.id == "diffeq.intro"
