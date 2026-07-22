@@ -17,6 +17,10 @@ if command -v pkg >/dev/null 2>&1; then
   pkg install -y python python-numpy python-scipy nodejs git rust binutils
 fi
 
+# pydantic-core (FastAPI dep) builds via maturin/Rust and refuses to run
+# unless ANDROID_API_LEVEL is set — Termux doesn't export it, so read it off
+# the device.
+export ANDROID_API_LEVEL="${ANDROID_API_LEVEL:-$(getprop ro.build.version.sdk 2>/dev/null || echo 24)}"
 python -m pip install --quiet fastapi uvicorn "fsrs>=6.0.0" httpx
 
 if [ ! -f frontend/dist/index.html ]; then
