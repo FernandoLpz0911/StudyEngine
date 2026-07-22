@@ -64,7 +64,7 @@
       "prerequisites": [
         "proofs.tautology"
       ],
-      "theory_md": "## Negating ∧ and ∨\n\n$$\\lnot(P \\land Q) \\equiv \\lnot P \\lor \\lnot Q \\qquad\n  \\lnot(P \\lor Q) \\equiv \\lnot P \\land \\lnot Q$$\n\nNegation flips the connective: \"not (both)\" = \"at least one fails\"; \"not (either)\"\n= \"both fail\". These are tautologies (verify by truth table).\n",
+      "theory_md": "## Negating ∧ and ∨\n\n$$\\lnot(P \\land Q) \\equiv \\lnot P \\lor \\lnot Q \\qquad \\lnot(P \\lor Q) \\equiv \\lnot P \\land \\lnot Q$$\n\nNegation flips the connective: \"not (both)\" = \"at least one fails\"; \"not (either)\"\n= \"both fail\". These are tautologies (verify by truth table).\n",
       "card": {
         "question": "¬(P ∧ Q) is logically equivalent to:",
         "answer": "¬P ∨ ¬Q",
@@ -102,7 +102,7 @@
       "prerequisites": [
         "proofs.denial"
       ],
-      "theory_md": "## Negating quantifiers\n\nPush negation through, flipping each quantifier and negating the predicate:\n$$\\lnot \\forall x\\, P(x) \\equiv \\exists x\\, \\lnot P(x), \\qquad\n  \\lnot \\exists x\\, P(x) \\equiv \\forall x\\, \\lnot P(x).$$\n\nSo $\\lnot \\big(\\forall x\\, \\exists y\\, P(x,y)\\big) \\equiv\n\\exists x\\, \\forall y\\, \\lnot P(x,y)$. Order of mixed quantifiers matters.\n",
+      "theory_md": "## Negating quantifiers\n\nPush negation through, flipping each quantifier and negating the predicate:\n$$\\lnot \\forall x\\, P(x) \\equiv \\exists x\\, \\lnot P(x), \\qquad \\lnot \\exists x\\, P(x) \\equiv \\forall x\\, \\lnot P(x).$$\n\nSo $\\lnot \\big(\\forall x\\, \\exists y\\, P(x,y)\\big) \\equiv\n\\exists x\\, \\forall y\\, \\lnot P(x,y)$. Order of mixed quantifiers matters.\n",
       "card": {
         "question": "The negation of ∀x ∃y, P(x,y) is:",
         "answer": "∃x ∀y, ¬P(x,y)",
@@ -216,7 +216,7 @@
       "prerequisites": [
         "proofs.induction"
       ],
-      "theory_md": "## Closed forms you prove by induction\n\n$$\\sum_{i=1}^n i = \\frac{n(n+1)}{2}, \\quad\n  \\sum_{i=1}^n i^2 = \\frac{n(n+1)(2n+1)}{6}, \\quad\n  \\sum_{i=1}^n i^3 = \\left(\\frac{n(n+1)}{2}\\right)^2.$$\n\nAlso the first $n$ odd numbers sum to $n^2$. Evaluating these builds intuition for\nthe induction proofs of them.\n",
+      "theory_md": "## Closed forms you prove by induction\n\n$$\\sum_{i=1}^n i = \\frac{n(n+1)}{2}, \\quad \\sum_{i=1}^n i^2 = \\frac{n(n+1)(2n+1)}{6}, \\quad \\sum_{i=1}^n i^3 = \\left(\\frac{n(n+1)}{2}\\right)^2.$$\n\nAlso the first $n$ odd numbers sum to $n^2$. Evaluating these builds intuition for\nthe induction proofs of them.\n",
       "generator": {
         "kind": "induction_sum",
         "params": {

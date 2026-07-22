@@ -15,7 +15,7 @@
           ]
         }
       },
-      "theory_md": "## Why this exists\n\nMany systems change at a rate proportional to their current size (populations,\nradioactive decay, cooling). These give the simplest ODEs — **separable** ones.\n\n## The method\n\nAn equation is separable if you can write it as $\\dfrac{dy}{dt} = g(t)\\,h(y)$.\nSeparate and integrate:\n$$\\int \\frac{dy}{h(y)} = \\int g(t)\\,dt.$$\n\nFor pure growth/decay $\\dfrac{dy}{dt} = k\\,y$:\n$$\\frac{dy}{y} = k\\,dt \\;\\Rightarrow\\; \\ln|y| = kt + C \\;\\Rightarrow\\;\n  y(t) = y_0\\,e^{kt}.$$\n$k>0$ grows, $k<0$ decays.\n\n## Worked example\n\n$\\dfrac{dy}{dt} = -0.3\\,y,\\ y(0)=10$. Then $y(t) = 10\\,e^{-0.3t}$, so\n$y(2) = 10e^{-0.6}\\approx 5.49$.\n\n## Gotchas\n\n- Don't forget $+C$ and solve for it with the initial condition.\n- Dividing by $h(y)$ can lose constant (equilibrium) solutions where $h(y)=0$.\n"
+      "theory_md": "## Why this exists\n\nMany systems change at a rate proportional to their current size (populations,\nradioactive decay, cooling). These give the simplest ODEs — **separable** ones.\n\n## The method\n\nAn equation is separable if you can write it as $\\dfrac{dy}{dt} = g(t)\\,h(y)$.\nSeparate and integrate:\n$$\\int \\frac{dy}{h(y)} = \\int g(t)\\,dt.$$\n\nFor pure growth/decay $\\dfrac{dy}{dt} = k\\,y$:\n$$\\frac{dy}{y} = k\\,dt \\;\\Rightarrow\\; \\ln|y| = kt + C \\;\\Rightarrow\\; y(t) = y_0\\,e^{kt}.$$\n$k>0$ grows, $k<0$ decays.\n\n## Worked example\n\n$\\dfrac{dy}{dt} = -0.3\\,y,\\ y(0)=10$. Then $y(t) = 10\\,e^{-0.3t}$, so\n$y(2) = 10e^{-0.6}\\approx 5.49$.\n\n## Gotchas\n\n- Don't forget $+C$ and solve for it with the initial condition.\n- Dividing by $h(y)$ can lose constant (equilibrium) solutions where $h(y)=0$.\n"
     },
     {
       "id": "diffeq.first_order_linear",
@@ -73,7 +73,7 @@
           ]
         }
       },
-      "theory_md": "## Why this exists\n\nThe **Laplace transform** turns calculus (derivatives, IVPs) into algebra by mapping\na function $f(t)$ to $F(s)=\\int_0^\\infty e^{-st}f(t)\\,dt$.\n\n## Key transforms\n\n$$\\mathcal L\\{1\\}=\\tfrac1s,\\quad \\mathcal L\\{e^{at}\\}=\\tfrac{1}{s-a},\\quad\n\\mathcal L\\{t^n\\}=\\tfrac{n!}{s^{n+1}},$$\n$$\\mathcal L\\{\\cos\\omega t\\}=\\tfrac{s}{s^2+\\omega^2},\\quad\n\\mathcal L\\{\\sin\\omega t\\}=\\tfrac{\\omega}{s^2+\\omega^2}.$$\nDerivative rule: $\\mathcal L\\{f'\\}=sF(s)-f(0)$ — this is why it solves IVPs.\n\n## Worked example\n\n$\\mathcal L\\{e^{3t}\\} = \\dfrac{1}{s-3}$ (valid for $s>3$).\n\n## Gotchas\n\n- Mind the region of convergence ($s>a$).\n- Linearity lets you transform term-by-term.\n"
+      "theory_md": "## Why this exists\n\nThe **Laplace transform** turns calculus (derivatives, IVPs) into algebra by mapping\na function $f(t)$ to $F(s)=\\int_0^\\infty e^{-st}f(t)\\,dt$.\n\n## Key transforms\n\n$$\\mathcal L\\{1\\}=\\tfrac1s,\\quad \\mathcal L\\{e^{at}\\}=\\tfrac{1}{s-a},\\quad \\mathcal L\\{t^n\\}=\\tfrac{n!}{s^{n+1}},$$\n$$\\mathcal L\\{\\cos\\omega t\\}=\\tfrac{s}{s^2+\\omega^2},\\quad \\mathcal L\\{\\sin\\omega t\\}=\\tfrac{\\omega}{s^2+\\omega^2}.$$\nDerivative rule: $\\mathcal L\\{f'\\}=sF(s)-f(0)$ — this is why it solves IVPs.\n\n## Worked example\n\n$\\mathcal L\\{e^{3t}\\} = \\dfrac{1}{s-3}$ (valid for $s>3$).\n\n## Gotchas\n\n- Mind the region of convergence ($s>a$).\n- Linearity lets you transform term-by-term.\n"
     },
     {
       "id": "diffeq.newton_cooling",
@@ -91,7 +91,7 @@
           ]
         }
       },
-      "theory_md": "## Why this exists\n\n**Newton's law of cooling**: an object's temperature changes at a rate proportional\nto the gap with its surroundings — a classic applied first-order linear ODE.\n\n## The model\n\n$$\\frac{dT}{dt} = -k\\,(T - T_{env}) \\;\\Rightarrow\\;\nT(t) = T_{env} + (T_0 - T_{env})\\,e^{-kt}.$$\n$T_{env}$ is the ambient temperature; $k>0$ the cooling constant. $T\\to T_{env}$ as\n$t\\to\\infty$.\n\n## Worked example\n\nCoffee at $90^\\circ$ in a $20^\\circ$ room, $k=0.1$/min:\n$T(t)=20+70e^{-0.1t}$, so $T(10)=20+70e^{-1}\\approx 45.8^\\circ$.\n\n## Gotchas\n\n- It's the first-order-linear solution with equilibrium $T_{env}$.\n- Find $k$ from a second data point before predicting.\n"
+      "theory_md": "## Why this exists\n\n**Newton's law of cooling**: an object's temperature changes at a rate proportional\nto the gap with its surroundings — a classic applied first-order linear ODE.\n\n## The model\n\n$$\\frac{dT}{dt} = -k\\,(T - T_{env}) \\;\\Rightarrow\\; T(t) = T_{env} + (T_0 - T_{env})\\,e^{-kt}.$$\n$T_{env}$ is the ambient temperature; $k>0$ the cooling constant. $T\\to T_{env}$ as\n$t\\to\\infty$.\n\n## Worked example\n\nCoffee at $90^\\circ$ in a $20^\\circ$ room, $k=0.1$/min:\n$T(t)=20+70e^{-0.1t}$, so $T(10)=20+70e^{-1}\\approx 45.8^\\circ$.\n\n## Gotchas\n\n- It's the first-order-linear solution with equilibrium $T_{env}$.\n- Find $k$ from a second data point before predicting.\n"
     },
     {
       "id": "diffeq.integrating_factor",
@@ -147,7 +147,7 @@
           ]
         }
       },
-      "theory_md": "## Why this exists\n\nAfter solving the IVP **algebraically** in the $s$-domain, you must transform the\nanswer $F(s)$ back to $f(t)$ — the **inverse Laplace transform**.\n\n## Core inverses\n\n$$\\frac{1}{s-a}\\to e^{at},\\qquad \\frac{\\omega}{s^2+\\omega^2}\\to \\sin\\omega t,\n\\qquad \\frac{s}{s^2+\\omega^2}\\to \\cos\\omega t,\\qquad \\frac{n!}{s^{n+1}}\\to t^n.$$\n\n## Method: partial fractions\n\nBreak a rational $F(s)$ into pieces matching the table, then invert each.\n\n## Worked example\n\n$\\dfrac{1}{s-3}\\to e^{3t}$; $\\dfrac{2}{s^2+4}\\to \\sin 2t$ (since $\\omega=2$).\n\n## Gotchas\n\n- Match $\\omega$ vs $\\omega^2$ carefully: $\\dfrac{1}{s^2+4}\\to\\frac12\\sin 2t$, not\n  $\\sin 2t$.\n- Complete the square for shifted denominators $\\to e^{at}\\sin/\\cos$.\n"
+      "theory_md": "## Why this exists\n\nAfter solving the IVP **algebraically** in the $s$-domain, you must transform the\nanswer $F(s)$ back to $f(t)$ — the **inverse Laplace transform**.\n\n## Core inverses\n\n$$\\frac{1}{s-a}\\to e^{at},\\qquad \\frac{\\omega}{s^2+\\omega^2}\\to \\sin\\omega t, \\qquad \\frac{s}{s^2+\\omega^2}\\to \\cos\\omega t,\\qquad \\frac{n!}{s^{n+1}}\\to t^n.$$\n\n## Method: partial fractions\n\nBreak a rational $F(s)$ into pieces matching the table, then invert each.\n\n## Worked example\n\n$\\dfrac{1}{s-3}\\to e^{3t}$; $\\dfrac{2}{s^2+4}\\to \\sin 2t$ (since $\\omega=2$).\n\n## Gotchas\n\n- Match $\\omega$ vs $\\omega^2$ carefully: $\\dfrac{1}{s^2+4}\\to\\frac12\\sin 2t$, not\n  $\\sin 2t$.\n- Complete the square for shifted denominators $\\to e^{at}\\sin/\\cos$.\n"
     },
     {
       "id": "diffeq.intro",
@@ -268,7 +268,7 @@
       "prerequisites": [
         "diffeq.separable"
       ],
-      "theory_md": "## Background\n\nPopulations grow at a rate proportional to size — until resources limit them.\n\n## Two models\n\n- **Exponential** (Malthus): $P'=rP\\Rightarrow P=P_0e^{rt}$ (unbounded).\n- **Logistic** (Verhulst): growth slows near carrying capacity $K$:\n  $$P'=rP\\left(1-\\frac{P}{K}\\right)\\Rightarrow\n    P(t)=\\frac{K}{1+\\frac{K-P_0}{P_0}e^{-rt}}.$$\n\n## Worked example\n\nLogistic with $K=400$: $P$ rises, inflects at $P=K/2=200$, and levels at $400$.\n\n## Gotchas\n\n- Logistic has equilibria $P=0$ (unstable) and $P=K$ (stable).\n- Exponential is the logistic limit when $P\\ll K$.\n",
+      "theory_md": "## Background\n\nPopulations grow at a rate proportional to size — until resources limit them.\n\n## Two models\n\n- **Exponential** (Malthus): $P'=rP\\Rightarrow P=P_0e^{rt}$ (unbounded).\n- **Logistic** (Verhulst): growth slows near carrying capacity $K$:\n  $$P'=rP\\left(1-\\frac{P}{K}\\right)\\Rightarrow P(t)=\\frac{K}{1+\\frac{K-P_0}{P_0}e^{-rt}}.$$\n\n## Worked example\n\nLogistic with $K=400$: $P$ rises, inflects at $P=K/2=200$, and levels at $400$.\n\n## Gotchas\n\n- Logistic has equilibria $P=0$ (unstable) and $P=K$ (stable).\n- Exponential is the logistic limit when $P\\ll K$.\n",
       "generator": {
         "kind": "population",
         "params": {
@@ -499,7 +499,7 @@
       "prerequisites": [
         "diffeq.euler_method"
       ],
-      "theory_md": "## Background\n\nEuler's method is only first-order accurate. **Runge–Kutta 4 (RK4)** samples the\nslope four times per step for far better accuracy at the same step size.\n\n## One step\n\n$$\\begin{aligned}\nk_1&=f(x_n,y_n), & k_2&=f(x_n+\\tfrac h2,\\,y_n+\\tfrac h2k_1),\\\\\nk_3&=f(x_n+\\tfrac h2,\\,y_n+\\tfrac h2k_2), & k_4&=f(x_n+h,\\,y_n+hk_3),\n\\end{aligned}$$\n$$y_{n+1}=y_n+\\frac h6\\,(k_1+2k_2+2k_3+k_4).$$\n\n## Gotchas\n\n- RK4 is **4th-order**: halving $h$ cuts error ~16×.\n- Adaptive methods vary $h$ to control error (3.7).\n",
+      "theory_md": "## Background\n\nEuler's method is only first-order accurate. **Runge–Kutta 4 (RK4)** samples the\nslope four times per step for far better accuracy at the same step size.\n\n## One step\n\n$$\\begin{aligned} k_1&=f(x_n,y_n), & k_2&=f(x_n+\\tfrac h2,\\,y_n+\\tfrac h2k_1),\\\\ k_3&=f(x_n+\\tfrac h2,\\,y_n+\\tfrac h2k_2), & k_4&=f(x_n+h,\\,y_n+hk_3), \\end{aligned}$$\n$$y_{n+1}=y_n+\\frac h6\\,(k_1+2k_2+2k_3+k_4).$$\n\n## Gotchas\n\n- RK4 is **4th-order**: halving $h$ cuts error ~16×.\n- Adaptive methods vary $h$ to control error (3.7).\n",
       "generator": {
         "kind": "rk4_step",
         "params": {
@@ -573,7 +573,7 @@
       "prerequisites": [
         "diffeq.laplace_props"
       ],
-      "theory_md": "## Background\n\nReal inputs switch on/off. The **Heaviside step** $u(t-a)=0$ for $t<a$, $1$ for\n$t\\ge a$ models that.\n\n## Transforms\n\n$$\\mathcal L\\{u(t-a)\\}=\\frac{e^{-as}}{s},\\qquad\n\\mathcal L\\{u(t-a)g(t-a)\\}=e^{-as}G(s).$$\nThe **second shift** $e^{-as}$ encodes the time delay.\n\n## Worked example\n\n$\\mathcal L\\{u(t-2)\\}=e^{-2s}/s$.\n\n## Gotchas\n\n- The shift rule needs $g$ evaluated at $t-a$; rewrite the function in terms of\n  $(t-a)$ first.\n",
+      "theory_md": "## Background\n\nReal inputs switch on/off. The **Heaviside step** $u(t-a)=0$ for $t<a$, $1$ for\n$t\\ge a$ models that.\n\n## Transforms\n\n$$\\mathcal L\\{u(t-a)\\}=\\frac{e^{-as}}{s},\\qquad \\mathcal L\\{u(t-a)g(t-a)\\}=e^{-as}G(s).$$\nThe **second shift** $e^{-as}$ encodes the time delay.\n\n## Worked example\n\n$\\mathcal L\\{u(t-2)\\}=e^{-2s}/s$.\n\n## Gotchas\n\n- The shift rule needs $g$ evaluated at $t-a$; rewrite the function in terms of\n  $(t-a)$ first.\n",
       "generator": {
         "kind": "step_function",
         "params": {
@@ -610,7 +610,7 @@
       "prerequisites": [
         "diffeq.laplace_inverse"
       ],
-      "theory_md": "## Background\n\nTo invert a **product** $F(s)G(s)$, you don't multiply $f$ and $g$ — you\n**convolve** them.\n\n## Theorem\n\n$$\\mathcal L\\{(f*g)(t)\\}=F(s)\\,G(s),\\quad\n(f*g)(t)=\\int_0^t f(\\tau)\\,g(t-\\tau)\\,d\\tau.$$\n\n## Why it matters\n\nIt inverts products without partial fractions and expresses the response of a\nsystem to arbitrary input as (impulse response) $*$ (input).\n\n## Gotchas\n\n- Convolution is commutative: $f*g=g*f$.\n- $\\mathcal L\\{fg\\}\\ne F\\cdot G$ — the product rule is for the *convolution*, not the\n  pointwise product.\n",
+      "theory_md": "## Background\n\nTo invert a **product** $F(s)G(s)$, you don't multiply $f$ and $g$ — you\n**convolve** them.\n\n## Theorem\n\n$$\\mathcal L\\{(f*g)(t)\\}=F(s)\\,G(s),\\quad (f*g)(t)=\\int_0^t f(\\tau)\\,g(t-\\tau)\\,d\\tau.$$\n\n## Why it matters\n\nIt inverts products without partial fractions and expresses the response of a\nsystem to arbitrary input as (impulse response) $*$ (input).\n\n## Gotchas\n\n- Convolution is commutative: $f*g=g*f$.\n- $\\mathcal L\\{fg\\}\\ne F\\cdot G$ — the product rule is for the *convolution*, not the\n  pointwise product.\n",
       "card": {
         "question": "The convolution theorem says the inverse transform of F(s)·G(s) is:",
         "answer": "The convolution (f * g)(t) = ∫₀ᵗ f(τ)g(t−τ)dτ",
@@ -666,7 +666,7 @@
       "prerequisites": [
         "diffeq.separation_eigenvalue"
       ],
-      "theory_md": "## Background\n\nA periodic function on $[-L,L]$ can be written as an infinite sum of sines and\ncosines — a **Fourier series**:\n$$f(x)=\\frac{a_0}{2}+\\sum_{n\\ge1}\\left(a_n\\cos\\frac{n\\pi x}{L}\n  +b_n\\sin\\frac{n\\pi x}{L}\\right).$$\n\n## Coefficients\n\n$$a_n=\\frac1L\\int_{-L}^{L} f\\cos\\frac{n\\pi x}{L}dx,\\quad\n   b_n=\\frac1L\\int_{-L}^{L} f\\sin\\frac{n\\pi x}{L}dx.$$\nFor $f(x)=x$: $a_n=0$, $b_n=\\dfrac{2L}{n\\pi}(-1)^{n+1}$. For $f(x)=x^2$:\n$a_n=\\dfrac{4L^2(-1)^n}{n^2\\pi^2}$.\n\n## Gotchas\n\n- At a jump, the series converges to the **midpoint** (Gibbs phenomenon nearby).\n",
+      "theory_md": "## Background\n\nA periodic function on $[-L,L]$ can be written as an infinite sum of sines and\ncosines — a **Fourier series**:\n$$f(x)=\\frac{a_0}{2}+\\sum_{n\\ge1}\\left(a_n\\cos\\frac{n\\pi x}{L} +b_n\\sin\\frac{n\\pi x}{L}\\right).$$\n\n## Coefficients\n\n$$a_n=\\frac1L\\int_{-L}^{L} f\\cos\\frac{n\\pi x}{L}dx,\\quad b_n=\\frac1L\\int_{-L}^{L} f\\sin\\frac{n\\pi x}{L}dx.$$\nFor $f(x)=x$: $a_n=0$, $b_n=\\dfrac{2L}{n\\pi}(-1)^{n+1}$. For $f(x)=x^2$:\n$a_n=\\dfrac{4L^2(-1)^n}{n^2\\pi^2}$.\n\n## Gotchas\n\n- At a jump, the series converges to the **midpoint** (Gibbs phenomenon nearby).\n",
       "generator": {
         "kind": "fourier",
         "params": {
@@ -722,7 +722,7 @@
       "prerequisites": [
         "diffeq.fourier"
       ],
-      "theory_md": "## Background\n\nA plucked string obeys the **wave equation**:\n$$u_{tt}=c^2u_{xx},\\quad u(0,t)=u(L,t)=0,$$\nwhere $c$ is the wave speed.\n\n## Solution\n\nStanding-wave modes that **oscillate** (not decay):\n$$u(x,t)=\\sum_n \\sin\\frac{n\\pi x}{L}\\Big(a_n\\cos\\frac{n\\pi c t}{L}\n  +b_n\\sin\\frac{n\\pi c t}{L}\\Big).$$\nMode $n$ has frequency $\\dfrac{n\\pi c}{L}$ — the musical harmonics.\n\n## Gotchas\n\n- Unlike heat, energy is conserved: modes oscillate forever (no damping).\n- d'Alembert's form $u=\\tfrac12[f(x-ct)+f(x+ct)]$ shows left/right travelling waves.\n",
+      "theory_md": "## Background\n\nA plucked string obeys the **wave equation**:\n$$u_{tt}=c^2u_{xx},\\quad u(0,t)=u(L,t)=0,$$\nwhere $c$ is the wave speed.\n\n## Solution\n\nStanding-wave modes that **oscillate** (not decay):\n$$u(x,t)=\\sum_n \\sin\\frac{n\\pi x}{L}\\Big(a_n\\cos\\frac{n\\pi c t}{L} +b_n\\sin\\frac{n\\pi c t}{L}\\Big).$$\nMode $n$ has frequency $\\dfrac{n\\pi c}{L}$ — the musical harmonics.\n\n## Gotchas\n\n- Unlike heat, energy is conserved: modes oscillate forever (no damping).\n- d'Alembert's form $u=\\tfrac12[f(x-ct)+f(x+ct)]$ shows left/right travelling waves.\n",
       "generator": {
         "kind": "wave_mode",
         "params": {

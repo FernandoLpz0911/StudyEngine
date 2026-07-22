@@ -166,7 +166,7 @@
       "prerequisites": [
         "fm.force_concept"
       ],
-      "theory_md": "## Accumulating under δ(t)\n\nWith force $\\delta(t)$, the factor from time 0 to $t$ is\n$\\exp\\!\\big(\\int_0^t \\delta_s\\,ds\\big)$. For $\\delta_t=a+bt$,\n$$\\int_0^t (a+bs)\\,ds = at+\\tfrac{b}{2}t^2,\\quad\n\\text{AV}=P\\,e^{\\,at+bt^2/2}.$$\nConstant force is the special case $b=0$: $P\\,e^{\\delta t}$.\n",
+      "theory_md": "## Accumulating under δ(t)\n\nWith force $\\delta(t)$, the factor from time 0 to $t$ is\n$\\exp\\!\\big(\\int_0^t \\delta_s\\,ds\\big)$. For $\\delta_t=a+bt$,\n$$\\int_0^t (a+bs)\\,ds = at+\\tfrac{b}{2}t^2,\\quad \\text{AV}=P\\,e^{\\,at+bt^2/2}.$$\nConstant force is the special case $b=0$: $P\\,e^{\\delta t}$.\n",
       "generator": {
         "kind": "fm_varforce",
         "params": {
@@ -205,7 +205,7 @@
         "fm.compound",
         "fm.annuity_types"
       ],
-      "theory_md": "## Level annuities\n\n$$PV=\\text{PMT}\\cdot a_{\\overline{n}|}=\\text{PMT}\\,\\frac{1-v^n}{i},\\qquad\nFV=\\text{PMT}\\cdot s_{\\overline{n}|}.$$\nA **perpetuity-immediate** pays forever: $PV=\\dfrac{\\text{PMT}}{i}$. A level loan\npayment inverts the PV: $\\text{PMT}=\\dfrac{L}{a_{\\overline{n}|}}=\\dfrac{Li}{1-v^n}$.\n",
+      "theory_md": "## Level annuities\n\n$$PV=\\text{PMT}\\cdot a_{\\overline{n}|}=\\text{PMT}\\,\\frac{1-v^n}{i},\\qquad FV=\\text{PMT}\\cdot s_{\\overline{n}|}.$$\nA **perpetuity-immediate** pays forever: $PV=\\dfrac{\\text{PMT}}{i}$. A level loan\npayment inverts the PV: $\\text{PMT}=\\dfrac{L}{a_{\\overline{n}|}}=\\dfrac{Li}{1-v^n}$.\n",
       "generator": {
         "kind": "fm_annuity",
         "params": {
@@ -253,7 +253,7 @@
       "prerequisites": [
         "fm.annuities"
       ],
-      "theory_md": "## Splitting each payment\n\nIn an amortized loan, each level payment is part interest, part principal:\n$$I_k=i\\cdot B_{k-1}=\\text{PMT}\\,(1-v^{\\,n-k+1}),\\qquad\nP_k=\\text{PMT}\\,v^{\\,n-k+1}.$$\nAs $k$ grows, interest **falls** and principal **rises** (principal repayments grow\nby the factor $(1+i)$ each period).\n",
+      "theory_md": "## Splitting each payment\n\nIn an amortized loan, each level payment is part interest, part principal:\n$$I_k=i\\cdot B_{k-1}=\\text{PMT}\\,(1-v^{\\,n-k+1}),\\qquad P_k=\\text{PMT}\\,v^{\\,n-k+1}.$$\nAs $k$ grows, interest **falls** and principal **rises** (principal repayments grow\nby the factor $(1+i)$ each period).\n",
       "card": {
         "question": "Over the life of an amortized level-payment loan, each successive payment contains:",
         "answer": "less interest and more principal",
@@ -314,7 +314,7 @@
       "prerequisites": [
         "fm.annuities"
       ],
-      "theory_md": "## Interest-only + side fund\n\nUnder the **sinking-fund** method the borrower pays the lender **interest only**\n($Li$ each year) and separately deposits into a fund earning rate $j$ to accumulate\nthe principal $L$ by maturity:\n$$\\text{deposit}=\\frac{L}{s_{\\overline{n}|j}},\\qquad\n\\text{total annual cost}=Li+\\frac{L}{s_{\\overline{n}|j}}.$$\n",
+      "theory_md": "## Interest-only + side fund\n\nUnder the **sinking-fund** method the borrower pays the lender **interest only**\n($Li$ each year) and separately deposits into a fund earning rate $j$ to accumulate\nthe principal $L$ by maturity:\n$$\\text{deposit}=\\frac{L}{s_{\\overline{n}|j}},\\qquad \\text{total annual cost}=Li+\\frac{L}{s_{\\overline{n}|j}}.$$\n",
       "card": {
         "question": "Under the sinking-fund method of loan repayment, the borrower:",
         "answer": "pays interest to the lender and accumulates principal in a separate fund",
