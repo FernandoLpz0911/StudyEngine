@@ -4,18 +4,14 @@
 
 ## What this is
 
-**Multi-subject adaptive study engine**. One shared core (FSRS spaced repetition
-+ prerequisite concept graph + SQLite persistence) serves several university
-courses, each plugged in as **subject module** in one of two modes:
+**Multi-subject adaptive study engine**. One shared core (FSRS spaced repetition + prereq concept graph + SQLite persist) serve many uni course. Each plug in as **subject module**, one of two mode:
 
-- **generator** — algorithmic problems, closed-form answers, auto-graded, deterministic worked solution. No LLM in loop.
-- **recall** — objective multiple-choice items (question + correct answer + distractors), auto-graded against key.
+- **generator** — algo problem, closed-form answer, auto-grade, deterministic worked solution. No LLM in loop.
+- **recall** — objective multi-choice item (question + correct answer + distractor), auto-grade vs key.
 
-**Grading data-based only — no self-rating.** Correctness from computed key; FSRS grade derived from correctness + response time
-(`engine/grading.derive_grade`).
+**Grading data-based only — no self-rate.** Correctness from computed key; FSRS grade derive from correctness + response time (`engine/grading.derive_grade`).
 
-Sibling project `../LearningModel` = single-subject ancestor (SOA Exam P);
-this generalizes its architecture to many subjects.
+Sibling project `../LearningModel` = single-subject ancestor (SOA Exam P); this generalize its architecture to many subject.
 
 ## Subjects
 
@@ -26,21 +22,13 @@ this generalizes its architecture to many subjects.
 | `proofs` | MATH 215 Introduction to Proofs | generator (logic, number theory, sets, functions, counting, floor) + recall |
 | `econ` | ECON 111 Freakonomics | generator (decision math) + recall |
 
-Generator subjects register `generators.py` (kinds). Each generator produces its
-own worked solution on `Problem.explain` (ADR-0003). Legacy `solve.py` files
-(central `engine.feedback.solve` registry) still back the not-yet-migrated
-subjects; `build_item` prefers `Problem.explain` and falls back to the registry.
-Migrated: `databases`. Remaining on the registry: `diffeq`, `econ`, `examfm`,
-`proofs`, `examp`.
+Generator subject register `generators.py` (kinds). Each generator make own worked solution on `Problem.explain` (ADR-0003). Legacy `solve.py` file (central `engine.feedback.solve` registry) still back not-yet-migrate subject; `build_item` prefer `Problem.explain`, fallback to registry. Migrated: `databases`. Still on registry: `diffeq`, `econ`, `examfm`, `proofs`, `examp`.
 
 ## Hard constraints
 
-- **Local-first.** Pure Python + SQLite; no cloud services, no LLM in core.
-- **Answers computed, never improvised.** A generator and its worked solution
-  (`Problem.explain`) share one closed-form computation in the same function, so the
-  shown solution cannot diverge from the graded answer. (Unmigrated subjects still
-  split this across `solve.py` — being retired per ADR-0003.)
-- **Reproducibility.** Generators take explicit `seed`; seed + params logged with every interaction.
+- **Local-first.** Pure Python + SQLite; no cloud service, no LLM in core.
+- **Answer computed, never improvise.** Generator and its worked solution (`Problem.explain`) share one closed-form computation in same function, so shown solution can't diverge from graded answer. (Unmigrated subject still split this across `solve.py` — retiring per ADR-0003.)
+- **Reproducibility.** Generator take explicit `seed`; seed + param log with every interaction.
 
 ## Layout
 
@@ -65,20 +53,12 @@ tests/                  answer-key correctness, FSRS, policy, seed, recall
 
 ## Conventions
 
-- Type hints everywhere; `ruff` (line-length 100) clean; `pytest` green.
-- **Tests first for math:** new generator needs answer-key test that
-  independently recomputes answer across many seeds (see `tests/test_diffeq.py`).
-- Pure functions for math (FSRS curve, generator answers) — unit-testable.
-- No section-divider comments; prefer self-documenting names. Comments for
-  *why* only (derivations, non-obvious choices).
+- Type hint everywhere; `ruff` (line-length 100) clean; `pytest` green.
+- **Test first for math:** new generator need answer-key test that independently recompute answer across many seed (see `tests/test_diffeq.py`).
+- Pure function for math (FSRS curve, generator answer) — unit-testable.
+- No section-divider comment; prefer self-documenting name. Comment for *why* only (derivation, non-obvious choice).
 
 ## Adding a subject
 
-- recall: add `data/subjects/<key>/concept_graph.seed.json` with `card` nodes
-  (`question`, `answer`, `distractors`), register in
-  `engine/subjects/__init__.py` SUBJECTS.
-- generator: also add `engine/subjects/<key>/generators.py` (`@register("kind")`),
-  each generator building its worked steps on `Problem.explain` from the same
-  computation as the answer; import in `engine/subjects/__init__.py`, point concepts
-  at kinds. Mirror `engine/subjects/databases/`. (No `solve.py` — that is the legacy
-  path, ADR-0003.)
+- recall: add `data/subjects/<key>/concept_graph.seed.json` with `card` node (`question`, `answer`, `distractors`), register in `engine/subjects/__init__.py` SUBJECTS.
+- generator: also add `engine/subjects/<key>/generators.py` (`@register("kind")`), each generator build worked step on `Problem.explain` from same computation as answer; import in `engine/subjects/__init__.py`, point concept at kind. Mirror `engine/subjects/databases/`. (No `solve.py` — that legacy path, ADR-0003.)
