@@ -302,6 +302,23 @@ def set_exam_date(body: ExamDateIn) -> dict:
     return {"ok": True}
 
 
+@api.get("/gate")
+def gate_status() -> dict:
+    """Is the study gate open, and what would it take to open it (ADR-0005)."""
+    from engine.gate import quota
+    return quota.status().as_dict()
+
+
+@api.post("/gate/bail")
+def gate_bail() -> dict:
+    """Spend one rationed emergency bail, opening the gate for the rest of the day."""
+    from engine.gate import quota
+    try:
+        return quota.spend_bail().as_dict()
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
 @api.get("/stats")
 def stats() -> dict:
     """Streak, level, XP, daily-goal progress, reviews waiting — the home HUD."""

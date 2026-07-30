@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Dashboard from "./components/Dashboard";
+import GateView from "./components/GateView";
 import KnowledgeMap from "./components/KnowledgeMap";
 import NudgeBell from "./components/NudgeBell";
 import Settings from "./components/Settings";
@@ -8,7 +9,15 @@ import "./App.css";
 
 type Tab = "study" | "dashboard" | "map" | "settings";
 
+/** The desktop gate loads the same bundle with ?gate=1 — study only, no navigation. */
+const GATE_MODE = new URLSearchParams(window.location.search).get("gate") === "1";
+
 export default function App() {
+  if (GATE_MODE) return <GateView />;
+  return <FullApp />;
+}
+
+function FullApp() {
   const [tab, setTab] = useState<Tab>("study");
   const [studyScope, setStudyScope] = useState("global");
   const tabs: [Tab, string][] = [

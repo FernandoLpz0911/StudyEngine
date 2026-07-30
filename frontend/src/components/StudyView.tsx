@@ -97,7 +97,14 @@ function Summary({
   );
 }
 
-export default function StudyView({ initialScope = "global" }: { initialScope?: string }) {
+export default function StudyView({
+  initialScope = "global",
+  lockScope = false,
+}: {
+  initialScope?: string;
+  /** Gate mode: the subject is the quota's subject, so switching it is meaningless. */
+  lockScope?: boolean;
+}) {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [scope, setScope] = useState(initialScope);
   const [sessionId, setSessionId] = useState<number | null>(null);
@@ -300,12 +307,18 @@ export default function StudyView({ initialScope = "global" }: { initialScope?: 
     <div className="study">
       {profile && <StatsBar p={profile} />}
       <div className="study-bar">
-        <select value={scope} onChange={(e) => setScope(e.target.value)}>
-          <option value="global">🌐 Global (interleaved)</option>
-          {subjects.map((s) => (
-            <option key={s.key} value={s.key}>{s.title}</option>
-          ))}
-        </select>
+        {lockScope ? (
+          <span className="chip">
+            {subjects.find((s) => s.key === scope)?.title ?? scope}
+          </span>
+        ) : (
+          <select value={scope} onChange={(e) => setScope(e.target.value)}>
+            <option value="global">🌐 Global (interleaved)</option>
+            {subjects.map((s) => (
+              <option key={s.key} value={s.key}>{s.title}</option>
+            ))}
+          </select>
+        )}
         {dktActive && <span className="chip">DKT active</span>}
         <button className="bell" onClick={toggleSound} title="Sound effects">
           {sound ? "🔊" : "🔇"}

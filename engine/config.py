@@ -35,9 +35,13 @@ MASTERY_ACCURACY_WINDOW: int = int(os.getenv("MASTERY_ACCURACY_WINDOW", "20"))
 # hill). Real mastery and the "mastered" count still use measured signals only.
 ENDOWED_BASELINE: float = float(os.getenv("ENDOWED_BASELINE", "0.1"))
 
-# Streak day boundary: hours offset from UTC for "today" so the streak rolls over
-# at the learner's local midnight, not UTC's.
-STREAK_TZ_OFFSET: float = float(os.getenv("STREAK_TZ_OFFSET", "0"))
+# The learner's day boundary. Everything that means "today" — streak, daily goal,
+# quests, new-per-day cap, records, the study gate's quota — rolls over at local
+# midnight in this zone. An IANA name rather than a fixed UTC offset because a
+# fixed offset is wrong for half the year anywhere that observes DST: Chicago is
+# UTC-6 in winter and UTC-5 in summer, and a hardcoded offset silently moves the
+# rollover by an hour every spring and autumn.
+STUDY_TIMEZONE: str = os.getenv("STUDY_TIMEZONE", "America/Chicago")
 
 # Streak freeze: one earned per this many distinct study days; each earned freeze
 # silently bridges one missed day so a single slip never resets the streak.
@@ -99,3 +103,27 @@ FSRS_MIN_REVIEWS: int = int(os.getenv("FSRS_MIN_REVIEWS", "400"))
 # validation AUC that beats this floor. Below the gate, FSRS retention drives it.
 DKT_MIN_INTERACTIONS: int = int(os.getenv("DKT_MIN_INTERACTIONS", "300"))
 DKT_MIN_AUC: float = float(os.getenv("DKT_MIN_AUC", "0.70"))
+
+# Study gate: the full-screen block held until the day's quota of *correct*
+# answers is paid (ADR-0004, ADR-0005). The quota number is DAILY_GOAL, read
+# against correct answers rather than answers settled.
+GATE_SUBJECT: str = os.getenv("GATE_SUBJECT", "examp")
+# Emergency bails, rationed over a trailing window so a genuine emergency has an
+# answer that is not "uninstall the gate", while staying too scarce to spend idly.
+GATE_BAIL_RATION: int = int(os.getenv("GATE_BAIL_RATION", "3"))
+GATE_BAIL_WINDOW_DAYS: int = int(os.getenv("GATE_BAIL_WINDOW_DAYS", "30"))
+# Watchdog cadence (minutes) for the systemd --user timer. Since the gate raises
+# at most once per local day (ADR-0006), every tick after the first is a no-op, so
+# a tight interval buys nothing: the timer's only job is to notice an unpaid day
+# boundary while already logged in. Hourly is well inside that.
+GATE_WATCHDOG_MIN: int = int(os.getenv("GATE_WATCHDOG_MIN", "60"))
+# Exam eve: the gate falls silent from this local hour the day before the exam so
+# the learner sleeps and sits it, and retires permanently once the exam has passed.
+GATE_EVE_HOUR: int = int(os.getenv("GATE_EVE_HOUR", "22"))
+# Deadman: a gate holding the seat grab that stops servicing its own timer is a
+# dead keyboard in every window, so it self-kills if this many seconds elapse
+# between watchdog ticks.
+GATE_DEADMAN_SEC: int = int(os.getenv("GATE_DEADMAN_SEC", "20"))
+# The gate runs its own uvicorn on a private port so it never collides with the
+# normal `python -m engine.cli.app` on 8000.
+GATE_PORT: int = int(os.getenv("GATE_PORT", "8765"))

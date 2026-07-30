@@ -76,3 +76,28 @@ count as mastery: a buried prereq keeps its children locked.
 
 **Suppressed** — the union of suspended and buried: any concept currently hidden
 from selection, for whatever reason.
+
+## Study gate
+
+**Gate** — the block placed between the learner and their own computer until
+today's [[quota]] is paid. The gate is *closed* while the quota is unpaid and
+*open* once it is met; it opens for the remainder of the local day and closes
+again when the day rolls over. Opening is earned by answering, not by dismissing:
+the gate has no close button.
+
+**Quota** — the number of **correct** answers owed today before the gate opens.
+Distinct from the **daily goal**, which counts answers *settled* regardless of
+correctness. The two are deliberately different readings of the same number: the
+daily goal measures effort shown up with, the quota measures work actually done.
+A wrong answer costs time and pays nothing toward the quota, but never strands
+the learner — the concept returns through the in-session retry queue.
+
+**Bail** — a rationed manual opening of the gate without paying the quota.
+Scarce and counted, so that a genuine emergency has an answer that is not
+"abandon the whole system". Every bail is recorded; the remaining ration is shown
+on the gate itself. Spending the last bail does not make the day unescapable —
+it makes it inconvenient.
+
+**Exam date** — the sitting the gate exists to serve. It bounds the gate's life:
+the gate falls silent the night before so the learner sleeps and sits the exam,
+and retires itself afterwards rather than outliving its reason.

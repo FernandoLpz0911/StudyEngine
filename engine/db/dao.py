@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
+from functools import lru_cache
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from engine.db.connection import get_connection
 
@@ -457,14 +459,14 @@ def pending_retries() -> list[str]:
 
 def count_new_concepts_today(today: date | None = None) -> int:
     """Concepts first shown on the current local day (drives the new-per-day cap)."""
-    today = (today or _local_today()).isoformat()
+    start, end = local_day_bounds(today or _local_today())
     with get_connection() as conn:
         row = conn.execute(
             "SELECT COUNT(*) AS n FROM ("
             "  SELECT concept_id, MIN(shown_at) AS first_shown FROM interaction"
             "  GROUP BY concept_id"
-            ") WHERE date(first_shown, ?) = ?",
-            (_tz_modifier(), today),
+            ") WHERE first_shown >= ? AND first_shown < ?",
+            (start, end),
         ).fetchone()
     return row["n"] if row else 0
 
@@ -504,31 +506,93 @@ def total_xp() -> int:
 
 
 def _answered_days() -> list[date]:
-    """Distinct UTC dates on which any item was answered, most recent first."""
+    """Distinct local dates on which any item was answered, most recent first.
+
+    Grouped in Python rather than SQL: this spans the whole history, so each
+    timestamp needs the UTC offset that was in force *for it*, which a single
+    SQLite modifier cannot express across a DST change.
+    """
     with get_connection() as conn:
         rows = conn.execute(
-            "SELECT DISTINCT date(answered_at, ?) AS d FROM interaction "
-            "WHERE answered_at IS NOT NULL ORDER BY d DESC",
-            (_tz_modifier(),),
+            "SELECT answered_at FROM interaction WHERE answered_at IS NOT NULL"
         ).fetchall()
-    out: list[date] = []
+    days: set[date] = set()
     for row in rows:
         try:
-            out.append(date.fromisoformat(row["d"]))
+            days.add(local_day(row["answered_at"]))
         except (ValueError, TypeError):
             continue
-    return out
+    return sorted(days, reverse=True)
 
 
-def _tz_modifier() -> str:
-    """SQLite datetime modifier shifting UTC to the configured local day boundary."""
-    from engine.config import STREAK_TZ_OFFSET
-    return f"{STREAK_TZ_OFFSET:+g} hours"
+def _answers_per_local_day(exclude: date | None = None) -> dict[date, int]:
+    """How many answers fell on each local day. Grouped in Python, see _answered_days."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT answered_at FROM interaction WHERE answered_at IS NOT NULL"
+        ).fetchall()
+    counts: dict[date, int] = {}
+    for row in rows:
+        try:
+            day = local_day(row["answered_at"])
+        except (ValueError, TypeError):
+            continue
+        if day == exclude:
+            continue
+        counts[day] = counts.get(day, 0) + 1
+    return counts
+
+
+@lru_cache(maxsize=8)
+def _zone(name: str) -> ZoneInfo:
+    """The configured study timezone, falling back to UTC if the name is unknown."""
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return ZoneInfo("UTC")
+
+
+def study_zone() -> ZoneInfo:
+    from engine.config import STUDY_TIMEZONE
+    return _zone(STUDY_TIMEZONE)
+
+
+def local_day(when: datetime | str) -> date:
+    """The learner's local calendar date for a stored UTC timestamp.
+
+    Timestamps are written as UTC; which *day* they belong to is a question about
+    the learner's wall clock, and the answer shifts with DST. Converting through a
+    real zone means an answer at 23:30 in Chicago counts for that day whether the
+    UTC offset happens to be 5 or 6 hours.
+    """
+    if isinstance(when, str):
+        when = datetime.fromisoformat(when)
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=UTC)
+    return when.astimezone(study_zone()).date()
+
+
+def local_day_bounds(day: date) -> tuple[str, str]:
+    """The UTC half-open interval [start, end) covering one local day.
+
+    Used instead of SQLite's `date(ts, '+N hours')`: SQLite has no timezone
+    database, so a modifier can only ever express one fixed offset and is an hour
+    wrong for half the year. Comparing stored UTC timestamps against precomputed
+    UTC bounds is exact, and uses the index on `answered_at`.
+    """
+    zone = study_zone()
+    start = datetime.combine(day, time.min, tzinfo=zone)
+    end = datetime.combine(day + timedelta(days=1), time.min, tzinfo=zone)
+    return start.astimezone(UTC).isoformat(), end.astimezone(UTC).isoformat()
+
+
+def local_now() -> datetime:
+    """Wall-clock time in the learner's timezone."""
+    return datetime.now(UTC).astimezone(study_zone())
 
 
 def _local_today() -> date:
-    from engine.config import STREAK_TZ_OFFSET
-    return (datetime.now(UTC) + timedelta(hours=STREAK_TZ_OFFSET)).date()
+    return local_now().date()
 
 
 def daily_streak(today: date | None = None) -> int:
@@ -574,25 +638,100 @@ def study_days(limit: int = 372) -> list[str]:
 
 def count_answered_today(today: date | None = None) -> int:
     """Items answered so far on the current local day (drives the daily-goal ring)."""
-    today = (today or _local_today()).isoformat()
+    start, end = local_day_bounds(today or _local_today())
     with get_connection() as conn:
         row = conn.execute(
             "SELECT COUNT(*) AS n FROM interaction "
-            "WHERE answered_at IS NOT NULL AND date(answered_at, ?) = ?",
-            (_tz_modifier(), today),
+            "WHERE answered_at >= ? AND answered_at < ?",
+            (start, end),
+        ).fetchone()
+    return row["n"] if row else 0
+
+
+def count_correct_today(subject: str | None = None, today: date | None = None) -> int:
+    """Correct answers on the current local day — the study gate's quota counter.
+
+    Deliberately *not* count_answered_today: the gate is paid in work done, not
+    attempts made, so twenty wrong answers cannot open it (ADR-0005).
+    """
+    start, end = local_day_bounds(today or _local_today())
+    sql = (
+        "SELECT COUNT(*) AS n FROM interaction "
+        "WHERE is_correct = 1 AND answered_at >= ? AND answered_at < ?"
+    )
+    params: list[object] = [start, end]
+    if subject is not None:
+        sql += " AND subject = ?"
+        params.append(subject)
+    with get_connection() as conn:
+        row = conn.execute(sql, params).fetchone()
+    return row["n"] if row else 0
+
+
+def record_bail(today: date | None = None) -> None:
+    """Spend one emergency bail, opening the gate for the rest of the local day."""
+    day = (today or _local_today()).isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO gate_bail (bailed_at, day) VALUES (?, ?)",
+            (datetime.now(UTC).isoformat(), day),
+        )
+
+
+def bailed_today(today: date | None = None) -> bool:
+    day = (today or _local_today()).isoformat()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM gate_bail WHERE day = ?", (day,)
+        ).fetchone()
+    return bool(row and row["n"])
+
+
+def record_raise(today: date | None = None) -> None:
+    """Note that the gate came up today — it only ever raises once per local day."""
+    day = (today or _local_today()).isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO gate_raise (raised_at, day) VALUES (?, ?)",
+            (datetime.now(UTC).isoformat(), day),
+        )
+
+
+def raised_today(today: date | None = None) -> bool:
+    day = (today or _local_today()).isoformat()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM gate_raise WHERE day = ?", (day,)
+        ).fetchone()
+    return bool(row and row["n"])
+
+
+def reset_bails() -> int:
+    """Wipe the bail history, restoring the full ration. Returns rows removed."""
+    with get_connection() as conn:
+        cur = conn.execute("DELETE FROM gate_bail")
+    return cur.rowcount
+
+
+def count_bails_since(days: int, now: datetime | None = None) -> int:
+    """Bails spent in the trailing `days` window — the ration the gate enforces."""
+    cutoff = ((now or datetime.now(UTC)) - timedelta(days=days)).isoformat()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM gate_bail WHERE bailed_at >= ?", (cutoff,)
         ).fetchone()
     return row["n"] if row else 0
 
 
 def today_interactions(today: date | None = None) -> list[dict]:
     """Today's graded answers as (subject, is_correct, elapsed_ms) — quest fuel."""
-    today = (today or _local_today()).isoformat()
+    start, end = local_day_bounds(today or _local_today())
     with get_connection() as conn:
         rows = conn.execute(
             "SELECT subject, is_correct, COALESCE(elapsed_ms, 0) AS elapsed_ms "
             "FROM interaction "
-            "WHERE is_correct IS NOT NULL AND date(answered_at, ?) = ?",
-            (_tz_modifier(), today),
+            "WHERE is_correct IS NOT NULL AND answered_at >= ? AND answered_at < ?",
+            (start, end),
         ).fetchall()
     return [dict(r) for r in rows]
 
@@ -655,18 +794,14 @@ def record_baselines(today: date | None = None) -> dict:
     in memory as runs end. Stamped with the local day so a session that crosses
     midnight can detect staleness (RecordTracker.refresh).
     """
-    today = (today or _local_today()).isoformat()
+    day = today or _local_today()
+    best_day = max(_answers_per_local_day(exclude=day).values(), default=0)
+    today = day.isoformat()
     with get_connection() as conn:
         fastest = conn.execute(
             "SELECT MIN(elapsed_ms) AS ms FROM interaction "
             "WHERE is_correct = 1 AND elapsed_ms > 0"
         ).fetchone()["ms"]
-        best_day = conn.execute(
-            "SELECT MAX(n) AS m FROM (SELECT COUNT(*) AS n FROM interaction "
-            "WHERE answered_at IS NOT NULL AND date(answered_at, ?) != ? "
-            "GROUP BY date(answered_at, ?))",
-            (_tz_modifier(), today, _tz_modifier()),
-        ).fetchone()["m"]
         seq = conn.execute(
             "SELECT is_correct FROM interaction WHERE is_correct IS NOT NULL ORDER BY id"
         ).fetchall()
@@ -692,11 +827,6 @@ def personal_bests() -> dict:
             "SELECT MIN(elapsed_ms) AS ms FROM interaction "
             "WHERE is_correct = 1 AND elapsed_ms > 0"
         ).fetchone()["ms"]
-        best_day = conn.execute(
-            "SELECT MAX(n) AS m FROM (SELECT COUNT(*) AS n FROM interaction "
-            "WHERE answered_at IS NOT NULL GROUP BY date(answered_at, ?))",
-            (_tz_modifier(),),
-        ).fetchone()["m"]
         seq = conn.execute(
             "SELECT is_correct FROM interaction WHERE is_correct IS NOT NULL ORDER BY id"
         ).fetchall()
@@ -706,7 +836,7 @@ def personal_bests() -> dict:
         best = max(best, run)
     return {
         "fastest_ms": fastest,
-        "best_day": best_day or 0,
+        "best_day": max(_answers_per_local_day().values(), default=0),
         "longest_run": best,
     }
 

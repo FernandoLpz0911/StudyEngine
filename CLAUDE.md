@@ -58,10 +58,38 @@ engine/
     diffeq/             generators.py, solve.py         ← legacy split (unmigrated)
   recall/cards.py       flashcard model for recall subjects
   grading.py            numeric/string answer grading
+  gate/                 study gate: quota + schedule (pure), keys + window (desktop)
   cli/study.py          interactive study loop (python -m engine.cli.study)
+  cli/gate.py           study gate (python -m engine.cli.gate --status/--run/--install)
 data/subjects/<key>/concept_graph.seed.json   concept graph + content per subject
 tests/                  answer-key correctness, FSRS, policy, seed, recall
 ```
+
+## Study gate
+
+Blocks the whole X11 desktop until the day's quota of **correct** answers in
+`GATE_SUBJECT` is paid, then stays out of the way for the rest of the local day.
+Quota is the `daily_goal` number read against correct answers — the goal ring
+still counts answers settled, so the two legitimately disagree (ADR-0005).
+
+Runs as the user with no root: `Gtk.WindowType.POPUP` (override-redirect) +
+`Gdk.Seat.grab`, with GNOME's compositor shortcuts snapshotted to disk and
+cleared while it is up. Ctrl+Alt+F2 and SSH stay open on purpose, and every
+failure path releases the desktop rather than blocking on a bug (ADR-0004).
+
+- Needs the system GTK bindings — `python3-gi`, `gir1.2-webkit2-4.1` from apt.
+  PyGObject is not pip-installable into a venv, so `gate/window.py` locates the
+  distro copy and appends it to `sys.path` (append, never prepend — venv packages
+  keep priority). No symlink to maintain; survives a venv rebuild.
+  `engine/gate/{quota,schedule}.py` import none of it, so the whole decision is
+  tested headlessly in `tests/test_gate.py`.
+- X11 only — a Wayland session has no gate, which makes the login screen's
+  session picker the one real bypass. `WaylandEnable=false` under `[daemon]` in
+  `/etc/gdm3/custom.conf` closes it; `--status` warns when it is not set.
+- `--dev` for a windowed no-grab run; Xephyr (`DISPLAY=:2`) contains grab
+  testing; `--max-seconds` self-releases. Never debug grabs on a live session.
+- `--repair` restores keybindings after an unclean death; a stale snapshot on
+  disk is also replayed automatically by the next run.
 
 ## Conventions
 

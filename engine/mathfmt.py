@@ -58,6 +58,9 @@ _PRIME = re.compile(r"^[A-Za-z]+'$")          # y', f'
 _FUNC = re.compile(r"^[A-Za-z]+'?\([^)]*\)$")  # y(t), P(A), f'(x), μ(2)
 
 
+_TRAILING_PUNCT = re.compile(r"[.,;:?!]+$")
+
+
 def _core(tok: str) -> str:
     return tok.strip(" .,;:?!")
 
@@ -78,10 +81,51 @@ def _is_math(tok: str) -> bool:
 
 
 def _to_latex(expr: str) -> str:
+    # Set braces are literal, but `{}` groups in LaTeX — unescaped, KaTeX renders
+    # {1,2} as a bare "1,2" and the set silently loses its braces. Escaped first,
+    # so the grouping braces the exponent rule inserts below stay real.
+    expr = expr.replace("{", r"\{").replace("}", r"\}")
     expr = re.sub(r"\^\(([^()]*)\)", r"^{\1}", expr)  # e^(-0.32·t) → e^{-0.32·t}
     for sym, rep in _SYMBOLS.items():
         expr = expr.replace(sym, rep)
     return re.sub(r"\s+", " ", expr).strip()
+
+
+_OPENERS = "([{"
+_CLOSERS = ")]}"
+
+
+def _join_bracketed(tokens: list[str]) -> list[str]:
+    """Glue tokens spanning an unclosed bracket into one, e.g. P(A ∩ B).
+
+    Tokenising on spaces splits a bracketed expression into `P(A`, `∩`, `B)`, and
+    the outer two look like prose — no digit, no operator, unbalanced parens — so
+    the run shatters and only the operator gets wrapped. Rejoining first means
+    the whole expression is judged, and rendered, as the single unit it is.
+
+    All three bracket kinds count, because the joint-PMF generators emit sets and
+    matrices — `X ∈ {1, 2}`, `[[0.1, 0.2], [0.3, 0.4]]` — whose separating commas
+    and spaces would otherwise tear them apart.
+
+    A stray unclosed bracket in prose would otherwise swallow the rest of the
+    line, so an unterminated group is handed back exactly as it came in.
+    """
+    out: list[str] = []
+    buf: list[str] = []
+    depth = 0
+    for tok in tokens:
+        depth += sum(tok.count(c) for c in _OPENERS)
+        depth -= sum(tok.count(c) for c in _CLOSERS)
+        if buf or depth > 0:
+            buf.append(tok)
+            if depth <= 0:
+                out.append(" ".join(buf))
+                buf.clear()
+                depth = 0
+        else:
+            out.append(tok)
+    out.extend(buf)  # never closed — leave the tokens untouched
+    return out
 
 
 def latexify(text: str) -> str:
@@ -90,7 +134,7 @@ def latexify(text: str) -> str:
         return text
     text = re.sub(r"\$(?=\d)", r"\\$", text)  # keep currency literal, not a delimiter
 
-    tokens = text.split(" ")
+    tokens = _join_bracketed(text.split(" "))
     out: list[str] = []
     buf: list[str] = []
 
@@ -103,7 +147,7 @@ def latexify(text: str) -> str:
             out.append(buf[0])
             buf.clear()
             return
-        m = re.search(r"[.,;:?!]+$", buf[-1])
+        m = _TRAILING_PUNCT.search(buf[-1])
         trail = m.group(0) if m else ""
         body = _to_latex(raw)
         out.append(f"${body}${trail}" if body else trail)
@@ -112,6 +156,11 @@ def latexify(text: str) -> str:
     for tok in tokens:
         if _is_math(tok):
             buf.append(tok)
+            # Punctuation ends the fragment it trails. Without this, a run only
+            # ever kept its *last* token's punctuation and silently ate the rest,
+            # turning "P(X=1) = 0.2, P(X=2) = 0.4" into one unreadable run.
+            if _TRAILING_PUNCT.search(tok):
+                flush()
         else:
             flush()
             out.append(tok)

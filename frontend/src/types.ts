@@ -149,3 +149,16 @@ export interface Progress {
   dkt: { active: boolean; answered: number; gate: number };
   fsrs_fit: { fitted: boolean; reviews: number; gate: number };
 }
+
+export interface GateStatus {
+  is_open: boolean;
+  reason: "paid" | "bailed" | "retired" | "exam_eve" | "closed";
+  subject: string;
+  quota: number;
+  correct: number;
+  remaining: number;
+  bails_left: number;
+  bails_ration: number;
+  exam_date: string | null;
+  days_left: number | null;
+}

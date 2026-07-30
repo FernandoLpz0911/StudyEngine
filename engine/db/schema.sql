@@ -85,6 +85,20 @@ CREATE TABLE IF NOT EXISTS mnemonic (
     created_at  TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS gate_bail (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    bailed_at   TEXT NOT NULL,          -- UTC ISO timestamp the bail was spent
+    day         TEXT NOT NULL           -- local ISO date the bail opened the gate for
+);
+
+CREATE TABLE IF NOT EXISTS gate_raise (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    raised_at   TEXT NOT NULL,          -- UTC ISO timestamp the gate came up
+    day         TEXT NOT NULL           -- local ISO date it was raised for
+);
+
+CREATE INDEX IF NOT EXISTS idx_gate_raise_day ON gate_raise(day);
+
 CREATE INDEX IF NOT EXISTS idx_concept_subject ON concept(subject);
 CREATE INDEX IF NOT EXISTS idx_interaction_concept ON interaction(concept_id);
 CREATE INDEX IF NOT EXISTS idx_interaction_answered ON interaction(answered_at);

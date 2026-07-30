@@ -42,3 +42,38 @@ def test_empty_and_plain():
     assert latexify("How many candidate keys does R have?") == (
         "How many candidate keys does R have?"
     )
+
+
+def test_interior_punctuation_survives():
+    # A math run used to keep only its *last* token's punctuation and silently
+    # eat the rest, collapsing a PMF list into one unreadable expression.
+    out = latexify("P(X=1) = 0.229, P(X=2) = 0.393, P(X=3) = 0.378. Find Var(X).")
+    assert "$P(X=1) = 0.229$, $P(X=2) = 0.393$, $P(X=3) = 0.378$." in out
+
+
+def test_bracketed_expression_stays_whole():
+    # `P(A`, `∩`, `B)` are three space-separated tokens; only the operator looks
+    # mathy on its own, so without rejoining the expression shatters.
+    out = latexify("Given P(A ∩ B) = 0.12, find P(A ∪ B).")
+    assert "$P(A \\cap B) = 0.12$" in out
+    assert "$P(A \\cup B)$" in out
+
+
+def test_set_braces_are_escaped():
+    # `{}` groups in LaTeX: unescaped, KaTeX renders {1,2} as a brace-less "1,2".
+    out = latexify("X ∈ {1,2}. Find E[X].")
+    assert "\\{1,2\\}" in out
+
+
+def test_exponent_braces_not_escaped():
+    # The grouping braces the exponent rule inserts must stay real braces.
+    assert latexify("y(t) = 7.6·e^(-0.32·t)") == "$y(t) = 7.6\\cdot e^{-0.32\\cdot t}$"
+
+
+def test_unclosed_bracket_in_prose_does_not_swallow_the_line():
+    out = latexify("An unclosed ( bracket in prose should not eat the line.")
+    assert "$" not in out
+
+
+def test_parenthetical_prose_untouched():
+    assert "$" not in latexify("Use the identity (see the notes) carefully.")

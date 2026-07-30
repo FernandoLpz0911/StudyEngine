@@ -2,6 +2,7 @@
 import type {
   AnswerResult,
   DailyQuest,
+  GateStatus,
   Me,
   NextItem,
   Profile,
@@ -76,4 +77,6 @@ export const api = {
   me: () => get<Me>("/me"),
   progress: () => get<Progress>("/progress"),
   subjectProgress: (subject: string) => get<SubjectProgress>(`/progress/${subject}`),
+  gate: () => get<GateStatus>("/gate"),
+  gateBail: () => post<GateStatus>("/gate/bail", {}),
 };
