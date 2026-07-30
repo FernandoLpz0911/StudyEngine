@@ -57,6 +57,7 @@ engine/
     databases/          generators.py (explain inline)  ← template for generator subjects
     diffeq/             generators.py, solve.py         ← legacy split (unmigrated)
   recall/cards.py       flashcard model for recall subjects
+  analytics/            readiness (mastery), pace (coverage deadline + intro quota)
   grading.py            numeric/string answer grading
   gate/                 study gate: quota + schedule (pure), keys + window (desktop)
   cli/study.py          interactive study loop (python -m engine.cli.study)
@@ -71,6 +72,21 @@ Blocks the whole X11 desktop until the day's quota of **correct** answers in
 `GATE_SUBJECT` is paid, then stays out of the way for the rest of the local day.
 Quota is the `daily_goal` number read against correct answers — the goal ring
 still counts answers settled, so the two legitimately disagree (ADR-0005).
+Quota supply is topped up by **drills** (extra reps of the weakest concepts) once
+scheduled work runs out, or a perfect day strands the learner short of quota with
+nothing left to answer; a correct drill leaves FSRS alone, a missed one
+reschedules (ADR-0008).
+
+## Exam pacing
+
+A subject with an `exam_date.<key>` setting is paced toward it. Introductions are
+driven by a **coverage deadline** (`exam_date - CONSOLIDATION_DAYS`) rather than by
+what reviews leave over — reviews used to preempt the frontier unconditionally,
+which froze coverage at 16/44 concepts (ADR-0007). Frontier order is transitive
+downstream reach, then exam weight. The **exam taper** ramps desired retention
+0.90 → 0.96 over the final month and clamps every interval to the day before the
+sitting (ADR-0009). `engine/analytics/pace.py` holds the arithmetic; the gate
+carries the readout.
 
 Runs as the user with no root: `Gtk.WindowType.POPUP` (override-redirect) +
 `Gdk.Seat.grab`, with GNOME's compositor shortcuts snapshotted to disk and

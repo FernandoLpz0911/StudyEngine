@@ -79,6 +79,20 @@ DAILY_GOAL: int = int(os.getenv("DAILY_GOAL", "20"))
 # three days later and buries the learner. (Anki's default is comparable.)
 NEW_PER_DAY: int = int(os.getenv("NEW_PER_DAY", "8"))
 
+# Coverage deadline: every concept in a subject must be introduced this many days
+# before its exam. Coverage is the one part of readiness with a hard deadline — a
+# concept first met the week of the exam can only be crammed, never spaced — so
+# introduction is driven by this deadline rather than by whatever the review queue
+# happens to leave over (ADR-0007).
+CONSOLIDATION_DAYS: int = int(os.getenv("CONSOLIDATION_DAYS", "40"))
+
+# Exam taper: FSRS normally schedules toward TARGET_RETENTION with no idea an exam
+# exists, so it will happily place a review after the sitting. Over the final
+# EXAM_TAPER_DAYS the target ramps to EXAM_PEAK_RETENTION and intervals are clamped
+# to the exam date, so every concept is fresh when it is actually needed (ADR-0009).
+EXAM_TAPER_DAYS: int = int(os.getenv("EXAM_TAPER_DAYS", "30"))
+EXAM_PEAK_RETENTION: float = float(os.getenv("EXAM_PEAK_RETENTION", "0.96"))
+
 # Generator concepts at/above this measured mastery are served as free-response
 # (typed answer) instead of multiple choice: recognition is easier than recall, so
 # once a concept is known the four options give it away and stop testing anything.

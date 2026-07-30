@@ -28,6 +28,10 @@ class GateStatus:
     bails_ration: int
     exam_date: str | None
     days_left: int | None
+    concepts_total: int
+    concepts_seen: int
+    concepts_mastered: int
+    coverage_on_track: bool
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -75,6 +79,11 @@ def status(now: datetime | None = None) -> GateStatus:
     else:
         reason, is_open = "closed", False
 
+    # The gate is the one surface with guaranteed daily attention, so it carries
+    # the pace readout: being behind on coverage should be impossible to not see.
+    from engine.analytics import pace as pace_module
+    pace = pace_module.subject_pace(subject, today=today)
+
     return GateStatus(
         is_open=is_open,
         reason=reason,
@@ -86,6 +95,10 @@ def status(now: datetime | None = None) -> GateStatus:
         bails_ration=config.GATE_BAIL_RATION,
         exam_date=None if exam is None else exam.isoformat(),
         days_left=days_left,
+        concepts_total=pace.total,
+        concepts_seen=pace.seen,
+        concepts_mastered=pace.mastered,
+        coverage_on_track=pace.coverage_on_track,
     )
 
 

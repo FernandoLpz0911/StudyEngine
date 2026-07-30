@@ -53,6 +53,46 @@ def _row_to_concept(row, prereqs: list[str]) -> Concept:
     )
 
 
+def drills_today(subject: str, today: date | None = None) -> dict[str, int]:
+    """How many drills each concept has already taken on the current local day.
+
+    A correct drill deliberately leaves card state alone, so mastery does not move
+    and "the weakest concept" would otherwise be the same concept all day — the
+    day's top-up would become one concept massed twenty times. Rotating on this
+    count spreads drills over the weakest concepts instead (ADR-0008).
+    """
+    start, end = local_day_bounds(today or _local_today())
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT concept_id, COUNT(*) AS n FROM interaction
+            WHERE subject = ? AND reason = 'drill'
+              AND shown_at >= ? AND shown_at < ?
+            GROUP BY concept_id
+            """,
+            (subject, start, end),
+        ).fetchall()
+    return {r["concept_id"]: r["n"] for r in rows}
+
+
+def count_unseen_concepts(subject: str) -> int:
+    """Concepts in a subject never yet served — the coverage backlog.
+
+    One aggregate rather than a card-state read per concept: the intro quota is
+    recomputed on every item served, so it must not cost a query per concept.
+    """
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT COUNT(*) AS n FROM concept c
+            LEFT JOIN card_state cs ON cs.concept_id = c.id
+            WHERE c.subject = ? AND COALESCE(cs.reps, 0) = 0
+            """,
+            (subject,),
+        ).fetchone()
+    return row["n"] if row else 0
+
+
 def get_concepts(subject: str) -> list[Concept]:
     """All concepts for a subject, each with its prerequisite list."""
     with get_connection() as conn:
@@ -148,18 +188,26 @@ def log_shown(
     seed: int = 0,
     params_json: str = "{}",
     correct_answer: str | None = None,
+    reason: str | None = None,
 ) -> int:
-    """Record that a problem/card was served. Returns the interaction id."""
+    """Record that a problem/card was served. Returns the interaction id.
+
+    `reason` is why the item was chosen (new / review / retry / drill). It is
+    persisted because one of those values changes what the answer means: a drill
+    is an off-schedule attempt, so it must be kept out of the FSRS weight fit
+    (ADR-0008).
+    """
     now = datetime.now(UTC).isoformat()
     with get_connection() as conn:
         cur = conn.execute(
             """
             INSERT INTO interaction
                 (session_id, concept_id, subject, kind, seed, params_json,
-                 correct_answer, shown_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                 correct_answer, shown_at, reason)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (session_id, concept_id, subject, kind, seed, params_json, correct_answer, now),
+            (session_id, concept_id, subject, kind, seed, params_json,
+             correct_answer, now, reason or None),
         )
         return cur.lastrowid
 
@@ -457,16 +505,26 @@ def pending_retries() -> list[str]:
     return [r["concept_id"] for r in rows]
 
 
-def count_new_concepts_today(today: date | None = None) -> int:
-    """Concepts first shown on the current local day (drives the new-per-day cap)."""
+def count_new_concepts_today(
+    today: date | None = None, subject: str | None = None
+) -> int:
+    """Concepts first shown on the current local day (drives the new-per-day cap).
+
+    The unscoped count is the cap's own denominator — the flood it guards against
+    is global. Scoping to a subject answers a different question: how much of that
+    subject's coverage deadline today has already paid (see `analytics.pace`).
+    """
     start, end = local_day_bounds(today or _local_today())
+    where = "" if subject is None else "WHERE subject = ?"
+    params: list[object] = [] if subject is None else [subject]
     with get_connection() as conn:
         row = conn.execute(
             "SELECT COUNT(*) AS n FROM ("
             "  SELECT concept_id, MIN(shown_at) AS first_shown FROM interaction"
+            f"  {where}"
             "  GROUP BY concept_id"
             ") WHERE first_shown >= ? AND first_shown < ?",
-            (start, end),
+            (*params, start, end),
         ).fetchone()
     return row["n"] if row else 0
 
@@ -867,13 +925,20 @@ def due_count() -> int:
 
 def graded_reviews() -> list[tuple[str, int, str, int]]:
     """Every graded interaction as (concept_id, grade, answered_at, elapsed_ms),
-    oldest first — the raw material for fitting personal FSRS parameters."""
+    oldest first — the raw material for fitting personal FSRS parameters.
+
+    Drills are excluded. The optimizer infers stability from how long a card
+    survived between *scheduled* reviews, so an off-schedule attempt on a card
+    that was not due is not evidence it can read — feeding those in would teach
+    the fit that intervals are far shorter than they are (ADR-0008).
+    """
     with get_connection() as conn:
         rows = conn.execute(
             """
             SELECT concept_id, grade, answered_at, COALESCE(elapsed_ms, 0) AS ms
             FROM interaction
             WHERE grade IS NOT NULL AND answered_at IS NOT NULL
+              AND (reason IS NULL OR reason != 'drill')
             ORDER BY answered_at
             """
         ).fetchall()

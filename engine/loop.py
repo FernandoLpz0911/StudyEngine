@@ -135,10 +135,26 @@ class StudyLoop:
 
         if selection is None:
             concept = service.next_retry(self.retry_queue, self.index, force=True)
-            if concept is None:
-                return self._finish()  # drain pending re-tests before ending
-            return self._serve(concept, "retry", mode=None)
+            if concept is not None:
+                return self._serve(concept, "retry", mode=None)  # drain re-tests first
+            drill = self._drill()
+            if drill is None:
+                return self._finish()
+            return self._serve(drill.concept, "drill", mode=None)
         return self._serve(selection.concept, selection.reason, mode=self._mode)
+
+    def _drill(self) -> policy.Selection | None:
+        """An extra rep when the day is out of items but the gate is still shut.
+
+        Only the gated subject drills, and only while its quota is unpaid: a drill
+        exists to keep the day's quota payable, and an ungated session that runs
+        out of material has simply finished (ADR-0008).
+        """
+        from engine import config
+        from engine.gate import quota
+        if self.scope != config.GATE_SUBJECT or quota.status().is_open:
+            return None
+        return policy.select_drill(self.scope)
 
     def _select_global(self) -> policy.Selection | None:
         """Weakest-first across subjects, with warmup/cooldown/stall confidence

@@ -55,6 +55,38 @@ once per session; `best_day` excludes today so the daily record fires at its
 crossing. Advanced in memory as records are set, and re-snapshotted when the local
 day rolls over mid-session.
 
+## Exam pacing
+
+**Coverage** — how much of a subject has been *introduced* at all, as distinct
+from how well it is known. Coverage and mastery fail differently: a half-learned
+concept is worth something on exam day, a never-seen one is worth nothing, and
+unlike mastery it cannot be repaired late — a first exposure in the final week can
+only be crammed.
+
+**Coverage deadline** — the day by which every concept in a subject must have been
+seen at least once, set far enough before the [[exam-date]] that even the last
+concept introduced still gets a full stretch of spaced review. Derived from the
+exam date, never configured beside it, so it cannot drift out of step with the
+sitting it serves.
+
+**Intro quota** — the number of brand-new concepts a subject owes *today* against
+its coverage deadline. Self-correcting: a skipped day raises tomorrow's number on
+its own, and the quota falls to zero once coverage is complete. It paces in both
+directions — a floor on a busy day, and equally a ceiling on a quiet one, since
+racing through the syllabus leaves a wall of first exposures all maturing at once.
+
+**Drill** — an extra, off-schedule rep served only to keep the day's [[quota]]
+payable when the scheduled work has run out, aimed at the weakest concepts.
+Distinct from a review, which is a card falling *due*. A drill is not evidence
+the schedule can trust — the card was not due, so answering it correctly says
+little — but failing one is real evidence of forgetting.
+
+**Exam taper** — the convergence of the schedule on the exam date: reviews are
+compressed as the sitting approaches and never scheduled past the last day they
+could be served. Without it the scheduler, which has no notion that an exam
+exists, spaces concepts into intervals that are optimal for next year and useless
+for September.
+
 ## Concept availability
 
 **Introduced** — a concept that unlocks its dependents: seen at least once, *or*
@@ -100,4 +132,6 @@ it makes it inconvenient.
 
 **Exam date** — the sitting the gate exists to serve. It bounds the gate's life:
 the gate falls silent the night before so the learner sleeps and sits the exam,
-and retires itself afterwards rather than outliving its reason.
+and retires itself afterwards rather than outliving its reason. It also anchors
+everything the schedule paces toward — the [[coverage-deadline]] and the
+[[exam-taper]] are both derived from it, so moving the sitting moves the plan.

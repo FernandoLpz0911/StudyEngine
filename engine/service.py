@@ -115,6 +115,7 @@ def log_item_shown(session_id: int, item: StudyItem) -> int:
     return dao.log_shown(
         session_id, item.concept_id, item.subject, item.kind,
         seed=item.seed, params_json=json.dumps(item.params), correct_answer=item.correct,
+        reason=item.reason,
     )
 
 
@@ -183,7 +184,6 @@ def settle_answer(
     """
     from engine.config import LEECH_LAPSES
     from engine.quests import settle
-    from engine.scheduler import store
 
     correct, grd = grade(raw_answer, elapsed_ms, item)
     # Read before this answer lands in the log, or it can never beat the record.
@@ -193,8 +193,7 @@ def settle_answer(
     tracker.refresh()  # re-snapshot baselines if the local day rolled over
     records = tracker.detect(correct, elapsed_ms, answered_today_before)
 
-    new_state = store.apply_rating(store.get_or_create(item.concept_id), grd)
-    store.save(new_state)
+    new_state = _apply_schedule(item, correct, grd)
     # Bank any quest this answer completed — after store.save, so a clean-queue
     # quest can bank on the very answer that clears the last due review.
     settle()
@@ -214,6 +213,28 @@ def settle_answer(
         why_wrong="" if correct else explanation_for(raw_answer, item),
         ask_mnemonic=no_mnemonic and (not correct or is_leech),
     )
+
+
+def _apply_schedule(item: StudyItem, correct: bool, grade: int):
+    """Advance the concept's FSRS state for this answer and persist it.
+
+    A drill is an extra rep on a card that was *not* due, served only to keep the
+    day's quota payable, so it updates the schedule asymmetrically (ADR-0008): a
+    miss is strong evidence of forgetting and crashes the interval, while getting
+    a still-fresh card right says little and leaves the schedule alone. The failed
+    drill does not advance `reps`, so failing cannot raise rep-confidence.
+    """
+    from engine.scheduler import store
+
+    state = store.get_or_create(item.concept_id)
+    if item.reason == "drill":
+        if correct:
+            return state
+        state = store.apply_rating(state, 1, subject=item.subject, count_rep=False)
+    else:
+        state = store.apply_rating(state, grade, subject=item.subject)
+    store.save(state)
+    return state
 
 
 def _days_until(due) -> int | None:

@@ -161,4 +161,8 @@ export interface GateStatus {
   bails_ration: number;
   exam_date: string | null;
   days_left: number | null;
+  concepts_total: number;
+  concepts_seen: number;
+  concepts_mastered: number;
+  coverage_on_track: boolean;
 }

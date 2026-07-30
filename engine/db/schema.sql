@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS interaction (
     grade           INTEGER,
     elapsed_ms      INTEGER,
     shown_at        TEXT NOT NULL,
-    answered_at     TEXT
+    answered_at     TEXT,
+    reason          TEXT
 );
 
 CREATE TABLE IF NOT EXISTS setting (

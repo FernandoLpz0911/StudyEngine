@@ -36,3 +36,6 @@ def init_db() -> None:
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(concept)")}
         if "card_explanations" not in cols:
             conn.execute("ALTER TABLE concept ADD COLUMN card_explanations TEXT")
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(interaction)")}
+        if "reason" not in cols:
+            conn.execute("ALTER TABLE interaction ADD COLUMN reason TEXT")

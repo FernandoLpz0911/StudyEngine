@@ -8,7 +8,12 @@ from functools import lru_cache
 from fsrs import Card as FsrsCard
 from fsrs import Rating, Scheduler, State
 
-from engine.config import EARLY_REINFORCEMENT_REPS, TARGET_RETENTION
+from engine.config import (
+    EARLY_REINFORCEMENT_REPS,
+    EXAM_PEAK_RETENTION,
+    EXAM_TAPER_DAYS,
+    TARGET_RETENTION,
+)
 from engine.db.connection import get_connection
 
 
@@ -21,10 +26,27 @@ def _scheduler(
     return Scheduler(parameters=parameters, desired_retention=desired_retention)
 
 
-def _current_scheduler() -> Scheduler:
+def desired_retention(days_to_exam: int | None) -> float:
+    """Target recall probability, ramped up as an exam approaches (ADR-0009).
+
+    FSRS optimises for the long run and knows nothing about a sitting, so left
+    alone it will space a concept to come due after the exam. Raising the target
+    shortens every interval, trading extra reviews for everything being fresh on
+    the one day it is measured. Linear between the two ends: no cliff where the
+    day's review count suddenly doubles.
+    """
+    if days_to_exam is None or days_to_exam >= EXAM_TAPER_DAYS:
+        return TARGET_RETENTION
+    if days_to_exam <= 0:
+        return EXAM_PEAK_RETENTION
+    progress = 1 - days_to_exam / EXAM_TAPER_DAYS
+    return TARGET_RETENTION + progress * (EXAM_PEAK_RETENTION - TARGET_RETENTION)
+
+
+def _current_scheduler(days_to_exam: int | None = None) -> Scheduler:
     """Scheduler using the learner's fitted FSRS weights when a fit exists."""
     from engine.scheduler.optimize import stored_parameters
-    return _scheduler(TARGET_RETENTION, stored_parameters())
+    return _scheduler(desired_retention(days_to_exam), stored_parameters())
 
 
 @dataclass
@@ -61,12 +83,25 @@ def get_or_create(concept_id: str) -> CardState:
     )
 
 
-def apply_rating(card_state: CardState, rating: int) -> CardState:
-    """Run a py-fsrs review and return the updated card state (not yet persisted)."""
-    scheduler = _current_scheduler()
+def apply_rating(
+    card_state: CardState,
+    rating: int,
+    subject: str | None = None,
+    count_rep: bool = True,
+) -> CardState:
+    """Run a py-fsrs review and return the updated card state (not yet persisted).
+
+    `subject` supplies the exam date that tapers the target retention and clamps
+    the next review to fall on or before the sitting. `count_rep=False` applies the
+    schedule change without advancing `reps` — used by a failed drill, which is
+    real evidence of forgetting but must not inflate the rep-confidence term that
+    the mastery score (and so the exam target) is built on (ADR-0008).
+    """
+    days_to_exam = _days_to_exam(subject)
+    scheduler = _current_scheduler(days_to_exam)
     updated, _ = scheduler.review_card(_to_fsrs_card(card_state), Rating(rating))
     was_lapse = card_state.state == "review" and Rating(rating) == Rating.Again
-    new_reps = card_state.reps + 1
+    new_reps = card_state.reps + (1 if count_rep else 0)
 
     due = updated.due
     if new_reps < EARLY_REINFORCEMENT_REPS and due is not None:
@@ -74,6 +109,7 @@ def apply_rating(card_state: CardState, rating: int) -> CardState:
         if due.tzinfo is None:
             cap = datetime.now() + timedelta(days=1)
         due = min(due, cap)
+    due = _clamp_to_exam(due, subject, days_to_exam)
 
     return CardState(
         concept_id=card_state.concept_id,
@@ -109,6 +145,37 @@ def save(card_state: CardState) -> None:
                 card_state.state,
             ),
         )
+
+
+def _days_to_exam(subject: str | None) -> int | None:
+    """Whole days to the subject's sitting, or None when it has no exam date."""
+    if subject is None:
+        return None
+    from engine.db import dao
+    exam = dao.get_exam_date(subject)
+    if exam is None:
+        return None
+    return (exam - dao.local_now().date()).days
+
+
+def _clamp_to_exam(
+    due: datetime | None, subject: str | None, days_to_exam: int | None
+) -> datetime | None:
+    """Never schedule a review for after the last day it could be served.
+
+    A card whose next review falls past the sitting is, for this purpose, a card
+    that is never reviewed again — the interval is optimal for remembering it next
+    year and useless for remembering it in September (ADR-0009).
+
+    The cutoff is the day *before* the exam, not the exam itself: the gate is
+    suppressed from the eve through the end of exam day so the learner sleeps and
+    sits it, so a review landing on exam day is one that never happens.
+    """
+    if due is None or days_to_exam is None or days_to_exam <= 0:
+        return due
+    now = datetime.now(UTC) if due.tzinfo else datetime.now()
+    latest = now + timedelta(days=max(0, days_to_exam - 1))
+    return min(due, latest)
 
 
 def _to_fsrs_card(cs: CardState) -> FsrsCard:

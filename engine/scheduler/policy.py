@@ -15,7 +15,62 @@ from engine.scheduler.store import CardState
 @dataclass
 class Selection:
     concept: Concept
-    reason: str  # "review" | "new"
+    reason: str  # "review" | "new" | "drill"
+
+
+def downstream_reach(concepts: list[Concept]) -> dict[str, int]:
+    """How many concepts each one transitively unlocks.
+
+    Exam weight says how much a concept is worth; reach says how much is stuck
+    behind it. Ranking the frontier on weight alone strands the gateways — on
+    Exam P every high-weight distribution sits behind a low-weight one — so the
+    deep layers open only in the last days of the coverage window, which is
+    exactly when there is no time left to space them.
+    """
+    children: dict[str, list[str]] = {}
+    for concept in concepts:
+        for prereq in concept.prerequisites:
+            children.setdefault(prereq, []).append(concept.id)
+
+    reach: dict[str, int] = {}
+
+    def walk(cid: str, visiting: frozenset[str]) -> set[str]:
+        if cid in visiting:  # a malformed cycle must not recurse forever
+            return set()
+        out: set[str] = set()
+        for child in children.get(cid, []):
+            out.add(child)
+            out |= walk(child, visiting | {cid})
+        return out
+
+    for concept in concepts:
+        # A cycle would otherwise let a concept reach itself and inflate its rank.
+        reach[concept.id] = len(walk(concept.id, frozenset()) - {concept.id})
+    return reach
+
+
+def _frontier_key(concept: Concept, reach: dict[str, int]) -> tuple[int, int]:
+    return (reach.get(concept.id, 0), concept.exam_weight)
+
+
+def _intro_owed(subject: str) -> int:
+    """Brand-new concepts the coverage deadline still wants from today (ADR-0007)."""
+    from engine.analytics import pace
+    return pace.intro_owed(subject)
+
+
+def _paced(subject: str) -> bool:
+    """Whether this subject's introductions are governed by a coverage deadline.
+
+    With an exam date the deadline sets the pace in both directions: it is a floor
+    on a busy day and equally a ceiling on a quiet one. Racing ahead would spend
+    the new-per-day cap the moment the review queue empties, which is the review
+    flood the cap exists to prevent — and it would leave a wall of first exposures
+    all maturing at once. Subjects with no exam date keep the old behaviour: the
+    frontier opens freely whenever nothing is due.
+    """
+    from engine.db import dao
+    return dao.get_exam_date(subject) is not None
 
 
 def _new_budget_left() -> bool:
@@ -33,8 +88,13 @@ def select_next(subject: str) -> Selection | None:
     """Pick the next concept to study for `subject`, with the reason it was chosen.
 
     A concept is available once all its prerequisites have been seen at least once.
-    Overdue review cards (ranked by recall urgency × exam weight) take priority;
-    otherwise the highest-weighted unseen concept opens the frontier.
+
+    Introductions the coverage deadline owes today come first, then overdue reviews
+    (ranked by recall urgency × exam weight), then the frontier if the daily cap
+    still has room. Reviews used to preempt the frontier unconditionally, which
+    silently froze coverage: with early reinforcement capping intervals at a day,
+    the seen concepts are due again every morning and the frontier is never reached
+    (ADR-0007).
     """
     concepts = dao.get_concepts(subject)
     states = {c.id: store.get_or_create(c.id) for c in concepts}
@@ -53,20 +113,55 @@ def select_next(subject: str) -> Selection | None:
 
     now = datetime.now(UTC)
     overdue: list[tuple[float, Concept]] = []
-    frontier: list[tuple[int, Concept]] = []
+    frontier: list[Concept] = []
 
     for concept in available:
         cs = states[concept.id]
         if cs.reps == 0:
-            frontier.append((concept.exam_weight, concept))
+            frontier.append(concept)
         elif is_due(cs.reps, cs.due, now, suppressed=False):
             overdue.append((_urgency(cs, now) * concept.exam_weight, concept))
 
+    def best_new() -> Concept:
+        reach = downstream_reach(concepts)
+        return max(frontier, key=lambda c: _frontier_key(c, reach))
+
+    can_introduce = frontier and _new_budget_left()
+    if can_introduce and _intro_owed(subject) > 0:
+        return Selection(best_new(), "new")
     if overdue:
         return Selection(max(overdue, key=lambda x: x[0])[1], "review")
-    if frontier and _new_budget_left():
-        return Selection(max(frontier, key=lambda x: x[0])[1], "new")
+    if can_introduce and not _paced(subject):
+        return Selection(best_new(), "new")
     return None
+
+
+def select_drill(subject: str) -> Selection | None:
+    """The weakest concept worth an extra, off-schedule rep.
+
+    Supply of quota-payable items is due reviews plus retries, so only *wrong*
+    answers regenerate it — answer everything correctly and the day runs dry with
+    the quota unpaid and the desktop still locked. Drills top the day back up, and
+    aim at the lowest measured mastery, which is also the highest-value thing to be
+    practising (ADR-0008).
+    """
+    from engine.analytics.readiness import concept_mastery
+
+    suppressed = dao.suppressed_concept_ids()
+    now = datetime.now(UTC)
+    candidates = [
+        c for c in dao.get_concepts(subject)
+        if c.id not in suppressed and store.get_or_create(c.id).reps > 0
+    ]
+    if not candidates:
+        return None
+    # Least-drilled-today first, weakest to break the tie: everything gets one
+    # before anything gets two, so a long top-up spaces rather than masses.
+    taken = dao.drills_today(subject)
+    weakest = min(
+        candidates, key=lambda c: (taken.get(c.id, 0), concept_mastery(c.id, now))
+    )
+    return Selection(weakest, "drill")
 
 
 def select_global(
@@ -97,10 +192,12 @@ def select_global(
         return concept_mastery(concept.id, now)
     reviews: list[Concept] = []
     frontier: list[Concept] = []
+    all_concepts: list[Concept] = []
     suppressed = dao.suppressed_concept_ids()
     suspended = dao.suspended_concept_ids()
     for subject in subjects:
         concepts = dao.get_concepts(subject)
+        all_concepts.extend(concepts)
         states = {c.id: store.get_or_create(c.id) for c in concepts}
         introduced_map = {
             cid: introduced(cs.reps, cid in suspended) for cid, cs in states.items()
@@ -119,6 +216,19 @@ def select_global(
     def penalty(concept: Concept) -> float:
         return INTERLEAVE_PENALTY if concept.subject == avoid_subject else 1.0
 
+    def best_new(pool: list[Concept]) -> Concept:
+        reach = downstream_reach(all_concepts)
+        return max(
+            pool, key=lambda c: (reach.get(c.id, 0), c.exam_weight * penalty(c))
+        )
+
+    # A subject with an exam date owes introductions on a schedule; those come
+    # before reviews, or the coverage deadline is never met (ADR-0007).
+    owed = {s for s in subjects if _intro_owed(s) > 0}
+    behind = [c for c in frontier if c.subject in owed]
+    if behind and _new_budget_left():
+        return Selection(best_new(behind), "new")
+
     if reviews:
         def review_key(concept: Concept) -> float:
             mastery = mastery_of(concept)
@@ -127,10 +237,9 @@ def select_global(
             return (1.0 - mastery) * concept.exam_weight * penalty(concept)
 
         return Selection(max(reviews, key=review_key), "review")
-    if frontier and _new_budget_left():
-        return Selection(
-            max(frontier, key=lambda c: c.exam_weight * penalty(c)), "new"
-        )
+    unpaced = [c for c in frontier if not _paced(c.subject)]
+    if unpaced and _new_budget_left():
+        return Selection(best_new(unpaced), "new")
     return None
 
 

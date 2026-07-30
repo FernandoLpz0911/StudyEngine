@@ -118,6 +118,11 @@ def cmd_status(as_json: bool) -> int:
         print("raised: not yet today — the gate will come up")
     if state.exam_date:
         print(f"exam: {state.exam_date} ({state.days_left} days left)")
+        pace = "on track" if state.coverage_on_track else "BEHIND"
+        print(
+            f"pace: mastered {state.concepts_mastered}/{state.concepts_total} · "
+            f"seen {state.concepts_seen}/{state.concepts_total} · coverage {pace}"
+        )
     else:
         print("exam: not set — run with --set-exam-date YYYY-MM-DD to arm the countdown")
     if keys.has_stale_snapshot():
