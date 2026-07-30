@@ -20,14 +20,24 @@ SUBJECTS_DIR: str = os.getenv("SUBJECTS_DIR", "data/subjects")
 # answer grades Hard and FSRS under-spaces them.
 GRADE_FAST_MS: int = int(os.getenv("GRADE_FAST_MS", "8000"))
 GRADE_SLOW_MS: int = int(os.getenv("GRADE_SLOW_MS", "30000"))
-GRADE_FAST_MS_GEN: int = int(os.getenv("GRADE_FAST_MS_GEN", "25000"))
-GRADE_SLOW_MS_GEN: int = int(os.getenv("GRADE_SLOW_MS_GEN", "90000"))
+# The generator thresholds are widened for free response: producing and typing a
+# numeric answer takes materially longer than picking from four options, and these
+# were tuned when generator items were still multiple choice. Left at 90s, almost
+# every typed answer would grade Hard, shortening intervals and inflating review
+# load on evidence that is really about typing speed. 150s is still far tighter
+# than the real ~6 min/question pace.
+GRADE_FAST_MS_GEN: int = int(os.getenv("GRADE_FAST_MS_GEN", "30000"))
+GRADE_SLOW_MS_GEN: int = int(os.getenv("GRADE_SLOW_MS_GEN", "150000"))
 
 # Mastery for the progress dashboard: full rep-confidence is reached at
 # MASTERY_TARGET_REPS reviews; a concept counts as "mastered" at/above
 # MASTERY_THRESHOLD. Accuracy is measured over the last MASTERY_ACCURACY_WINDOW.
-MASTERY_TARGET_REPS: int = int(os.getenv("MASTERY_TARGET_REPS", "3"))
-MASTERY_THRESHOLD: float = float(os.getenv("MASTERY_THRESHOLD", "0.8"))
+# Six reps rather than three: a concept answered right three times is not an
+# established one, and since mastery also ranks drill selection, a slower-
+# saturating confidence term keeps under-practised concepts at the front of the
+# queue instead of quietly reading as done.
+MASTERY_TARGET_REPS: int = int(os.getenv("MASTERY_TARGET_REPS", "6"))
+MASTERY_THRESHOLD: float = float(os.getenv("MASTERY_THRESHOLD", "0.85"))
 MASTERY_ACCURACY_WINDOW: int = int(os.getenv("MASTERY_ACCURACY_WINDOW", "20"))
 
 # Endowed progress: every concept shows at least this much "familiarity" so a
@@ -96,9 +106,16 @@ EXAM_PEAK_RETENTION: float = float(os.getenv("EXAM_PEAK_RETENTION", "0.96"))
 # Generator concepts at/above this measured mastery are served as free-response
 # (typed answer) instead of multiple choice: recognition is easier than recall, so
 # once a concept is known the four options give it away and stop testing anything.
-TYPED_ANSWER_MASTERY: float = float(os.getenv("TYPED_ANSWER_MASTERY", "0.75"))
+# Set low deliberately. Four numeric options can often be reasoned backwards from
+# by a learner who could not produce the answer, and the real sitting is five-option
+# multiple choice — so practising by typing is strictly harder than the exam, which
+# is the direction worth erring in.
+TYPED_ANSWER_MASTERY: float = float(os.getenv("TYPED_ANSWER_MASTERY", "0.55"))
 # Relative tolerance for grading a typed numeric answer (choices are exact-match).
-TYPED_REL_TOLERANCE: float = float(os.getenv("TYPED_REL_TOLERANCE", "0.005"))
+# 1%, not 0.5%: the key is rounded to three decimals, so a correctly solved 0.4237
+# keyed as 0.424 would mark a learner's 0.42 wrong. Penalising rounding costs a
+# quota answer and teaches nothing, and real answer choices are far wider apart.
+TYPED_REL_TOLERANCE: float = float(os.getenv("TYPED_REL_TOLERANCE", "0.01"))
 
 # Global interleaved sessions: down-weight a candidate from the subject just
 # studied so consecutive items come from different subjects (interleaving). Each

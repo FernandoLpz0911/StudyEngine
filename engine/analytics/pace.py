@@ -63,9 +63,14 @@ def intro_owed(subject: str, today: date | None = None) -> int:
     deadline = coverage_deadline(dao.get_exam_date(subject))
     if deadline is None:
         return 0
-    unseen = dao.count_unseen_concepts(subject)
-    owed = intro_quota(unseen, (deadline - today).days, settings.get_int("new_per_day"))
     done = dao.count_new_concepts_today(today=today, subject=subject)
+    # The quota is a share of the backlog as it stood at the *start* of the day.
+    # Recomputing it from the shrinking count would let the target fall to meet
+    # the work already done — ceil(28/13) is 3, but after two introductions
+    # ceil(26/13) is 2, which is what has been done, so the third never happens
+    # and coverage quietly runs a day late for every day with a remainder.
+    backlog = dao.count_unseen_concepts(subject) + done
+    owed = intro_quota(backlog, (deadline - today).days, settings.get_int("new_per_day"))
     return max(0, owed - done)
 
 

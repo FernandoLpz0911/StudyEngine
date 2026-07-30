@@ -48,14 +48,11 @@ def gen_combinatorics(ask: str, ranges: dict, seed: int) -> Problem:
 
     if ask == "nCr":
         ans = float(comb(n, r))
-        stmt = (
-            f"How many ways to choose {r} items from {n} "
-            f"(order doesn't matter)? Find C({n}, {r})."
-        )
+        stmt = f"How many ways to choose {r} items from {n} (order doesn't matter)?"
         wrongs = [float(perm(n, r)), float(comb(n, r - 1)), float(comb(n - 1, r))]
     elif ask == "nPr":
         ans = float(perm(n, r))
-        stmt = f"How many ordered arrangements of {r} items from {n}? Find P({n}, {r})."
+        stmt = f"How many ordered arrangements of {r} items from {n}?"
         wrongs = [float(comb(n, r)), float(perm(n, r - 1)), float(factorial(r) * comb(n, r))]
     elif ask == "multinomial":
         # Split n into 3 groups
@@ -191,10 +188,7 @@ def gen_bayes(ask: str, ranges: dict, seed: int) -> Problem:
     if ask == "posterior":
         prior_str = ", ".join([f"P(H{i+1}) = {priors[i]}" for i in range(n_hyp)])
         like_str = ", ".join([f"P(E|H{i+1}) = {likelihoods[i]}" for i in range(n_hyp)])
-        stmt = (
-            f"{prior_str}. {like_str}. "
-            f"Find P(H₁ | E) using Bayes' theorem."
-        )
+        stmt = f"{prior_str}. {like_str}. Find P(H₁ | E)."
         wrongs = [
             round(priors[0] * likelihoods[0], 4),  # forgot normalization
             round(likelihoods[0] * priors[0] / priors[0], 4) if priors[0] > 0 else 0.5,
@@ -358,10 +352,7 @@ def gen_mgf(ask: str, ranges: dict, seed: int) -> Problem:
     if ask == "moment_from_mgf":
         # E[X] = M'(0) = np for Binomial(n,p)
         ans = round(n * p, 4)
-        stmt = (
-            f"X has MGF M(t) = ({q} + {p}·eᵗ)^{n}. "
-            f"Find E[X] using M'(0)."
-        )
+        stmt = f"X has MGF M(t) = ({q} + {p}·eᵗ)^{n}. Find E[X]."
         wrongs = [round(n * q, 4), round(n * p * q, 4), round(n * p ** 2, 4)]
     elif ask == "identify_dist_from_mgf":
         # Find E[X²] = M''(0)
@@ -370,7 +361,7 @@ def gen_mgf(ask: str, ranges: dict, seed: int) -> Problem:
         ans = round(ex2, 4)
         stmt = (
             f"X has MGF M(t) = ({q} + {p}·eᵗ)^{n}. "
-            f"Find E[X²] = M''(0)."
+            f"Find E[X²]."
         )
         wrongs = [round(ex ** 2, 4), round(n * p * q, 4), round(ex, 4)]
     else:
@@ -391,10 +382,7 @@ def gen_transformation_univariate(ask: str, ranges: dict, seed: int) -> Problem:
         y0 = round(float(rng.uniform(0.5, 4.0)), 2)
         extra = {"y0": y0}
         ans = round(float(1 - np.exp(-lam * y0 ** 0.5)), 4)
-        stmt = (
-            f"X ~ Exponential(λ = {lam}). Let Y = X². "
-            f"Find P(Y ≤ {y0}) using the CDF method."
-        )
+        stmt = f"X ~ Exponential(λ = {lam}). Let Y = X². Find P(Y ≤ {y0})."
         wrongs = [round(1 - float(np.exp(-lam * y0)), 4),
                   round(float(np.exp(-lam * y0 ** 0.5)), 4),
                   round(1 - float(np.exp(-lam ** 2 * y0)), 4)]
@@ -404,10 +392,7 @@ def gen_transformation_univariate(ask: str, ranges: dict, seed: int) -> Problem:
         y0 = round(float(rng.uniform(0.1, 0.9)), 2)
         extra = {"y0": y0}
         ans = round(1 / (2 * y0 ** 0.5), 4)
-        stmt = (
-            f"X ~ Uniform(0, 1). Let Y = X². "
-            f"Find f_Y({y0}) using the change-of-variables formula."
-        )
+        stmt = f"X ~ Uniform(0, 1). Let Y = X². Find f_Y({y0})."
         wrongs = [round(2 * y0 ** 0.5, 4), round(y0 ** 0.5, 4),
                   round(1 / (y0 ** 0.5), 4)]
     else:

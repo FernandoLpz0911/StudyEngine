@@ -81,6 +81,19 @@ Distinct from a review, which is a card falling *due*. A drill is not evidence
 the schedule can trust — the card was not due, so answering it correctly says
 little — but failing one is real evidence of forgetting.
 
+**Bare statement** — a question states the situation and what to find, and nothing
+else. Naming the tool ("using the law of total variance"), restating its closed
+form inside the ask, or supplying an intermediate the learner should derive turns a
+problem into arithmetic and measures nothing. The sitting supplies none of it, so
+neither does practice.
+
+**Readiness bar** — the standard a concept must clear to count as ready, set for
+an exam *harder* than the one expected rather than the one hoped for. Deliberately
+strict in three directions at once: answers are typed rather than chosen long
+before a concept is comfortable, confidence takes many reviews to saturate, and
+the mastery threshold sits above the comfortable reading. A readiness number that
+flatters is worse than no number at all before a dated sitting.
+
 **Exam taper** — the convergence of the schedule on the exam date: reviews are
 compressed as the sitting approaches and never scheduled past the last day they
 could be served. Without it the scheduler, which has no notion that an exam

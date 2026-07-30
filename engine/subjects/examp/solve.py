@@ -824,19 +824,16 @@ def _s_conditional_dist(ask: str, params: dict) -> Solved:
     table = np.array(params["table"])
     px = table.sum(axis=1)
     if ask == "cond_pdf":
-        # j is not stored — reconstruct: problem shows P(Y=j|X=1)
-        # The generator picks j from rng, but we don't store j.
-        # We compute all conditional probs and return the formula.
+        # Older interactions were logged before `j` was recorded; those cannot be
+        # reconstructed, so they fall back to the value the solution used to assume.
+        j = int(params.get("j", 0))
         px1 = round(float(px[1]), 4)
-        cond = [round(float(table[1, j] / px[1]), 4) for j in range(3)]
-        return Solved(cond[0], [
-            "P(Y=j | X=1) = P(X=1, Y=j) / P(X=1)",
-            f"P(X=1) = {px1}",
-            f"P(Y=0|X=1) = {table[1,0]:.4f}/{px1} = {cond[0]}",
-            f"P(Y=1|X=1) = {table[1,1]:.4f}/{px1} = {cond[1]}",
-            f"P(Y=2|X=1) = {table[1,2]:.4f}/{px1} = {cond[2]}",
-            "(Match to the j asked in the problem statement)",
-        ], {"cond": cond, "px1": px1})
+        cond = [round(float(table[1, k] / px[1]), 4) for k in range(3)]
+        return Solved(cond[j], [
+            f"P(Y={j} | X=1) = P(X=1, Y={j}) / P(X=1)",
+            f"P(X=1) = {table[1,0]:.4f} + {table[1,1]:.4f} + {table[1,2]:.4f} = {px1}",
+            f"P(Y={j}|X=1) = {table[1,j]:.4f}/{px1} = {cond[j]}",
+        ], {"cond": cond, "px1": px1, "j": j})
     if ask == "cond_prob":
         px0 = round(float(px[0]), 4)
         c0 = round(float(table[0, 0] / px[0]), 4)
@@ -863,11 +860,11 @@ def _s_independence_rv(ask: str, params: dict) -> Solved:
         py0 = round(float(py[0]), 4)
         prod = round(px0 * py0, 4)
         joint = round(float(table[0, 0]), 4)
-        return Solved(joint, [
-            "Check independence: P(X=0,Y=0) should equal P(X=0)·P(Y=0)",
+        return Solved(prod, [
+            "Marginals: sum the row for P(X=0), the column for P(Y=0)",
             f"P(X=0) = {px0},  P(Y=0) = {py0}",
             f"P(X=0)·P(Y=0) = {px0}×{py0} = {prod}",
-            f"P(X=0,Y=0) = {joint}",
+            f"For comparison, the joint cell P(X=0,Y=0) = {joint}",
             f"{'Equal → independent' if abs(prod-joint)<1e-4 else 'Not equal → not independent'}",
         ], {"prod": prod, "joint": joint})
     return _unknown(ask)

@@ -38,8 +38,22 @@ _generators: dict[str, Callable] = {}
 
 
 def register(kind: str) -> Callable:
-    """Decorator registering a generator function under `kind`."""
+    """Decorator registering a generator function under `kind`.
+
+    Kinds are global across subjects, so a name used twice is not a merge — the
+    subject imported last silently wins and the other subject starts serving its
+    problems, graded against its key. Exam P's `combinatorics` concept spent its
+    whole life serving MATH 215 problems this way. Refusing the second
+    registration turns a silent content swap into an import-time error.
+    """
     def decorator(fn: Callable) -> Callable:
+        existing = _generators.get(kind)
+        if existing is not None and existing is not fn:
+            raise ValueError(
+                f"generator kind '{kind}' is already registered by "
+                f"{existing.__module__}; kinds are global, so pick a distinct name "
+                f"(tried to register {fn.__module__})"
+            )
         _generators[kind] = fn
         return fn
     return decorator

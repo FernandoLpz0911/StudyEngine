@@ -533,7 +533,7 @@
       ],
       "theory_md": "## Permutations, combinations, circular\n\n$P(n,r) = \\dfrac{n!}{(n-r)!}$, $\\ \\binom{n}{r} = \\dfrac{n!}{r!(n-r)!}$, and\ncircular arrangements of $n$ people $= (n-1)!$. Always ask: ordered or unordered?\n",
       "generator": {
-        "kind": "combinatorics",
+        "kind": "proofs_combinatorics",
         "params": {
           "ask": [
             "permutation",

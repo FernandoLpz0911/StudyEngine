@@ -41,6 +41,13 @@ Migrated: `databases`. Remaining on the registry: `diffeq`, `econ`, `examfm`,
   shown solution cannot diverge from the graded answer. (Unmigrated subjects still
   split this across `solve.py` — being retired per ADR-0003.)
 - **Reproducibility.** Generators take explicit `seed`; seed + params logged with every interaction.
+  Anything drawn from the rng that the statement depends on must land in `params`, or a
+  solution rebuilt from `params` answers a different question than the one asked.
+- **Kinds are globally unique** across subjects — `register`/`register_solver` raise on a
+  duplicate. Two subjects once shared `combinatorics` and one silently served the other's
+  problems (ADR-0011). Prefix anything generic: `proofs_combinatorics`.
+- **Bare statements.** A question says what is given and what to find, never how — no method
+  names, no restated closed forms, no derivable intermediates (ADR-0010).
 
 ## Layout
 
@@ -87,6 +94,13 @@ downstream reach, then exam weight. The **exam taper** ramps desired retention
 0.90 → 0.96 over the final month and clamps every interval to the day before the
 sitting (ADR-0009). `engine/analytics/pace.py` holds the arithmetic; the gate
 carries the readout.
+
+Calibration assumes a **harder** exam than expected (ADR-0010): free response from
+0.55 mastery (the real sitting is 5-option MC, so typing is harder than the exam),
+confidence saturating at 6 reps, mastery threshold 0.85. Daily volume is an
+*output*, not a lever — a correct-denominated quota already turns low accuracy
+into more questions on its own (simulated: 20 correct cost 41 questions a day at
+flat accuracy vs 24 when it improves).
 
 Runs as the user with no root: `Gtk.WindowType.POPUP` (override-redirect) +
 `Gdk.Seat.grab`, with GNOME's compositor shortcuts snapshotted to disk and

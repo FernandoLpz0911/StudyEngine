@@ -83,10 +83,7 @@ def gen_exponential(ask: str, ranges: dict, seed: int) -> Problem:
         s = round(float(rng.uniform(0.5, 2.0 / lam)), 2)
         t = round(float(rng.uniform(0.1, 1.0 / lam)), 2)
         ans = round(float(np.exp(-lam * t)), 4)
-        stmt = (
-            f"X ~ Exponential(λ = {lam}). By the memoryless property, "
-            f"find P(X > {s} + {t} | X > {s})."
-        )
+        stmt = f"X ~ Exponential(λ = {lam}). Find P(X > {s} + {t} | X > {s})."
         wrongs = [round(float(np.exp(-lam * (s + t))), 4), round(float(np.exp(-lam * s)), 4),
                   round(1 - ans, 4)]
         extra = {"s": s, "t": t}
@@ -106,7 +103,7 @@ def gen_gamma(ask: str, ranges: dict, seed: int) -> Problem:
 
     if ask == "mean":
         ans = round(alpha * theta, 4)
-        stmt = f"X ~ Gamma(α = {alpha}, θ = {theta}) [mean = αθ]. Find E[X]."
+        stmt = f"X ~ Gamma(α = {alpha}, θ = {theta}). Find E[X]."
         wrongs = [round(alpha * theta ** 2, 4), round(alpha / theta, 4),
                   round((alpha * theta) ** 0.5, 4)]
     elif ask == "variance":
@@ -163,10 +160,7 @@ def gen_normal(ask: str, ranges: dict, seed: int) -> Problem:
         x = round(float(rng.uniform(mu - 2 * sigma, mu + 2 * sigma)), 1)
         z = round((x - mu) / sigma, 4)
         ans = round(float(norm.cdf(z)), 4)
-        stmt = (
-            f"X ~ N(μ = {mu}, σ = {sigma}). Standardize and find P(X ≤ {x}), "
-            f"i.e. P(Z ≤ {z})."
-        )
+        stmt = f"X ~ N(μ = {mu}, σ = {sigma}). Find P(X ≤ {x})."
         wrongs = [round(1 - ans, 4), round(float(norm.cdf(-z)), 4),
                   round(float(norm.cdf(z, loc=mu, scale=sigma)), 4)]
         extra = {"x": x, "z": z}
@@ -264,7 +258,7 @@ def gen_moments(ask: str, ranges: dict, seed: int) -> Problem:
         ans = m2
         stmt = (
             f"A random variable X has mean E[X] = {mu} and "
-            f"Var(X) = {sigma2}. Find E[X²] = Var(X) + (E[X])²."
+            f"Var(X) = {sigma2}. Find E[X²]."
         )
         wrongs = [round(mu ** 2, 4), round(sigma2, 4),
                   round((mu + sigma2 ** 0.5) ** 2, 4)]
@@ -272,10 +266,7 @@ def gen_moments(ask: str, ranges: dict, seed: int) -> Problem:
 
     elif ask == "variance_from_moments":
         ans = round(sigma2, 4)
-        stmt = (
-            f"A random variable X has E[X] = {mu} and E[X²] = {m2}. "
-            f"Find Var(X) = E[X²] − (E[X])²."
-        )
+        stmt = f"A random variable X has E[X] = {mu} and E[X²] = {m2}. Find Var(X)."
         wrongs = [round(m2, 4), round(mu ** 2, 4),
                   round(sigma2 ** 0.5, 4)]
         params = {"mu": mu, "sigma2": sigma2, "m2": m2}
@@ -300,7 +291,7 @@ def gen_pareto(ask: str, ranges: dict, seed: int) -> Problem:
         ans = round(theta / (alpha - 1), 4)
         stmt = (
             f"X ~ Pareto(α = {alpha}, θ = {theta}) "
-            f"with S(x) = (θ/(x+θ))^α. Find E[X] = θ/(α−1)."
+            f"with S(x) = (θ/(x+θ))^α. Find E[X]."
         )
         wrongs = [round(theta / alpha, 4),
                   round(theta * (alpha - 1), 4),
@@ -326,7 +317,7 @@ def gen_pareto(ask: str, ranges: dict, seed: int) -> Problem:
         ans = round(s1 - s2, 4)
         stmt = (
             f"X ~ Pareto(α = {alpha}, θ = {theta}). "
-            f"Find P({x1} < X < {x2}) = S({x1}) − S({x2})."
+            f"Find P({x1} < X < {x2})."
         )
         wrongs = [round(1 - ans, 4), round(s2, 4), round(s1, 4)]
         extra = {"x1": x1, "x2": x2}

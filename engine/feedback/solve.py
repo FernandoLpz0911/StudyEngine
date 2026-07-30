@@ -13,8 +13,20 @@ _solvers: dict[str, Solver] = {}
 
 
 def register_solver(kind: str) -> Callable[[Solver], Solver]:
-    """Decorator registering a solver `fn(kind, ask, params) -> steps` for `kind`."""
+    """Decorator registering a solver `fn(kind, ask, params) -> steps` for `kind`.
+
+    Kinds are global here too, so a collision silently shows one subject's worked
+    solution for another subject's problem. Refused for the same reason the
+    generator registry refuses it.
+    """
     def decorator(fn: Solver) -> Solver:
+        existing = _solvers.get(kind)
+        if existing is not None and existing is not fn:
+            raise ValueError(
+                f"solver kind '{kind}' is already registered by "
+                f"{existing.__module__}; kinds are global, so pick a distinct name "
+                f"(tried to register {fn.__module__})"
+            )
         _solvers[kind] = fn
         return fn
     return decorator

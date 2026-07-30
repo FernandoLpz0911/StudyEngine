@@ -41,9 +41,14 @@ no exam date is entirely unaffected.
 - Review load rises through the final month. That is the trade being bought, and
   it lands in the weeks where the extra load is worth most.
 - The mastery ceiling rises from `0.90 × accuracy` to `0.96 × accuracy`, so the
-  0.8 threshold needs ~83% per-concept accuracy rather than ~89%. Still demanding,
+  0.85 threshold needs ~89% per-concept accuracy rather than ~94%. Still demanding,
   and still bounded by accuracy rather than by scheduling — the taper makes the
   target reachable, it does not make it easy.
+- `EXAM_PEAK_RETENTION` stops at 0.96 rather than going higher on purpose. At 0.98
+  the intervals roughly halve again, and in a day capped at a fixed number of
+  correct answers those extra reviews of already-known material crowd out the
+  drills aimed at weak concepts — strictly worse practice for two points of
+  ceiling.
 - The Sept 20 dashboard becomes an honest reading rather than a snapshot of stale
   cards, because every concept has been refreshed close to the sitting.
 - Stability estimates drift slightly low for tapered cards, since intervals are

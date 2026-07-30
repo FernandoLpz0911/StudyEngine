@@ -213,6 +213,34 @@ class TestIntroductionIsNotStarved:
         assert selection is not None
         assert selection.reason == "new", "reviews must not starve the coverage deadline"
 
+    def test_the_days_share_does_not_shrink_as_it_is_paid(self, db):
+        """The quota is a share of the backlog at the start of the day.
+
+        Recomputed from the shrinking unseen count it would fall to meet the work
+        already done — ceil(28/13)=3, but after two introductions ceil(26/13)=2,
+        which is what has been done, so the third never happens. One concept a day
+        is lost whenever the division has a remainder.
+        """
+        exam = dao.local_now().date() + timedelta(days=53)
+        dao.set_setting(f"exam_date.{SUBJECT}", exam.isoformat())
+        session = dao.create_session(SUBJECT)
+
+        owed_at_start = pace.intro_owed(SUBJECT)
+        assert owed_at_start >= 2, "need a day whose share is more than one"
+
+        served = 0
+        while pace.intro_owed(SUBJECT) > 0:
+            selection = policy.select_next(SUBJECT)
+            assert selection is not None and selection.reason == "new"
+            item = dao.log_shown(
+                session, selection.concept.id, SUBJECT, kind="test", reason="new"
+            )
+            dao.log_answered(item, "1", is_correct=True, grade=3, elapsed_ms=1000)
+            store.save(store.apply_rating(store.get_or_create(selection.concept.id), 3))
+            served += 1
+            assert served <= owed_at_start, "the share must not grow either"
+        assert served == owed_at_start
+
     def test_a_paced_subject_stops_at_the_days_share(self, db):
         exam = dao.local_now().date() + timedelta(days=54)
         dao.set_setting(f"exam_date.{SUBJECT}", exam.isoformat())

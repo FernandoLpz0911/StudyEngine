@@ -86,13 +86,13 @@ class TestModular:
 
 class TestCombinatorics:
     def test_permutation(self):
-        _check("combinatorics", "permutation", lambda q: perm(q["n"], q["r"]))
+        _check("proofs_combinatorics", "permutation", lambda q: perm(q["n"], q["r"]))
 
     def test_combination(self):
-        _check("combinatorics", "combination", lambda q: comb(q["n"], q["r"]))
+        _check("proofs_combinatorics", "combination", lambda q: comb(q["n"], q["r"]))
 
     def test_circular(self):
-        _check("combinatorics", "circular", lambda q: factorial(q["n"] - 1))
+        _check("proofs_combinatorics", "circular", lambda q: factorial(q["n"] - 1))
 
 
 class TestPigeonhole:

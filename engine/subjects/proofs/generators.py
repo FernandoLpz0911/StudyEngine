@@ -321,7 +321,7 @@ def gen_modular(ask: str, params: dict, seed: int) -> Problem:
                    params=params_out, seed=seed)
 
 
-@register("combinatorics")
+@register("proofs_combinatorics")
 def gen_combinatorics(ask: str, params: dict, seed: int) -> Problem:
     """Permutations, combinations, and circular arrangements."""
     rng = np.random.default_rng(seed)

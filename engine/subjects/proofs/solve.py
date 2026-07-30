@@ -130,7 +130,7 @@ def solve_modular(kind: str, ask: str, params: dict) -> list[str]:
             f"= {(a + b) % m}."]
 
 
-@register_solver("combinatorics")
+@register_solver("proofs_combinatorics")
 def solve_combinatorics(kind: str, ask: str, params: dict) -> list[str]:
     if ask == "combination":
         n, r = params["n"], params["r"]

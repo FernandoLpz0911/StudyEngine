@@ -92,6 +92,7 @@ def gen_conditional_dist(ask: str, ranges: dict, seed: int) -> Problem:
     # Conditional: P(Y=j | X=1)
     cond_y_given_x1 = table[1, :] / px[1]
 
+    extra: dict = {}
     if ask == "cond_pdf":
         j = int(rng.integers(0, 3))
         ans = round(float(cond_y_given_x1[j]), 4)
@@ -101,6 +102,10 @@ def gen_conditional_dist(ask: str, ranges: dict, seed: int) -> Problem:
         )
         wrongs = [round(float(table[1, j]), 4), round(float(py[j]), 4),
                   round(float(table[0, j] / px[0]), 4)]
+        # Which j was asked has to be logged: it is drawn from the rng, so a
+        # solution rebuilt from `params` alone cannot recover it, and the worked
+        # solution silently answered for j=0 whatever the question said.
+        extra = {"j": j}
     elif ask == "cond_prob":
         # P(Y ≤ 1 | X = 0)
         cond_y_given_x0 = table[0, :] / px[0]
@@ -115,29 +120,30 @@ def gen_conditional_dist(ask: str, ranges: dict, seed: int) -> Problem:
         raise ValueError(f"Unknown ask '{ask}' for conditional_dist")
 
     return Problem("conditional_dist", ask, stmt, ans, make_mc_choices(ans, wrongs, rng),
-                   params={"table": table.tolist()}, seed=seed)
+                   params={"table": table.tolist(), **extra}, seed=seed)
 
 
 @register("independence_rv")
 def gen_independence_rv(ask: str, ranges: dict, seed: int) -> Problem:
     rng = np.random.default_rng(seed)
     if ask == "is_independent":
-        # Create a table where X and Y ARE independent
-        px = rng.dirichlet([2, 3])
-        py = rng.dirichlet([3, 2, 3])
-        table = np.outer(px, py)
-        table = np.round(table, 4)
-        # Verify via f(x,y) = f_X(x)*f_Y(y)
+        # Half the tables are built independent (an outer product of marginals) and
+        # half are not. Always generating the independent case made the answer both
+        # a foregone conclusion and a lookup: the product of the marginals equalled
+        # a cell already printed in the table, so nothing had to be computed.
+        if rng.random() < 0.5:
+            table = np.round(np.outer(rng.dirichlet([2, 3]), rng.dirichlet([3, 2, 3])), 4)
+        else:
+            table = np.round(_joint_table(rng, m=2, n=3), 4)
         px_r = table.sum(axis=1)
-        ans = round(float(px_r[0] * table.sum(axis=0)[0]), 4)
-        actual = round(float(table[0, 0]), 4)
+        py_c = table.sum(axis=0)
+        ans = round(float(px_r[0] * py_c[0]), 4)
         stmt = (
-            f"Joint PMF: {table.tolist()}. "
-            f"Check if X,Y are independent by computing P(X=0)·P(Y=0)."
+            f"Joint PMF (rows=X∈{{0,1}}, cols=Y∈{{0,1,2}}): {table.tolist()}. "
+            f"Find P(X = 0)·P(Y = 0)."
         )
-        col_sum = round(float(table[0, 0] + table[0, 1]), 4)
-        wrongs = [round(actual * 2, 4), round(ans / 2, 4), col_sum]
-        ans = actual  # P(X=0,Y=0), which should equal px[0]*py[0] — the "independent" answer
+        wrongs = [round(float(table[0, 0]), 4), round(float(px_r[0]), 4),
+                  round(float(py_c[0]), 4)]
     else:
         raise ValueError(f"Unknown ask '{ask}' for independence_rv")
 
@@ -171,8 +177,9 @@ def gen_covariance(ask: str, ranges: dict, seed: int) -> Problem:
     elif ask == "var_of_sum":
         ans = round(vx + vy + 2 * cov, 4)
         stmt = (
-            f"Same joint PMF as above. Var(X) = {round(vx,4)}, Var(Y) = {round(vy,4)}, "
-            f"Cov(X,Y) = {cov}. Find Var(X + Y)."
+            f"Joint PMF: P(X=0,Y=0)={table[0,0]:.4f}, P(X=0,Y=1)={table[0,1]:.4f}, "
+            f"P(X=1,Y=0)={table[1,0]:.4f}, P(X=1,Y=1)={table[1,1]:.4f}. "
+            f"Find Var(X + Y)."
         )
         wrongs = [round(vx + vy, 4), round(vx + vy - 2 * cov, 4), round(vx * vy, 4)]
     else:
@@ -208,7 +215,7 @@ def gen_correlation(ask: str, ranges: dict, seed: int) -> Problem:
         stmt = (
             f"Joint PMF: P(X=0,Y=0)={table[0,0]:.4f}, P(X=0,Y=1)={table[0,1]:.4f}, "
             f"P(X=1,Y=0)={table[1,0]:.4f}, P(X=1,Y=1)={table[1,1]:.4f}. "
-            f"Find ρ(X, Y) = Cov(X,Y) / (σ_X · σ_Y)."
+            f"Find ρ(X, Y)."
         )
         cov_norm = round(cov / (vx * vy), 4) if vx * vy > 0 else 0.1
         wrongs = [round(cov, 4), round(ans ** 2, 4), cov_norm]
@@ -274,8 +281,8 @@ def gen_conditional_expectation(ask: str, ranges: dict, seed: int) -> Problem:
         tower = ey_given_x0 * px[0] + ey_given_x1 * px[1]
         ans = round(float(tower), 4)
         stmt = (
-            f"Joint PMF: {table.tolist()}. Verify the tower property: "
-            f"find E[Y] = E[E[Y|X]] = E[Y|X=0]·P(X=0) + E[Y|X=1]·P(X=1)."
+            f"Joint PMF (rows=X∈{{0,1}}, cols=Y∈{{0,1,2}}): {table.tolist()}. "
+            f"Find E[Y]."
         )
         wrongs = [round(ey_given_x1, 4), round(ey_given_x0, 4), round(ey + 0.1, 4)]
     else:
@@ -304,9 +311,8 @@ def gen_total_variance(ask: str, ranges: dict, seed: int) -> Problem:
     if ask == "total_variance":
         ans = round(total_var, 4)
         stmt = (
-            f"Joint PMF: {table.tolist()}. "
-            f"Find Var(Y) using the law of total variance: "
-            f"Var(Y) = E[Var(Y|X)] + Var(E[Y|X])."
+            f"Joint PMF (rows=X∈{{0,1}}, cols=Y∈{{0,1,2}}): {table.tolist()}. "
+            f"Find Var(Y)."
         )
         wrongs = [round(e_var, 4), round(var_ey, 4),
                   round(float(np.dot(y_vals ** 2, table.sum(axis=0))) - e_ey_given_x ** 2, 4)]
@@ -371,7 +377,7 @@ def gen_order_statistics(ask: str, ranges: dict, seed: int) -> Problem:
         ans = round(1 - (1 - ft) ** n, 4)
         stmt = (
             f"X₁, …, X_{n} iid Exp(λ = {lam}). m = min(X₁,…,X_{n}). "
-            f"Find P(m ≤ {t}) = 1 - [1-F({t})]^{n}."
+            f"Find P(m ≤ {t})."
         )
         wrongs = [round(ft ** n, 4), round(ft, 4), round(1 - ft ** n, 4)]
     elif ask == "min_max_prob":
@@ -405,8 +411,8 @@ def gen_clt(ask: str, ranges: dict, seed: int) -> Problem:
         extra = {"c": c, "z": z}
         ans = round(float(norm.cdf(z)), 4)
         stmt = (
-            f"X₁, …, X_{n} iid Exp(λ = {lam}). E[X] = {mu}, Var(X) = {sigma2}. "
-            f"Using CLT, find P(X̄ ≤ {c})."
+            f"X₁, …, X_{n} iid Exp(λ = {lam}). "
+            f"Find P(X̄ ≤ {c})."
         )
         wrongs = [round(1 - ans, 4), round(float(norm.cdf(-z)), 4),
                   round(float(norm.cdf(z, scale=sigma2)), 4)]
@@ -418,7 +424,7 @@ def gen_clt(ask: str, ranges: dict, seed: int) -> Problem:
         ans = round(float(norm.sf(z)), 4)
         stmt = (
             f"X₁, …, X_{n} iid Exp(λ = {lam}). S = X₁+…+X_{n}. "
-            f"Using CLT, find P(S > {c})."
+            f"Find P(S > {c})."
         )
         wrongs = [round(1 - ans, 4), round(float(norm.cdf(z)), 4),
                   round(float(norm.sf(-z)), 4)]
@@ -443,7 +449,7 @@ def gen_chebyshev(ask: str, ranges: dict, seed: int) -> Problem:
         ans = round(1 / k ** 2, 4)
         stmt = (
             f"X has mean {mu} and variance {sigma2}. "
-            f"Find an upper bound on P(|X - {mu}| ≥ {k}·σ) via Chebyshev's inequality."
+            f"Find the best upper bound on P(|X - {mu}| ≥ {k}·σ)."
         )
         wrongs = [round(sigma2 / (k * sigma) ** 2, 4),
                   round(1 / k, 4), round(sigma2 / k ** 2, 4)]
@@ -453,7 +459,7 @@ def gen_chebyshev(ask: str, ranges: dict, seed: int) -> Problem:
         extra = {"t": t}
         ans = round(mu / t, 4)
         stmt = (
-            f"X ≥ 0, E[X] = {mu}. Find an upper bound on P(X ≥ {t}) via Markov's inequality."
+            f"X ≥ 0, E[X] = {mu}. Find the best upper bound on P(X ≥ {t})."
         )
         wrongs = [round(mu / t ** 2, 4), round(sigma2 / t ** 2, 4), round(1 / t, 4)]
     else:
@@ -474,8 +480,7 @@ def gen_transformations_multi(ask: str, ranges: dict, seed: int) -> Problem:
         ans = round(float(np.exp(-n * lam * t)), 4)
         stmt = (
             f"X₁, …, X_{n} are iid Exp(λ = {lam}). "
-            f"Let M = min(X₁, …, X_{n}) ~ Exp({n}λ). "
-            f"Find P(M > {t}) = exp(−{n}λt)."
+            f"Let M = min(X₁, …, X_{n}). Find P(M > {t})."
         )
         wrongs = [round(float(np.exp(-lam * t)), 4),
                   round(float(1 - np.exp(-n * lam * t)), 4),
@@ -488,8 +493,7 @@ def gen_transformations_multi(ask: str, ranges: dict, seed: int) -> Problem:
         ans = round(z ** 2 / 2, 4)
         stmt = (
             f"X and Y are independent Uniform(0,1). Let Z = X + Y. "
-            f"Using the PDF of Z (triangular distribution on [0,2]), "
-            f"find P(Z ≤ {z})."
+            f"Find P(Z ≤ {z})."
         )
         wrongs = [round(z / 2, 4), round(z ** 2, 4),
                   round(1 - z ** 2 / 2, 4)]
@@ -505,8 +509,7 @@ def gen_transformations_multi(ask: str, ranges: dict, seed: int) -> Problem:
         ans = round(1 / abs(det), 4)
         stmt = (
             f"Apply the bivariate transformation U = {a}X + Y, V = X + {b}Y. "
-            f"Find |∂(x,y)/∂(u,v)|, the absolute Jacobian of the inverse "
-            f"transformation. [Hint: |J| = 1/|det(∂(u,v)/∂(x,y))|]"
+            f"Find |∂(x,y)/∂(u,v)|."
         )
         wrongs = [float(abs(det)),
                   round(1 / (a * b), 4),
