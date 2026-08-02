@@ -163,6 +163,10 @@ export interface GateStatus {
   days_left: number | null;
   concepts_total: number;
   concepts_seen: number;
-  concepts_mastered: number;
   coverage_on_track: boolean;
+  projected_score: number;
+  questions_total: number;
+  pass_mark: number;
+  ready_target: number;
+  projection_passing: boolean;
 }

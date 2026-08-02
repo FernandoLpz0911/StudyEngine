@@ -6,7 +6,7 @@
       "id": "gp.set_theory",
       "name": "Set theory & Venn diagrams",
       "category": "general",
-      "exam_weight": 2,
+      "exam_weight": 3,
       "prerequisites": [],
       "theory_md": "## Why This Exists\n\nBefore we can talk about probabilities we need a language for events.\nSet theory is that language: events are sets of outcomes, and combining\nevents means combining sets.\n\n## Intuition\n\nThink of a Venn diagram. The sample space $\\Omega$ is the whole rectangle.\nEach event is a bubble inside it. Union $A \\cup B$ is everything inside\neither bubble. Intersection $A \\cap B$ is the overlap. Complement $A^c$\nis everything outside the bubble.\n\n## The Formulas\n\n**Complement:** $P(A^c) = 1 - P(A)$\n\n**Addition rule (union):**\n\n$$P(A \\cup B) = P(A) + P(B) - P(A \\cap B)$$\n\nYou subtract the overlap because it gets counted twice.\n\n**Three-event inclusion-exclusion:**\n\n$$P(A \\cup B \\cup C) = P(A)+P(B)+P(C) - P(A\\cap B) - P(A\\cap C) - P(B\\cap C) + P(A\\cap B\\cap C)$$\n\n**De Morgan's laws:**\n- $(A \\cup B)^c = A^c \\cap B^c$ — \"not (A or B)\" = \"not A and not B\"\n- $(A \\cap B)^c = A^c \\cup B^c$ — \"not (A and B)\" = \"not A or not B\"\n\n### Worked Example\n\nIn a class, 60% of students passed Math, 50% passed English, and 30% passed both.\nWhat fraction passed at least one subject?\n\n$$P(M \\cup E) = 0.60 + 0.50 - 0.30 = 0.80$$\n\nWhat fraction passed neither?\n\n$$P(M^c \\cap E^c) = P((M \\cup E)^c) = 1 - 0.80 = 0.20$$\n\n## Key Properties\n\n| Expression | Meaning |\n|---|---|\n| $A \\cap B = \\emptyset$ | Mutually exclusive — no overlap |\n| $A \\subset B$ | Every outcome in $A$ is also in $B$ |\n| $A \\cup A^c = \\Omega$ | The whole space |\n| $A \\cap A^c = \\emptyset$ | Empty set |\n\n## Exam Gotchas\n\n- \"Neither A nor B\" is **not** $1 - P(A) - P(B)$. Use the complement of the union.\n- With three events, the triple intersection term is **added back** (not subtracted).\n- De Morgan is commonly tested in reverse: you're given $P(A^c \\cup B^c)$ and\n  need to recognize it equals $P((A \\cap B)^c) = 1 - P(A \\cap B)$.",
       "generator": {
@@ -53,7 +53,7 @@
       "id": "gp.axioms",
       "name": "Probability axioms & sample spaces",
       "category": "general",
-      "exam_weight": 2,
+      "exam_weight": 3,
       "prerequisites": [
         "gp.set_theory"
       ],
@@ -91,7 +91,7 @@
       "id": "gp.independence",
       "name": "Independence of events",
       "category": "general",
-      "exam_weight": 2,
+      "exam_weight": 3,
       "prerequisites": [
         "gp.conditional"
       ],

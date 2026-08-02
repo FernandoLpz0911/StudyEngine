@@ -119,9 +119,18 @@ def cmd_status(as_json: bool) -> int:
     if state.exam_date:
         print(f"exam: {state.exam_date} ({state.days_left} days left)")
         pace = "on track" if state.coverage_on_track else "BEHIND"
+        verdict = (
+            "ready" if state.projected_score >= state.ready_target
+            else "passing" if state.projection_passing
+            else "NOT PASSING"
+        )
         print(
-            f"pace: mastered {state.concepts_mastered}/{state.concepts_total} · "
-            f"seen {state.concepts_seen}/{state.concepts_total} · coverage {pace}"
+            f"projected: {state.projected_score}/{state.questions_total} correct — "
+            f"{verdict} (pass ~{state.pass_mark}, ready at {state.ready_target})"
+        )
+        print(
+            f"pace: seen {state.concepts_seen}/{state.concepts_total} · "
+            f"coverage {pace}"
         )
     else:
         print("exam: not set — run with --set-exam-date YYYY-MM-DD to arm the countdown")

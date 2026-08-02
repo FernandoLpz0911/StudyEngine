@@ -102,6 +102,22 @@ DAILY_GOAL: int = int(os.getenv("DAILY_GOAL", "20"))
 # three days later and buries the learner. (Anki's default is comparable.)
 NEW_PER_DAY: int = int(os.getenv("NEW_PER_DAY", "8"))
 
+# The sitting itself, and what readiness is measured against (ADR-0012). Readiness
+# is a projected raw score rather than a count of concepts over a threshold: that
+# count read 6/34 for a plan implying ~88% per-concept accuracy, which is a
+# comfortable pass reported as a failure.
+#
+# The SOA scales Exam P to 0-10 and passes at 6 without publishing the raw cut,
+# which moves between sittings — hence a margin rather than a bare comparison, and
+# hence a readout that states the assumption instead of hiding it.
+EXAM_QUESTIONS: int = int(os.getenv("EXAM_QUESTIONS", "30"))
+EXAM_PASS_MARK: int = int(os.getenv("EXAM_PASS_MARK", "21"))
+EXAM_TARGET_MARGIN: int = int(os.getenv("EXAM_TARGET_MARGIN", "4"))
+# Five options, so a blank guess scores one in five. Crediting it is what makes the
+# projection an estimate of the mark actually earned — and what correctly prices
+# dropping a concept as the gap between studied and guessed, not its whole weight.
+EXAM_GUESS_P: float = float(os.getenv("EXAM_GUESS_P", "0.2"))
+
 # Resting: a concept held this far above the readiness bar stops being reviewed,
 # freeing the day's quota for material that actually decides the exam. Much of it
 # is exercised indirectly anyway — a Normal question uses variance and

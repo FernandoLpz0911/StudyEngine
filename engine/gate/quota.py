@@ -30,8 +30,12 @@ class GateStatus:
     days_left: int | None
     concepts_total: int
     concepts_seen: int
-    concepts_mastered: int
     coverage_on_track: bool
+    projected_score: float
+    questions_total: int
+    pass_mark: int
+    ready_target: int
+    projection_passing: bool
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -86,7 +90,9 @@ def status(now: datetime | None = None) -> GateStatus:
     # The gate is the one surface with guaranteed daily attention, so it carries
     # the pace readout: being behind on coverage should be impossible to not see.
     from engine.analytics import pace as pace_module
+    from engine.analytics.projection import projected_score
     pace = pace_module.subject_pace(subject, today=today)
+    projection = projected_score(subject)
 
     return GateStatus(
         is_open=is_open,
@@ -101,8 +107,12 @@ def status(now: datetime | None = None) -> GateStatus:
         days_left=days_left,
         concepts_total=pace.total,
         concepts_seen=pace.seen,
-        concepts_mastered=pace.mastered,
         coverage_on_track=pace.coverage_on_track,
+        projected_score=projection.score,
+        questions_total=projection.questions,
+        pass_mark=projection.pass_mark,
+        ready_target=projection.target,
+        projection_passing=projection.passing,
     )
 
 

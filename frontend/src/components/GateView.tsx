@@ -82,10 +82,10 @@ export default function GateView() {
           <span className="muted">
             {status.remaining} more correct to unlock this machine
           </span>
-          <span className={status.coverage_on_track ? "gate-pace muted" : "gate-pace behind"}>
-            mastered {status.concepts_mastered}/{status.concepts_total} · seen{" "}
-            {status.concepts_seen}/{status.concepts_total} ·{" "}
-            {status.coverage_on_track ? "coverage on track" : "behind on coverage"}
+          <span className={status.projection_passing ? "gate-pace muted" : "gate-pace behind"}>
+            projected {status.projected_score}/{status.questions_total} · pass ~
+            {status.pass_mark} · seen {status.concepts_seen}/{status.concepts_total}
+            {status.coverage_on_track ? "" : " · behind on coverage"}
           </span>
         </div>
         <div className="gate-progress">

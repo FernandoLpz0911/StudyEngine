@@ -175,7 +175,7 @@ def select_drill(subject: str) -> Selection | None:
     aim at the lowest measured mastery, which is also the highest-value thing to be
     practising (ADR-0008).
     """
-    from engine.analytics.readiness import concept_mastery
+    from engine.analytics.projection import concept_p_exam
 
     suppressed = dao.suppressed_concept_ids()
     now = datetime.now(UTC)
@@ -185,13 +185,21 @@ def select_drill(subject: str) -> Selection | None:
     ]
     if not candidates:
         return None
-    # Least-drilled-today first, weakest to break the tie: everything gets one
+
+    def marks_at_stake(concept: Concept) -> float:
+        """Marks a perfect concept would add over leaving it where it is.
+
+        Lowest mastery alone ignores what a concept is worth: a weight-3 concept
+        at 0.70 carries three times the marks of a weight-1 at 0.50, so practising
+        the weaker one is the worse use of a limited day (ADR-0012).
+        """
+        return concept.exam_weight * (1.0 - concept_p_exam(concept.id, now))
+
+    # Least-drilled-today first, then most marks at stake: everything gets one
     # before anything gets two, so a long top-up spaces rather than masses.
     taken = dao.drills_today(subject)
-    weakest = min(
-        candidates, key=lambda c: (taken.get(c.id, 0), concept_mastery(c.id, now))
-    )
-    return Selection(weakest, "drill")
+    best = max(candidates, key=lambda c: (-taken.get(c.id, 0), marks_at_stake(c)))
+    return Selection(best, "drill")
 
 
 def select_global(

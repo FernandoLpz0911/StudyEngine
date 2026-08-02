@@ -55,6 +55,29 @@ once per session; `best_day` excludes today so the daily record fires at its
 crossing. Advanced in memory as records are set, and re-snapshotted when the local
 day rolls over mid-session.
 
+## Readiness
+
+**Projected score** — the raw mark the learner would be expected to earn sitting
+the exam today: every concept's chance of being answered correctly, weighted by
+its share of the paper. *The* readiness number. It replaced a count of concepts
+over a mastery threshold, which was never calibrated to the exam and reported a
+comfortable pass as a failure — and, when optimised, advised dropping material
+that a projected score shows is worth keeping.
+
+**Guessing floor** — the mark a pure guess earns on a multiple-choice paper. It is
+why an unstudied concept is worth more than nothing, and why abandoning a concept
+costs only the gap between studied and guessed rather than its whole weight. The
+reason breadth beats depth here.
+
+**Pass margin** — how far the [[projected-score]] sits above the pass mark. The
+mark itself is an estimate: the sitting is scaled and the raw cut is unpublished
+and moves, so readiness is declared with room to spare rather than on the line.
+
+**Marks at stake** — what a concept is worth times how much of it is unearned.
+What practice should be aimed at, and deliberately not the same as "weakest": a
+heavily weighted concept answered moderately well carries more unearned marks than
+a trivial one answered badly.
+
 ## Exam pacing
 
 **Coverage** — how much of a subject has been *introduced* at all, as distinct

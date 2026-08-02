@@ -105,6 +105,13 @@ Frontier order is downstream reach, then exam weight. The **exam taper** ramps d
 sitting (ADR-0009). `engine/analytics/pace.py` holds the arithmetic; the gate
 carries the readout.
 
+**Readiness is a projected exam score**, not a count of mastered concepts
+(`engine/analytics/projection.py`, ADR-0012): `p_skill = accuracy × retention`, then
+a 1-in-5 guessing floor, weighted by `exam_weight` over `EXAM_QUESTIONS` and read
+against `EXAM_PASS_MARK`. Unseen concepts still score the floor — which is why
+trimming the syllabus *loses* marks. Drills target `exam_weight × (1 − p_exam)`.
+`exam_weight` is therefore load-bearing, not decorative.
+
 Calibration assumes a **harder** exam than expected (ADR-0010): free response from
 0.55 mastery (the real sitting is 5-option MC, so typing is harder than the exam),
 confidence saturating at 6 reps, mastery threshold 0.85. Daily volume is an
