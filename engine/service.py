@@ -182,9 +182,14 @@ def settle_answer(
     and detects personal-best crossings. Session-local framing (streak, combo,
     reward, XP) is *not* here — that is per-session state the StudyLoop owns.
     """
-    from engine.config import LEECH_LAPSES
+    from engine.config import LEECH_LAPSES, MAX_ANSWER_MS
     from engine.quests import settle
 
+    # Clamped once, before it can reach the grade, the log, or the fastest-answer
+    # record. The client reports active time, but an old tab left open still posts
+    # wall clock, and a single 43-hour "answer" both grades Hard and permanently
+    # skews any timing statistic derived from the log.
+    elapsed_ms = max(0, min(elapsed_ms, MAX_ANSWER_MS))
     correct, grd = grade(raw_answer, elapsed_ms, item)
     # Read before this answer lands in the log, or it can never beat the record.
     answered_today_before = dao.count_answered_today()

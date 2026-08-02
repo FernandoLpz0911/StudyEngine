@@ -263,20 +263,40 @@ class TestResetBails:
 
 
 class TestLocalDayBoundary:
-    """'Today' is the learner's local day, and DST must not move the boundary."""
+    """'Today' is the learner's study day: local, DST-stable, rolling over at 3am."""
 
-    def test_day_rolls_over_at_local_midnight_not_utc(self, monkeypatch):
+    def test_day_rolls_over_in_local_time_not_utc(self, monkeypatch):
         monkeypatch.setattr(config, "STUDY_TIMEZONE", "America/Chicago")
         # 03:30 UTC on the 30th is still 22:30 on the 29th in Chicago (CDT, UTC-5).
         assert dao.local_day("2026-07-30T03:30:00+00:00") == date(2026, 7, 29)
-        assert dao.local_day("2026-07-30T05:30:00+00:00") == date(2026, 7, 30)
 
-    def test_bounds_track_dst(self, monkeypatch):
+    def test_after_midnight_still_belongs_to_the_day_before(self, monkeypatch):
+        monkeypatch.setattr(config, "STUDY_TIMEZONE", "America/Chicago")
+        # 00:30 and 02:59 local are the tail of the 29th, not a new day.
+        assert dao.local_day("2026-07-30T05:30:00+00:00") == date(2026, 7, 29)
+        assert dao.local_day("2026-07-30T07:59:00+00:00") == date(2026, 7, 29)
+        # 03:00 local is where the new day starts.
+        assert dao.local_day("2026-07-30T08:00:00+00:00") == date(2026, 7, 30)
+
+    def test_bounds_start_at_the_rollover_hour_and_track_dst(self, monkeypatch):
         monkeypatch.setattr(config, "STUDY_TIMEZONE", "America/Chicago")
         summer_start, _ = dao.local_day_bounds(date(2026, 7, 29))
         winter_start, _ = dao.local_day_bounds(date(2026, 12, 15))
-        assert summer_start == "2026-07-29T05:00:00+00:00"  # CDT, UTC-5
-        assert winter_start == "2026-12-15T06:00:00+00:00"  # CST, UTC-6
+        assert summer_start == "2026-07-29T08:00:00+00:00"  # 03:00 CDT (UTC-5)
+        assert winter_start == "2026-12-15T09:00:00+00:00"  # 03:00 CST (UTC-6)
+
+    def test_bounds_stay_contiguous_across_the_dst_switch(self, monkeypatch):
+        """The spring-forward day is 23 hours long, so a fixed +24h would leave a
+        gap: answers in it would belong to no day at all."""
+        monkeypatch.setattr(config, "STUDY_TIMEZONE", "America/Chicago")
+        _, end = dao.local_day_bounds(date(2026, 3, 7))  # DST begins Mar 8, 2026
+        next_start, _ = dao.local_day_bounds(date(2026, 3, 8))
+        assert end == next_start
+
+    def test_study_today_and_local_day_agree(self, monkeypatch):
+        """One rule, two inputs: a stored UTC instant and a local wall clock."""
+        monkeypatch.setattr(config, "STUDY_TIMEZONE", "America/Chicago")
+        assert dao.study_today() == dao.local_day(dao.local_now())
 
     def test_bounds_are_half_open_and_contiguous(self, monkeypatch):
         monkeypatch.setattr(config, "STUDY_TIMEZONE", "America/Chicago")

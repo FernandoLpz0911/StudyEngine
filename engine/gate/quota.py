@@ -60,7 +60,11 @@ def bails_left() -> int:
 def status(now: datetime | None = None) -> GateStatus:
     """Everything the gate and its UI need to decide what to show."""
     now = now or local_now()
-    today = now.date()
+    # `now` stays wall-clock — the exam-eve rule is about the hour on the clock —
+    # but everything counted per day uses the study day, which turns over at
+    # DAY_ROLLOVER_HOUR. Reading the calendar date here instead would let the gate
+    # demand a fresh quota at midnight from someone still mid-session.
+    today = dao.study_today(now)
     subject = config.GATE_SUBJECT
     exam = dao.get_exam_date(subject)
     quota = settings.get_int("daily_goal")
@@ -118,7 +122,7 @@ def should_raise(now: datetime | None = None) -> bool:
     now = now or local_now()
     if status(now).is_open:
         return False
-    return not dao.raised_today(now.date())
+    return not dao.raised_today(dao.study_today(now))
 
 
 def spend_bail(now: datetime | None = None) -> GateStatus:
@@ -130,5 +134,5 @@ def spend_bail(now: datetime | None = None) -> GateStatus:
     now = now or local_now()
     if bails_left() <= 0:
         raise ValueError("no bails left in the current window")
-    dao.record_bail(today=now.date())
+    dao.record_bail(today=dao.study_today(now))
     return status(now)

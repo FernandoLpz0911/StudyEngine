@@ -13,7 +13,7 @@ from engine import config, service
 from engine.analytics import pace
 from engine.db import dao
 from engine.db.dao import Concept
-from engine.scheduler import policy, store
+from engine.scheduler import availability, policy, store
 
 SUBJECT = config.GATE_SUBJECT
 
@@ -269,6 +269,83 @@ class TestIntroductionIsNotStarved:
         selection = policy.select_next(other)
         assert selection is not None
         assert selection.reason == "new"
+
+
+class TestRestingStrongConcepts:
+    """A concept held well above the bar stops being reviewed until it decays."""
+
+    def _rested(self, mastery, reps=8, days_to_exam=50):
+        return availability.is_rested(
+            mastery, reps, days_to_exam,
+            rest_mastery=config.REST_MASTERY,
+            min_reps=config.MASTERY_TARGET_REPS,
+            stop_days=config.REST_STOP_DAYS,
+        )
+
+    def test_a_strong_concept_rests(self):
+        assert self._rested(0.97) is True
+
+    def test_a_merely_adequate_concept_keeps_being_reviewed(self):
+        assert self._rested(config.MASTERY_THRESHOLD) is False
+
+    def test_a_strong_but_barely_practised_concept_does_not_rest(self):
+        # High mastery on two reps is thin evidence, not established strength.
+        assert self._rested(0.97, reps=2) is False
+
+    def test_nothing_rests_in_the_final_stretch(self):
+        assert self._rested(0.99, days_to_exam=config.REST_STOP_DAYS) is False
+        assert self._rested(0.99, days_to_exam=config.REST_STOP_DAYS + 1) is True
+
+    def test_resting_is_self_undoing(self):
+        """No stored flag: mastery carries a decaying retention factor, so a
+        rested concept slides back under the threshold and returns on its own."""
+        assert self._rested(0.95) is True
+        assert self._rested(0.95 * 0.85) is False  # a few days of decay
+
+    def test_a_rested_concept_is_not_offered_as_a_review(self, db, monkeypatch):
+        concept = dao.get_concepts(SUBJECT)[0]
+        for _ in range(config.MASTERY_TARGET_REPS + 2):
+            store.save(store.apply_rating(store.get_or_create(concept.id), 4))
+        # Force it past the rest bar regardless of the fixture's history.
+        monkeypatch.setattr(
+            "engine.analytics.readiness.concept_mastery", lambda *a, **k: 0.99
+        )
+        state = store.get_or_create(concept.id)
+        assert policy._rested(concept, state) is True
+
+
+class TestRunningAhead:
+    """Outperforming the plan should unlock the rest of the syllabus early."""
+
+    def _answer(self, correct: bool, n: int) -> None:
+        session = dao.create_session(SUBJECT)
+        concept = dao.get_concepts(SUBJECT)[0].id
+        for _ in range(n):
+            item = dao.log_shown(session, concept, SUBJECT, kind="test")
+            dao.log_answered(item, "1", is_correct=correct, grade=3, elapsed_ms=1000)
+
+    def test_not_ahead_without_enough_evidence(self, db):
+        self._answer(correct=True, n=config.AHEAD_WINDOW - 1)
+        assert policy._running_ahead(SUBJECT) is False
+
+    def test_high_recent_accuracy_counts_as_ahead(self, db):
+        self._answer(correct=True, n=config.AHEAD_WINDOW)
+        assert policy._running_ahead(SUBJECT) is True
+
+    def test_struggling_is_not_ahead(self, db):
+        self._answer(correct=False, n=config.AHEAD_WINDOW)
+        assert policy._running_ahead(SUBJECT) is False
+
+    def test_ahead_lifts_the_pacing_ceiling(self, db):
+        """With the day's share paid and nothing due, a paced subject normally
+        stops. Running ahead lets the frontier open anyway."""
+        exam = dao.local_now().date() + timedelta(days=54)
+        dao.set_setting(f"exam_date.{SUBJECT}", exam.isoformat())
+        self._answer(correct=True, n=config.AHEAD_WINDOW)
+        assert policy._paced(SUBJECT) is True
+        assert policy._running_ahead(SUBJECT) is True
+        selection = policy.select_next(SUBJECT)
+        assert selection is not None and selection.reason == "new"
 
 
 class TestPaceReadout:

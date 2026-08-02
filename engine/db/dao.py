@@ -75,6 +75,27 @@ def drills_today(subject: str, today: date | None = None) -> dict[str, int]:
     return {r["concept_id"]: r["n"] for r in rows}
 
 
+def recent_accuracy(subject: str, window: int) -> float | None:
+    """Fraction correct over the subject's last `window` settled answers.
+
+    Whether the learner is running ahead of the plan, measured across the subject
+    rather than per concept: the question is how the studying is going overall,
+    not whether one card happens to be easy.
+    """
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT is_correct FROM interaction
+            WHERE subject = ? AND is_correct IS NOT NULL
+            ORDER BY id DESC LIMIT ?
+            """,
+            (subject, window),
+        ).fetchall()
+    if len(rows) < window:  # too little evidence to call anyone ahead
+        return None
+    return sum(r["is_correct"] for r in rows) / len(rows)
+
+
 def count_unseen_concepts(subject: str) -> int:
     """Concepts in a subject never yet served — the coverage backlog.
 
@@ -616,18 +637,26 @@ def study_zone() -> ZoneInfo:
 
 
 def local_day(when: datetime | str) -> date:
-    """The learner's local calendar date for a stored UTC timestamp.
+    """The learner's study day for a stored UTC timestamp.
 
     Timestamps are written as UTC; which *day* they belong to is a question about
     the learner's wall clock, and the answer shifts with DST. Converting through a
     real zone means an answer at 23:30 in Chicago counts for that day whether the
     UTC offset happens to be 5 or 6 hours.
+
+    The day then runs from `DAY_ROLLOVER_HOUR`, so a 1am answer is bucketed into
+    the day before — the streak this backs must not break because a session ran
+    past midnight, and the best-day record must not split one sitting in two.
+    Takes a stored UTC instant; `study_today` is the same rule applied to a
+    wall-clock time already in the learner's zone.
     """
+    from engine.config import DAY_ROLLOVER_HOUR
     if isinstance(when, str):
         when = datetime.fromisoformat(when)
     if when.tzinfo is None:
         when = when.replace(tzinfo=UTC)
-    return when.astimezone(study_zone()).date()
+    local = when.astimezone(study_zone())
+    return (local - timedelta(hours=DAY_ROLLOVER_HOUR)).date()
 
 
 def local_day_bounds(day: date) -> tuple[str, str]:
@@ -638,9 +667,14 @@ def local_day_bounds(day: date) -> tuple[str, str]:
     wrong for half the year. Comparing stored UTC timestamps against precomputed
     UTC bounds is exact, and uses the index on `answered_at`.
     """
+    from engine.config import DAY_ROLLOVER_HOUR
     zone = study_zone()
-    start = datetime.combine(day, time.min, tzinfo=zone)
-    end = datetime.combine(day + timedelta(days=1), time.min, tzinfo=zone)
+    rollover = time(hour=DAY_ROLLOVER_HOUR)
+    start = datetime.combine(day, rollover, tzinfo=zone)
+    # Built from the next calendar date rather than start + 24h: across a DST
+    # boundary a fixed 24 hours lands an hour either side of the rollover, which
+    # would leave a gap or an overlap between consecutive days.
+    end = datetime.combine(day + timedelta(days=1), rollover, tzinfo=zone)
     return start.astimezone(UTC).isoformat(), end.astimezone(UTC).isoformat()
 
 
@@ -649,8 +683,22 @@ def local_now() -> datetime:
     return datetime.now(UTC).astimezone(study_zone())
 
 
+def study_today(now: datetime | None = None) -> date:
+    """The study day the learner is currently in.
+
+    The day turns over at `DAY_ROLLOVER_HOUR`, not midnight, so everything that
+    means "today" — streak, daily goal, quests, new-per-day cap, records, the
+    gate's quota — belongs to the day the learner is still awake in. Answering at
+    1am finishes the previous day rather than silently starting a fresh one, which
+    at midnight would break a streak mid-session, pay the gate for a day not yet
+    lived, and split one sitting across two days of statistics.
+    """
+    from engine.config import DAY_ROLLOVER_HOUR
+    return ((now or local_now()) - timedelta(hours=DAY_ROLLOVER_HOUR)).date()
+
+
 def _local_today() -> date:
-    return local_now().date()
+    return study_today()
 
 
 def daily_streak(today: date | None = None) -> int:

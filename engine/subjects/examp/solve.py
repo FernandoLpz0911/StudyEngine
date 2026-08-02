@@ -709,20 +709,35 @@ def _s_variance_generic(ask: str, params: dict) -> Solved:
 def _s_mgf(ask: str, params: dict) -> Solved:
     n, p = params["n"], params["p"]
     q = round(1 - p, 2)
+    # The recognition step is the whole skill here, so it is spelled out rather
+    # than asserted: "M(t) = … → Binomial" teaches nothing to someone who could
+    # not already see it.
+    recognise = [
+        f"Shape check: M(t) = ({q} + {p}·eᵗ)^{n} is (something + something·eᵗ) "
+        f"raised to a whole power.",
+        f"Only the Binomial MGF looks like that: (1−p + p·eᵗ)ⁿ. Matching term by "
+        f"term, p = {p} (what multiplies eᵗ), 1−p = {q} ✓, n = {n} (the exponent).",
+        f"So X ~ Binomial(n={n}, p={p}) — {n} independent trials, each succeeding "
+        f"with probability {p}. Now use what you know about Binomials; no "
+        f"differentiating needed.",
+    ]
     if ask == "moment_from_mgf":
         ans = round(n * p, 4)
         return Solved(ans, [
-            f"M(t) = ({q} + {p}·eᵗ)^{n}  →  X ~ Binomial(n={n}, p={p})",
-            f"E[X] = M'(0) = n·p = {n} × {p} = {ans}",
+            *recognise,
+            f"A Binomial's mean is n·p — {n} trials × {p} chance each.",
+            f"E[X] = {n} × {p} = {ans}",
         ], {})
     if ask == "identify_dist_from_mgf":
         ex = n * p
         ans = round(n * p * q + (n * p) ** 2, 4)
         return Solved(ans, [
-            f"M(t) = ({q} + {p}·eᵗ)^{n}  →  X ~ Binomial(n={n}, p={p})",
-            "E[X²] = M''(0) = Var(X) + (E[X])² = n·p·q + (n·p)²",
-            f"      = {n}·{p}·{q} + ({n}·{p})²",
-            f"      = {round(n*p*q,4)} + {round((n*p)**2,4)} = {ans}",
+            *recognise,
+            "E[X²] is not a standard formula, so rearrange the definition of "
+            "variance: Var(X) = E[X²] − (E[X])², hence E[X²] = Var(X) + (E[X])².",
+            f"For a Binomial: Var(X) = n·p·q = {n}·{p}·{q} = {round(n*p*q,4)}, "
+            f"and E[X] = n·p = {round(n*p,4)}.",
+            f"E[X²] = {round(n*p*q,4)} + {round((n*p)**2,4)} = {ans}",
         ], {"ex": ex})
     return _unknown(ask)
 
@@ -735,20 +750,38 @@ def _s_transformation_univariate(ask: str, params: dict) -> Solved:
         sqrt_y0 = round(y0 ** 0.5, 4)
         ans = round(float(1 - np.exp(-lam * y0 ** 0.5)), 4)
         return Solved(ans, [
-            f"X ~ Exp(λ={lam}),  Y = X²",
-            "CDF method: P(Y ≤ y₀) = P(X² ≤ y₀) = P(X ≤ √y₀)",
-            f"P(X ≤ √{y0}) = P(X ≤ {sqrt_y0}) = 1 - e^{{-{lam}·{sqrt_y0}}}",
-            f"= 1 - e^{{-{round(lam*sqrt_y0,4)}}} = {ans}",
+            f"X ~ Exp(λ={lam}) is a waiting time, so X > 0. Y = X² is that "
+            f"waiting time squared.",
+            "You do not know Y's density, but you do know X's. So translate the "
+            "question about Y into one about X: asking 'is Y ≤ y₀?' is the same "
+            "as asking 'is X² ≤ y₀?'",
+            "Since X > 0, squaring preserves order — bigger X always means bigger "
+            "X² — so you can take square roots of both sides safely: "
+            "X² ≤ y₀ is exactly X ≤ √y₀. (That step needs X > 0; with a variable "
+            "that could be negative you would also pick up X ≥ −√y₀.)",
+            f"Now it is an ordinary Exponential question: P(X ≤ √{y0}) = "
+            f"P(X ≤ {sqrt_y0}), and the Exponential CDF is F(x) = 1 − e^(−λx).",
+            f"= 1 − e^(−{lam}·{sqrt_y0}) = 1 − e^(−{round(lam*sqrt_y0,4)}) = {ans}",
         ], {"sqrt_y0": sqrt_y0})
     if ask == "pdf_of_transform":
         y0 = params["y0"]
         ans = round(1 / (2 * y0 ** 0.5), 4)
         return Solved(ans, [
-            "X ~ Uniform(0,1),  Y = X²",
-            "Change of variables: f_Y(y) = f_X(g⁻¹(y)) · |dg⁻¹/dy|",
-            "g⁻¹(y) = √y,  |dg⁻¹/dy| = 1/(2√y)",
-            "f_X(√y) = 1 (uniform),  so f_Y(y) = 1/(2√y)",
+            "X ~ Uniform(0,1) spreads probability evenly over 0 to 1. Squaring it "
+            "pushes values toward 0 (½ squared is ¼), so Y = X² is no longer even: "
+            "it piles up near 0. The density must get taller there.",
+            "To find how tall, ask where a value of Y came from: y came from "
+            "x = √y. That is the inverse map.",
+            "Squaring stretches the number line unevenly, so a small window of y "
+            "corresponds to a window of x of a different width. The stretch factor "
+            "is the derivative of the inverse: d(√y)/dy = 1/(2√y). Density is "
+            "probability per unit width, so dividing by the stretch is what keeps "
+            "the total area at 1.",
+            "f_Y(y) = f_X(√y) · 1/(2√y), and f_X = 1 everywhere on (0,1), so "
+            "f_Y(y) = 1/(2√y).",
             f"f_Y({y0}) = 1/(2√{y0}) = 1/{round(2*y0**0.5,4)} = {ans}",
+            "Sanity check: small y gives a big density — matching the pile-up "
+            "near 0 you predicted at the start.",
         ], {})
     return _unknown(ask)
 

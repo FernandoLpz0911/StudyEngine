@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from engine.db import dao
 from engine.db.dao import Concept
 from engine.scheduler import store
-from engine.scheduler.availability import introduced, is_due
+from engine.scheduler.availability import introduced, is_due, is_rested
 from engine.scheduler.fsrs_core import retrievability
 from engine.scheduler.store import CardState
 
@@ -73,6 +73,33 @@ def _paced(subject: str) -> bool:
     return dao.get_exam_date(subject) is not None
 
 
+def _rested(concept: Concept, cs: CardState) -> bool:
+    """Whether this concept is strong enough to skip reviewing for now.
+
+    Checked only for cards that are otherwise due, so the mastery read costs
+    nothing on the far larger set that is not.
+    """
+    from engine.analytics.readiness import concept_mastery
+    from engine.config import MASTERY_TARGET_REPS, REST_MASTERY, REST_STOP_DAYS
+    from engine.scheduler.store import _days_to_exam
+
+    return is_rested(
+        concept_mastery(concept.id),
+        cs.reps,
+        _days_to_exam(concept.subject),
+        rest_mastery=REST_MASTERY,
+        min_reps=MASTERY_TARGET_REPS,
+        stop_days=REST_STOP_DAYS,
+    )
+
+
+def _running_ahead(subject: str) -> bool:
+    """Whether recent accuracy justifies reaching past the deadline's pace."""
+    from engine.config import AHEAD_ACCURACY, AHEAD_WINDOW
+    accuracy = dao.recent_accuracy(subject, AHEAD_WINDOW)
+    return accuracy is not None and accuracy >= AHEAD_ACCURACY
+
+
 def _new_budget_left() -> bool:
     """Whether today's cap on newly introduced concepts still has room.
 
@@ -119,7 +146,7 @@ def select_next(subject: str) -> Selection | None:
         cs = states[concept.id]
         if cs.reps == 0:
             frontier.append(concept)
-        elif is_due(cs.reps, cs.due, now, suppressed=False):
+        elif is_due(cs.reps, cs.due, now, suppressed=False) and not _rested(concept, cs):
             overdue.append((_urgency(cs, now) * concept.exam_weight, concept))
 
     def best_new() -> Concept:
@@ -131,7 +158,10 @@ def select_next(subject: str) -> Selection | None:
         return Selection(best_new(), "new")
     if overdue:
         return Selection(max(overdue, key=lambda x: x[0])[1], "review")
-    if can_introduce and not _paced(subject):
+    # The deadline's pace is a ceiling only while the plan is being kept to. With
+    # the day's scheduled work done and accuracy running high, the rest of the
+    # syllabus is better met early than waited for.
+    if can_introduce and (not _paced(subject) or _running_ahead(subject)):
         return Selection(best_new(), "new")
     return None
 

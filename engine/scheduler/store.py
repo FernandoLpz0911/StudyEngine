@@ -155,7 +155,7 @@ def _days_to_exam(subject: str | None) -> int | None:
     exam = dao.get_exam_date(subject)
     if exam is None:
         return None
-    return (exam - dao.local_now().date()).days
+    return (exam - dao.study_today()).days
 
 
 def _clamp_to_exam(

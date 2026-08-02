@@ -46,12 +46,18 @@ MASTERY_ACCURACY_WINDOW: int = int(os.getenv("MASTERY_ACCURACY_WINDOW", "20"))
 ENDOWED_BASELINE: float = float(os.getenv("ENDOWED_BASELINE", "0.1"))
 
 # The learner's day boundary. Everything that means "today" — streak, daily goal,
-# quests, new-per-day cap, records, the study gate's quota — rolls over at local
-# midnight in this zone. An IANA name rather than a fixed UTC offset because a
+# quests, new-per-day cap, records, the study gate's quota — rolls over at
+# DAY_ROLLOVER_HOUR in this zone. An IANA name rather than a fixed UTC offset because a
 # fixed offset is wrong for half the year anywhere that observes DST: Chicago is
 # UTC-6 in winter and UTC-5 in summer, and a hardcoded offset silently moves the
 # rollover by an hour every spring and autumn.
 STUDY_TIMEZONE: str = os.getenv("STUDY_TIMEZONE", "America/Chicago")
+
+# The hour the study day turns over. Not midnight: a session finished at 1am is the
+# tail of the day the learner is still awake in, not the start of a new one. Rolling
+# over at midnight would break the streak of anyone studying late, pay the gate's
+# quota for a day not yet lived, and split one sitting across two days' statistics.
+DAY_ROLLOVER_HOUR: int = int(os.getenv("DAY_ROLLOVER_HOUR", "3"))
 
 # Streak freeze: one earned per this many distinct study days; each earned freeze
 # silently bridges one missed day so a single slip never resets the streak.
@@ -76,6 +82,13 @@ RETRY_GAP: int = int(os.getenv("RETRY_GAP", "3"))
 # never answered correctly, or low mastery all fall under this threshold).
 COLD_START_MASTERY: float = float(os.getenv("COLD_START_MASTERY", "0.5"))
 
+# Ceiling on a single answer's recorded time. The client measures *active* time
+# (it stops while the tab is hidden), but a stale or misbehaving one can still post
+# wall clock — one abandoned tab once logged an answer at 43 hours, which grades as
+# Hard and drags the concept's interval down for a walk away from the desk. Well
+# past any genuine question, so clamping cannot change an honest grade.
+MAX_ANSWER_MS: int = int(os.getenv("MAX_ANSWER_MS", str(20 * 60 * 1000)))
+
 # Exam P question-pace target (seconds): the on-screen timer turns amber past this.
 # 180s is a tighter practice pace than the real SOA exam (~6 min/question).
 EXAM_TIMER_TARGET_S: int = int(os.getenv("EXAM_TIMER_TARGET_S", "180"))
@@ -88,6 +101,24 @@ DAILY_GOAL: int = int(os.getenv("DAILY_GOAL", "20"))
 # future reviews; without a cap an eager first session floods the review queue
 # three days later and buries the learner. (Anki's default is comparable.)
 NEW_PER_DAY: int = int(os.getenv("NEW_PER_DAY", "8"))
+
+# Resting: a concept held this far above the readiness bar stops being reviewed,
+# freeing the day's quota for material that actually decides the exam. Much of it
+# is exercised indirectly anyway — a Normal question uses variance and
+# standardisation whichever card is on screen. Self-undoing rather than permanent:
+# mastery carries a decaying retention factor, so a rested concept slides back
+# under the threshold on its own. Resting stops inside the last REST_STOP_DAYS so
+# nothing goes into the sitting untouched.
+REST_MASTERY: float = float(os.getenv("REST_MASTERY", "0.92"))
+REST_STOP_DAYS: int = int(os.getenv("REST_STOP_DAYS", "10"))
+
+# Running ahead: when recent accuracy is this high and the day's scheduled work is
+# done, the coverage deadline stops being a ceiling and the frontier opens up to
+# the new-per-day cap. Pacing exists to stop a flood of first exposures maturing
+# at once (ADR-0007) — but a learner outperforming the plan should be allowed to
+# reach the rest of the syllabus early rather than wait out the schedule.
+AHEAD_ACCURACY: float = float(os.getenv("AHEAD_ACCURACY", "0.9"))
+AHEAD_WINDOW: int = int(os.getenv("AHEAD_WINDOW", "20"))
 
 # Coverage deadline: every concept in a subject must be introduced this many days
 # before its exam. Coverage is the one part of readiness with a hard deadline — a

@@ -1,6 +1,7 @@
 """Objective grading: answer checking, time-derived FSRS grade, recall MC items."""
 import numpy as np
 
+from engine import config, service
 from engine.db import dao
 from engine.grading import derive_grade, grade_answer
 from engine.recall.cards import as_question
@@ -41,6 +42,45 @@ class TestDeriveGrade:
 
     def test_unknown_time_defaults_to_good(self):
         assert derive_grade(True, 0) == 3
+
+
+class TestAbandonedAnswerTime:
+    """A walk away from the desk must not be recorded as a slow recall.
+
+    The client reports active time, but a tab left open overnight still posts
+    wall clock — one answer was once logged at 43 hours, which grades Hard and
+    drags the concept's interval down for something that was never a struggle.
+    """
+
+    def _item(self):
+        return service.StudyItem(
+            concept_id="gp.axioms", concept_name="Axioms", subject="examp",
+            reason="review", kind="test", question="q", choices=[], correct="1",
+            explain=[], seed=0, params={},
+        )
+
+    def test_grade_is_clamped_before_it_reaches_fsrs(self, db, monkeypatch):
+        item = self._item()
+        session = dao.create_session("examp")
+        item_id = dao.log_shown(session, item.concept_id, "examp", kind="test")
+
+        class _Tracker:
+            def refresh(self): pass
+            def detect(self, *a): return []
+
+        day_ms = 43 * 60 * 60 * 1000
+        result = service.settle_answer(item_id, item, "1", day_ms, _Tracker())
+        assert result.correct
+        assert result.grade != 1
+
+        logged = dao.graded_reviews()[-1]
+        assert logged[3] <= config.MAX_ANSWER_MS, "the log kept the abandoned time"
+
+    def test_an_honest_slow_answer_is_untouched(self):
+        # Well inside the ceiling, so clamping cannot rewrite a real struggle.
+        honest = 4 * 60 * 1000
+        assert honest < config.MAX_ANSWER_MS
+        assert derive_grade(True, honest, fast_ms=30000, slow_ms=150000) == 2
 
 
 class TestRecallQuestion:

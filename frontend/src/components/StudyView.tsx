@@ -6,6 +6,7 @@ import Tex from "./Math";
 import QuestionTimer from "./QuestionTimer";
 import { playCorrect, playLevelUp, playWrong } from "./sound";
 import { unlockedAt } from "../themes";
+import { useActiveElapsed } from "../useActiveElapsed";
 
 const REASON_LABEL: Record<string, string> = {
   new: "🌱 New",
@@ -121,7 +122,7 @@ export default function StudyView({
     localStorage.getItem(AUTO_ADVANCE_KEY) !== "0",
   );
   const [typed, setTyped] = useState("");
-  const shownAt = useRef<number>(Date.now());
+  const activeTime = useActiveElapsed(!!feedback);
   const restartRef = useRef<(s: string) => void>(() => {});
   const advanceTimer = useRef<number | null>(null);
 
@@ -164,7 +165,7 @@ export default function StudyView({
     try {
       const next = await api.next(sid);
       setItem(next);
-      shownAt.current = Date.now();
+      activeTime.reset();
     } catch (e) {
       if (String(e).includes("404")) restartRef.current(scope);
       else setError(String(e));
@@ -206,7 +207,7 @@ export default function StudyView({
     if (feedback || !item?.item_id || sessionId === null) return;
     setSelected(choice);
     try {
-      const res = await api.answer(sessionId, item.item_id, choice, Date.now() - shownAt.current);
+      const res = await api.answer(sessionId, item.item_id, choice, activeTime.read());
       setFeedback(res);
       if (res.is_correct) playCorrect(res.streak);
       else playWrong();
@@ -337,7 +338,7 @@ export default function StudyView({
         <span className="concept">{item.concept_name}</span>
         {item.reason && <span className="reason">{REASON_LABEL[item.reason] ?? item.reason}</span>}
         {item.subject === "examp" && (
-          <QuestionTimer startedAt={shownAt.current} frozen={!!feedback} />
+          <QuestionTimer elapsedMs={activeTime.elapsedMs} />
         )}
       </div>
       {levelNote && (

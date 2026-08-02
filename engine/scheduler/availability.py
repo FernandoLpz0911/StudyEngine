@@ -22,6 +22,36 @@ def introduced(reps: int, suspended: bool) -> bool:
     return reps >= 1 or suspended
 
 
+def is_rested(
+    mastery: float,
+    reps: int,
+    days_to_exam: int | None,
+    rest_mastery: float,
+    min_reps: int,
+    stop_days: int,
+) -> bool:
+    """Whether a concept is strong enough to skip reviewing for now.
+
+    A concept held well above the readiness bar is spending the day's quota to
+    tell you something already known, while the concepts that decide the exam go
+    unpractised. Much of it is also being exercised indirectly: answering a Normal
+    question uses variance and standardisation whether or not those are the card
+    on screen.
+
+    No stored flag and no second threshold, because resting is self-undoing.
+    Mastery carries an FSRS retention factor that decays with time since the last
+    review, so a rested concept's score falls on its own and it rejoins the
+    rotation without anything having to remember it was resting.
+
+    Resting stops near the sitting: the exam taper exists to leave everything
+    fresh on the day, and a concept skipped through the final week would be the
+    one thing it missed.
+    """
+    if days_to_exam is not None and days_to_exam <= stop_days:
+        return False
+    return reps >= min_reps and mastery >= rest_mastery
+
+
 def is_due(reps: int, due: datetime | None, now: datetime, suppressed: bool) -> bool:
     """Whether a concept's review is waiting right now.
 

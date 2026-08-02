@@ -59,7 +59,7 @@ def intro_owed(subject: str, today: date | None = None) -> int:
     from engine import settings
     from engine.db import dao
 
-    today = today or dao.local_now().date()
+    today = today or dao.study_today()
     deadline = coverage_deadline(dao.get_exam_date(subject))
     if deadline is None:
         return 0
@@ -102,7 +102,7 @@ def subject_pace(subject: str, today: date | None = None) -> Pace:
     from engine.db import dao
     from engine.scheduler import store
 
-    today = today or dao.local_now().date()
+    today = today or dao.study_today()
     concepts = dao.get_concepts(subject)
     states = {c.id: store.get_or_create(c.id) for c in concepts}
     seen = sum(1 for c in concepts if states[c.id].reps > 0)

@@ -100,6 +100,15 @@ could be served. Without it the scheduler, which has no notion that an exam
 exists, spaces concepts into intervals that are optimal for next year and useless
 for September.
 
+## The study day
+
+**Study day** — the unit every "today" is counted in: streak, daily goal, quests,
+new-per-day cap, records, and the gate's quota. It is the learner's *waking* day,
+not the calendar's — it turns over in the early hours rather than at midnight, so
+a session finished at 1am closes the day it began in. A calendar boundary would
+break a streak mid-session, demand a fresh quota for a day not yet lived, and
+split one sitting across two days of statistics.
+
 ## Concept availability
 
 **Introduced** — a concept that unlocks its dependents: seen at least once, *or*
@@ -121,6 +130,21 @@ count as mastery: a buried prereq keeps its children locked.
 
 **Suppressed** — the union of suspended and buried: any concept currently hidden
 from selection, for whatever reason.
+
+**Rested** — held far enough above the readiness bar that reviewing it is spending
+the day on something already known, while the concepts that decide the exam go
+unpractised. Much of it is exercised indirectly anyway: a question about the
+Normal distribution uses variance and standardisation whichever card is on screen.
+Distinct from [[suspended]] in that nobody chooses it and nothing records it —
+resting is *self-undoing*, because the mastery it is judged on decays with time
+since the last review, so a rested concept slides back under the bar and rejoins
+the rotation by itself. Resting stops near the sitting, so nothing goes in
+untouched.
+
+**Running ahead** — sustained recent accuracy above the level the plan assumed.
+The [[coverage-deadline]] normally paces introductions in both directions, but a
+learner outperforming it is allowed past the ceiling: the rest of the syllabus is
+better met early than waited for.
 
 ## Study gate
 

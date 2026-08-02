@@ -43,6 +43,9 @@ Migrated: `databases`. Remaining on the registry: `diffeq`, `econ`, `examfm`,
 - **Reproducibility.** Generators take explicit `seed`; seed + params logged with every interaction.
   Anything drawn from the rng that the statement depends on must land in `params`, or a
   solution rebuilt from `params` answers a different question than the one asked.
+- **The day turns over at `DAY_ROLLOVER_HOUR`** (3am local), not midnight — a 1am answer
+  belongs to the day before. Anything day-scoped must go through `dao.study_today()` or
+  `dao.local_day()`, never `local_now().date()`.
 - **Kinds are globally unique** across subjects — `register`/`register_solver` raise on a
   duplicate. Two subjects once shared `combinatorics` and one silently served the other's
   problems (ADR-0011). Prefix anything generic: `proofs_combinatorics`.
@@ -89,8 +92,15 @@ reschedules (ADR-0008).
 A subject with an `exam_date.<key>` setting is paced toward it. Introductions are
 driven by a **coverage deadline** (`exam_date - CONSOLIDATION_DAYS`) rather than by
 what reviews leave over — reviews used to preempt the frontier unconditionally,
-which froze coverage at 16/44 concepts (ADR-0007). Frontier order is transitive
-downstream reach, then exam weight. The **exam taper** ramps desired retention
+which froze coverage at 16/44 concepts (ADR-0007).
+
+A concept far above the bar is **rested** — skipped for review, freeing the day for
+what decides the exam. No stored flag: mastery decays, so it returns by itself
+(`availability.is_rested`, off inside `REST_STOP_DAYS` of the sitting). And when
+recent accuracy clears `AHEAD_ACCURACY`, the deadline stops capping introductions
+so the rest of the syllabus can be met early.
+
+Frontier order is downstream reach, then exam weight. The **exam taper** ramps desired retention
 0.90 → 0.96 over the final month and clamps every interval to the day before the
 sitting (ADR-0009). `engine/analytics/pace.py` holds the arithmetic; the gate
 carries the readout.
