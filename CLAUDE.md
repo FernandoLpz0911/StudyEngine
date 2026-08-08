@@ -14,6 +14,24 @@ courses, each plugged in as **subject module** in one of two modes:
 **Grading data-based only — no self-rating.** Correctness from computed key; FSRS grade derived from correctness + response time
 (`engine/grading.derive_grade`).
 
+**The loop teaches, not just tests (ADR-0013).** Every item is served at a
+teaching stage derived from the log (`engine/teaching.py`): `study` (worked
+solution shown first, then reproduced), `paired` (a solved sibling problem, then
+a fresh one solved unaided), `solo` (bare).
+
+**Readiness is unaided in every factor (ADR-0014).** Accuracy (solo only,
+guessing-corrected), retention (decaying from `last_solo_review`), and
+rep-confidence (`solo_reps`) — all three. Filtering only the obvious one is how
+guided answers once moved the projected score by 1.4 marks. **Generator problems
+are always free response**; recall cards keep options because they have no
+computed answer. **"I don't know"** is a first-class answer that demotes a concept
+a rung on its own, and **opening the explanation on a bare item is declared**
+(`interaction.aided`) behind a confirmation — it forfeits that answer's readiness
+credit, XP and combo. Guided work is credited by **Ascent**
+(`engine/analytics/ascent.py`), a separate number that moves when you are being
+taught — one number cannot honestly say both "you worked through this" and "you
+would pass on Sunday".
+
 Sibling project `../LearningModel` = single-subject ancestor (SOA Exam P);
 this generalizes its architecture to many subjects.
 
@@ -50,7 +68,20 @@ Migrated: `databases`. Remaining on the registry: `diffeq`, `econ`, `examfm`,
   duplicate. Two subjects once shared `combinatorics` and one silently served the other's
   problems (ADR-0011). Prefix anything generic: `proofs_combinatorics`.
 - **Bare statements.** A question says what is given and what to find, never how — no method
-  names, no restated closed forms, no derivable intermediates (ADR-0010).
+  names, no restated closed forms, no derivable intermediates (ADR-0010). A worked
+  example attached by the teaching stage is shown *beside* the statement, never folded
+  into it — the question itself stays bare.
+- **Never widen a readiness read to scaffolded evidence.** `get_concept_accuracy`,
+  `recent_accuracy`, `unaided_retention` and `solo_reps` all filter on stage on purpose
+  (ADR-0014). Dropping a filter to "get more data" silently inflates readiness — and
+  the failure mode is that you fix the obvious factor and leave another one open, which
+  is exactly what happened the first time. If you add a factor to `p_skill` or
+  `mastery_score`, it must be unaided too.
+- **Readiness reads go through `dao.MEASURED`** (`stage='solo' AND aided=0`), never a
+  hand-rolled `stage = 'solo'`. The failure mode is a read that filters one condition
+  and forgets the other.
+- **`choices_n` is load-bearing, not metadata.** It is what the guessing correction
+  reads. Logging 0 for an item that offered options declares a guess to be knowledge.
 
 ## Layout
 
@@ -69,6 +100,9 @@ engine/
   recall/cards.py       flashcard model for recall subjects
   analytics/            readiness (mastery), pace (coverage deadline + intro quota)
   grading.py            numeric/string answer grading
+  teaching.py           teaching ladder: stage per concept + the reach-scaled bar (pure)
+  analytics/ascent.py   how far a concept has climbed the ladder (guided work counts)
+  analytics/slog.py     concepts costing disproportionate time (diagnostic only)
   gate/                 study gate: quota + schedule (pure), keys + window (desktop)
   cli/study.py          interactive study loop (python -m engine.cli.study)
   cli/gate.py           study gate (python -m engine.cli.gate --status/--run/--install)
@@ -112,12 +146,20 @@ against `EXAM_PASS_MARK`. Unseen concepts still score the floor — which is why
 trimming the syllabus *loses* marks. Drills target `exam_weight × (1 − p_exam)`.
 `exam_weight` is therefore load-bearing, not decorative.
 
-Calibration assumes a **harder** exam than expected (ADR-0010): free response from
-0.55 mastery (the real sitting is 5-option MC, so typing is harder than the exam),
-confidence saturating at 6 reps, mastery threshold 0.85. Daily volume is an
+Calibration assumes a **harder** exam than expected (ADR-0010): free response
+always — the real sitting is 5-option MC, so typing is strictly harder than the
+exam — confidence saturating at 6 unaided reps, mastery threshold 0.85. Daily volume is an
 *output*, not a lever — a correct-denominated quota already turns low accuracy
 into more questions on its own (simulated: 20 correct cost 41 questions a day at
 flat accuracy vs 24 when it improves).
+
+The bar is **not flat across concepts** (ADR-0013). Required accuracy scales with
+downstream reach — `ACCURACY_FLOOR` 0.80 for a leaf up to 0.92 for a gateway —
+because a shaky prerequisite costs its dependents' marks as well as its own. The
+same ramp raises the mastery threshold (`readiness.mastery_bar`) and drives stage
+promotion. Introductions stop below the floor, *except* inside
+`COVERAGE_BACKSTOP_DAYS` of the coverage deadline, since coverage alone cannot be
+repaired late.
 
 Runs as the user with no root: `Gtk.WindowType.POPUP` (override-redirect) +
 `Gdk.Seat.grab`, with GNOME's compositor shortcuts snapshotted to disk and

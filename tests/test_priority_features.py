@@ -3,7 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import engine.subjects  # noqa: F401
-from engine import api, service, settings
+from engine import api, service, settings, teaching
 from engine.config import (
     GRADE_FAST_MS,
     GRADE_FAST_MS_GEN,
@@ -42,7 +42,7 @@ class TestSettings:
         with pytest.raises(ValueError):
             settings.set_value("new_per_day", -1)
         with pytest.raises(ValueError):
-            settings.set_value("typed_answer_mastery", 1.5)
+            settings.set_value("accuracy_floor", 1.5)
         settings.set_value("new_per_day", 0)  # 0 is legal: reviews only
 
     def test_stored_out_of_range_value_falls_back_to_default(self, db):
@@ -54,7 +54,7 @@ class TestSettings:
     def test_api_get_and_set(self, db):
         with _client() as client:
             keys = {s["key"] for s in client.get("/api/settings").json()}
-            assert {"daily_goal", "new_per_day", "typed_answer_mastery"} <= keys
+            assert {"daily_goal", "new_per_day", "accuracy_floor"} <= keys
             res = client.post(
                 "/api/settings", json={"key": "daily_goal", "value": "25"}
             )
@@ -146,8 +146,8 @@ class TestPerModeGrading:
         elapsed = (GRADE_FAST_MS + GRADE_FAST_MS_GEN) // 2
         _, recall_grade = service.grade("2.000", elapsed, _item("recall", ["2.000"]))
         _, gen_grade = service.grade("2.000", elapsed, _item("ode:solve", ["2.000"]))
-        assert recall_grade == 3
         assert gen_grade == 4
+        assert recall_grade < 4  # past the recall fast bound, whatever it lands on
 
     def test_generator_slow_is_hard(self):
         _, grade = service.grade(
@@ -166,17 +166,38 @@ class TestTypedAnswers:
         item = _item("ode:solve", ["2.000", "2.010"])
         assert service.is_correct("a", item) or service.is_correct("2.000", item)
 
-    def test_high_mastery_generator_served_typed(self, db, monkeypatch):
-        monkeypatch.setattr(
-            "engine.analytics.readiness.concept_mastery", lambda *a, **k: 1.0
-        )
-        settings.set_value("typed_answer_mastery", 0.5)
+    def test_generator_items_are_always_free_response(self, db):
+        """No mastery threshold and no stage exemption (ADR-0014).
+
+        Options let a learner reason backwards to an answer they could not
+        produce, and a lucky quarter of them land as false positives in the one
+        number every readiness signal is built from. The ladder is the support
+        now, not a list of choices.
+        """
         import numpy as np
         concept = next(
             c for c in dao.get_concepts("diffeq") if c.mode == "generator"
         )
-        item = service.build_item(concept, np.random.default_rng(0))
-        assert item.choices == []
+        for stage in (teaching.STUDY, teaching.PAIRED, teaching.SOLO):
+            item = service.build_item(
+                concept, np.random.default_rng(0), stage=stage
+            )
+            assert item.choices == [], f"{stage} must be free response"
+            assert item.choices_n == 0
+
+    def test_recall_cards_keep_their_options(self, db):
+        """A flashcard has no computed answer, so typed grading would be string
+        matching — marking "BCNF" wrong against "Boyce-Codd Normal Form"
+        corrupts accuracy in the opposite direction."""
+        import numpy as np
+        concept = next(
+            c for c in dao.get_concepts("databases") if c.mode == "recall"
+        )
+        item = service.build_item(
+            concept, np.random.default_rng(0), stage=teaching.SOLO
+        )
+        assert item.choices
+        assert item.choices_n == len(item.choices)
 
 
 class TestAchievementProgress:

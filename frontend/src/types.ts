@@ -95,6 +95,11 @@ export interface NextItem {
   cold?: boolean;
   leech?: boolean;
   lapses?: number;
+  /** Teaching stage: "study" shows this problem's own solution before answering,
+   *  "paired" shows a solved sibling problem, "solo" shows nothing. */
+  stage?: "study" | "paired" | "solo";
+  example?: string[];
+  example_statement?: string;
   summary?: SessionSummary;
 }
 
@@ -115,6 +120,39 @@ export interface AnswerResult {
   why_wrong?: string;
   fatigued?: boolean;
   ask_mnemonic: boolean;
+  /** Ask which solution step first went wrong — a miss on unscaffolded work. */
+  ask_reflection: boolean;
+  stage: "study" | "paired" | "solo";
+  /** The explanation was opened before answering: no readiness credit, no XP. */
+  aided: boolean;
+  item_id: number;
+}
+
+export interface ConceptAscent {
+  concept_id: string;
+  name: string;
+  stage: "study" | "paired" | "solo";
+  ascent: number;
+  accuracy: number | null;
+  required: number;
+}
+
+export interface SubjectAscent {
+  subject: string;
+  ascent: number;
+  at_study: number;
+  at_paired: number;
+  at_solo: number;
+  concepts: ConceptAscent[];
+}
+
+export interface SlogRow {
+  concept_id: string;
+  name: string;
+  understand_s: number | null;
+  solve_s: number | null;
+  slow_to_understand: boolean;
+  slow_to_solve: boolean;
 }
 
 export interface ConceptRow {

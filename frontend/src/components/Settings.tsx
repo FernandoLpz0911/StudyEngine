@@ -8,7 +8,7 @@ const EMPTY_CARD = { question: "", answer: "", d1: "", d2: "", d3: "" };
 const LABEL: Record<string, string> = {
   daily_goal: "🎯 Daily goal",
   new_per_day: "🌱 New concepts per day",
-  typed_answer_mastery: "✍️ Typed-answer mastery",
+  accuracy_floor: "🎯 Accuracy floor for new concepts",
 };
 
 /** Server-side study settings (persisted in SQLite, shared by web + CLI).

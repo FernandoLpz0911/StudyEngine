@@ -14,6 +14,152 @@ const REASON_LABEL: Record<string, string> = {
   retry: "↩️ Retry",
 };
 
+// The teaching ladder (ADR-0013). Shown so it is obvious when an item is teaching
+// rather than testing — a scaffolded correct answer should not feel like a solo one.
+const STAGE_LABEL: Record<string, string> = {
+  study: "📘 Learn",
+  paired: "🪜 Guided",
+};
+
+/** The worked example that precedes the question at the study and paired stages. */
+function WorkedExample({ item }: { item: NextItem }) {
+  if (!item.example?.length) return null;
+  const isStudy = item.stage === "study";
+  return (
+    <div className={isStudy ? "example study" : "example"}>
+      <div className="example-head">
+        {isStudy
+          ? "📘 Worked solution — follow it through, then give the answer below."
+          : "📘 Worked example — same method, different numbers."}
+      </div>
+      {item.example_statement && (
+        <div className="example-statement"><Tex>{item.example_statement}</Tex></div>
+      )}
+      <ol className="steps">
+        {item.example.map((s, i) => (
+          <li key={i}><Tex>{s}</Tex></li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/** The concept explanation on a bare item, behind a confirmation.
+ *
+ *  Reaching for the explanation mid-problem makes the problem easier than the
+ *  exam will be, and the log had no way to know it happened — the answer went in
+ *  as unaided evidence. So it is asked for out loud, and it costs: the answer
+ *  stops counting toward readiness, and forfeits its XP and combo. Only at the
+ *  `solo` stage; at `study` and `paired` the explanation *is* the teaching and is
+ *  free. */
+function GatedTheory({
+  theory,
+  onOpen,
+  opened,
+}: {
+  theory: string;
+  onOpen: () => void;
+  opened: boolean;
+}) {
+  const [asking, setAsking] = useState(false);
+
+  if (opened) {
+    return (
+      <div className="theory aided">
+        <div className="theory-aided-head">
+          📖 Opened — this answer won't count toward readiness.
+        </div>
+        <Markdown>{theory}</Markdown>
+      </div>
+    );
+  }
+  if (asking) {
+    return (
+      <div className="theory confirm">
+        <div className="confirm-head">Open the explanation?</div>
+        <p className="muted small">
+          This answer will be logged as aided: no readiness credit, no XP, and the
+          combo resets. It still counts toward today's quota, and toward Ascent.
+        </p>
+        <div className="confirm-actions">
+          <button className="btn ghost" onClick={() => setAsking(false)}>
+            No — let me try
+          </button>
+          <button className="btn danger" onClick={onOpen}>
+            Yes, I'm certain
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <button className="btn ghost theory-ask" onClick={() => setAsking(true)}>
+      📖 I need the explanation…
+    </button>
+  );
+}
+
+/** Decline to guess. Counts as a miss, but drops the concept a rung straight
+ *  away — so saying it is the fast route to being taught, not a way out. */
+function DontKnow({ disabled, onPick }: { disabled: boolean; onPick: () => void }) {
+  return (
+    <button
+      type="button"
+      className="btn ghost dont-know"
+      disabled={disabled}
+      title="Counts as a miss — and gets this concept taught again next time"
+      onClick={onPick}
+    >
+      🤷 I don't know
+    </button>
+  );
+}
+
+/** After a miss: name the step it broke at, so the solution gets read, not skipped. */
+function Reflection({
+  steps,
+  onPick,
+}: {
+  steps: string[];
+  onPick: (index: number | null) => void;
+}) {
+  const [picked, setPicked] = useState<number | null | undefined>(undefined);
+  const choose = (index: number | null) => {
+    if (picked !== undefined) return;
+    setPicked(index);
+    onPick(index);
+  };
+  if (picked !== undefined) {
+    return (
+      <div className="muted small">
+        {picked === null
+          ? "Noted — not sure where it broke."
+          : `Noted — step ${picked + 1}.`}
+      </div>
+    );
+  }
+  return (
+    <div className="reflect">
+      <div className="reflect-head">Which step first went wrong?</div>
+      <div className="reflect-steps">
+        {steps.map((_, i) => (
+          <button key={i} className="btn ghost small-btn" onClick={() => choose(i)}>
+            {i + 1}
+          </button>
+        ))}
+        <button className="btn ghost small-btn" onClick={() => choose(null)}>
+          Not sure
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Sent instead of an answer to decline guessing. Must match service.DONT_KNOW —
+// a guess that happens to land is a false positive in the one number every
+// readiness signal is built from, so there has to be a way to say nothing.
+const DONT_KNOW = "__dont_know__";
+
 const SOUND_KEY = "studyengine.sound";
 const AUTO_ADVANCE_KEY = "studyengine.autoadvance";
 const AUTO_ADVANCE_MS = 1400;
@@ -116,6 +262,9 @@ export default function StudyView({
   const [selected, setSelected] = useState<string | null>(null);
   const [hint, setHint] = useState("");
   const [hintSaved, setHintSaved] = useState(false);
+  const [reflected, setReflected] = useState(false);
+  // Per-item, reset by loadNext: the explanation was opened on *this* problem.
+  const [aided, setAided] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sound, setSound] = useState(localStorage.getItem(SOUND_KEY) === "1");
   const [autoAdvance, setAutoAdvance] = useState(
@@ -162,6 +311,8 @@ export default function StudyView({
     setTyped("");
     setHint("");
     setHintSaved(false);
+    setReflected(false);
+    setAided(false);
     try {
       const next = await api.next(sid);
       setItem(next);
@@ -207,7 +358,9 @@ export default function StudyView({
     if (feedback || !item?.item_id || sessionId === null) return;
     setSelected(choice);
     try {
-      const res = await api.answer(sessionId, item.item_id, choice, activeTime.read());
+      const res = await api.answer(
+        sessionId, item.item_id, choice, activeTime.read(), aided,
+      );
       setFeedback(res);
       if (res.is_correct) playCorrect(res.streak);
       else playWrong();
@@ -230,6 +383,9 @@ export default function StudyView({
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
       if (feedback) {
+        // Enter advances, except while a reflection is still owed — the keyboard
+        // must not be the way around the prompt the button already blocks.
+        if (feedback.ask_reflection && !reflected) return;
         if (e.key === "Enter" && sessionId !== null) {
           if (item?.done) startSession(scope);
           else loadNext(sessionId);
@@ -336,6 +492,9 @@ export default function StudyView({
 
       <div className="meta">
         <span className="concept">{item.concept_name}</span>
+        {item.stage && STAGE_LABEL[item.stage] && (
+          <span className="reason stage">{STAGE_LABEL[item.stage]}</span>
+        )}
         {item.reason && <span className="reason">{REASON_LABEL[item.reason] ?? item.reason}</span>}
         {item.subject === "examp" && (
           <QuestionTimer elapsedMs={activeTime.elapsedMs} />
@@ -353,14 +512,27 @@ export default function StudyView({
       )}
       {item.note && <div className="note">📝 your note: {item.note}</div>}
       <div className="question"><Tex>{item.question}</Tex></div>
-      {item.theory && (
-        <details className="theory" key={item.item_id} open={item.cold || item.leech}>
-          <summary>
-            {item.cold ? "📖 Start here — concept explained" : "📖 Learn this concept"}
-          </summary>
-          <Markdown>{item.theory}</Markdown>
-        </details>
-      )}
+      {item.theory &&
+        (item.stage === "solo" ? (
+          // Bare item: the explanation costs something, so it is asked for. Note
+          // this deliberately ignores `cold` and `leech` — auto-opening would
+          // spend the penalty on the learner's behalf and, worse, would make the
+          // aided flag meaningless by setting it on nearly every item.
+          <GatedTheory
+            key={item.item_id}
+            theory={item.theory}
+            opened={aided}
+            onOpen={() => setAided(true)}
+          />
+        ) : (
+          <details className="theory" key={item.item_id} open={item.cold || item.leech}>
+            <summary>
+              {item.cold ? "📖 Start here — concept explained" : "📖 Learn this concept"}
+            </summary>
+            <Markdown>{item.theory}</Markdown>
+          </details>
+        ))}
+      <WorkedExample item={item} />
 
       {item.input_mode === "typed" ? (
         <form
@@ -382,6 +554,7 @@ export default function StudyView({
           <button className="btn" type="submit" disabled={!!feedback || !typed.trim()}>
             Answer
           </button>
+          <DontKnow disabled={!!feedback} onPick={() => choose(DONT_KNOW)} />
         </form>
       ) : (
         <div className="choices">
@@ -390,6 +563,7 @@ export default function StudyView({
               {c}
             </button>
           ))}
+          <DontKnow disabled={!!feedback} onPick={() => choose(DONT_KNOW)} />
         </div>
       )}
 
@@ -410,6 +584,11 @@ export default function StudyView({
           {feedback.records?.map((r) => (
             <div className="reward" key={r}>{r}</div>
           ))}
+          {feedback.aided && (
+            <div className="note aided-note">
+              📖 Aided — didn't count toward readiness, and no XP for this one.
+            </div>
+          )}
           {feedback.combo_break && (
             <div className="muted">{feedback.combo_break}</div>
           )}
@@ -437,6 +616,15 @@ export default function StudyView({
               ))}
             </ol>
           )}
+          {feedback.ask_reflection && !reflected && (
+            <Reflection
+              steps={feedback.steps}
+              onPick={(index) => {
+                setReflected(true);
+                api.reflect(feedback.item_id, item.concept_id!, index).catch(() => {});
+              }}
+            />
+          )}
           {feedback.ask_mnemonic && !hintSaved && (
             <div className="mnemonic">
               <input
@@ -449,7 +637,15 @@ export default function StudyView({
           )}
           {hintSaved && <div className="muted">Hint saved — you'll see it next time.</div>}
           <div className="feedback-actions">
-            <button className="btn" onClick={() => loadNext(sessionId!)}>Next →</button>
+            {/* Held until the step is named: a self-explanation you can click past
+                is one that trains clicking past it. */}
+            <button
+              className="btn"
+              disabled={feedback.ask_reflection && !reflected}
+              onClick={() => loadNext(sessionId!)}
+            >
+              Next →
+            </button>
             <button
               className="btn ghost small-btn"
               title="Hide this concept until tomorrow"

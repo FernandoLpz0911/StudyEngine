@@ -112,6 +112,30 @@ code { background: var(--surface2); padding: 1px 6px; border-radius: 4px; }
 .qtimer.over { background: rgba(251,191,36,0.18); color: var(--yellow); }
 .theory-jit { background: rgba(91,140,255,0.1); border-left: 3px solid var(--accent); border-radius: 6px; padding: 10px 12px; font-size: 14px; }
 
+/* Teaching ladder: the worked example shown before the question is answered.
+   Visually distinct from feedback so it reads as instruction, not as a verdict. */
+.example { background: var(--surface); border-left: 3px solid var(--yellow); border-radius: 6px; padding: 10px 12px; font-size: 14px; margin: 10px 0; }
+.example.study { border-left-color: var(--green); }
+.example-head { font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+.example-statement { font-style: italic; color: var(--muted); margin-bottom: 8px; }
+.reason.stage { background: rgba(34,197,94,0.16); color: var(--green); }
+
+/* Declining to guess sits apart from the answer controls — it is not one of the
+   options, it is the refusal to pick one. */
+.dont-know { margin-left: auto; opacity: 0.85; }
+.choices .dont-know { flex-basis: 100%; margin-left: 0; }
+
+/* Slow-concept report (authoring diagnostic) */
+.slogs { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.slogs li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.slog-name { font-weight: 600; }
+.chip.warn { background: rgba(251,191,36,0.16); color: var(--yellow); }
+
+/* Self-explanation after a miss: name the step it broke at. */
+.reflect { background: var(--surface); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
+.reflect-head { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.reflect-steps { display: flex; flex-wrap: wrap; gap: 6px; }
+
 /* HUD: streak / level / daily goal — the motivational header */
 .hud {
   display: flex; align-items: center; gap: 16px;
@@ -231,3 +255,13 @@ code { background: var(--surface2); padding: 1px 6px; border-radius: 4px; }
 .nodes { display: flex; flex-wrap: wrap; gap: 5px; }
 .node { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
 .node.due { outline: 2px solid var(--yellow); outline-offset: 1px; }
+
+/* Asking for the explanation on a bare item: a deliberate, visible cost. */
+.theory-ask { display: block; width: 100%; text-align: left; opacity: 0.8; }
+.theory.confirm { border-left-color: var(--red, #f87171); }
+.confirm-head { font-weight: 700; margin-bottom: 4px; }
+.confirm-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.btn.danger { background: var(--red, #f87171); color: #1a1a1a; }
+.theory.aided { border-left-color: var(--yellow); }
+.theory-aided-head { font-weight: 600; color: var(--yellow); margin-bottom: 6px; }
+.note.aided-note { border-left-color: var(--yellow); }

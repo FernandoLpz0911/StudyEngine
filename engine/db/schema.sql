@@ -54,7 +54,21 @@ CREATE TABLE IF NOT EXISTS interaction (
     elapsed_ms      INTEGER,
     shown_at        TEXT NOT NULL,
     answered_at     TEXT,
-    reason          TEXT
+    reason          TEXT,
+    stage           TEXT NOT NULL DEFAULT 'solo', -- teaching stage: study|paired|solo
+    choices_n       INTEGER NOT NULL DEFAULT 0,   -- options offered; 0 = free response
+    dont_know       INTEGER NOT NULL DEFAULT 0,   -- learner declined to guess
+    aided           INTEGER NOT NULL DEFAULT 0    -- explanation opened before answering
+);
+
+-- Which step of the worked solution the learner says they first went wrong at.
+-- step_index is NULL for an explicit "not sure", which is a different (and more
+-- informative) answer than not having been asked.
+CREATE TABLE IF NOT EXISTS reflection (
+    interaction_id  INTEGER PRIMARY KEY REFERENCES interaction(id),
+    concept_id      TEXT NOT NULL REFERENCES concept(id),
+    step_index      INTEGER,
+    created_at      TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS setting (

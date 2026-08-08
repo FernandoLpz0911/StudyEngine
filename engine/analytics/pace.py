@@ -16,7 +16,7 @@ from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from math import ceil
 
-from engine.config import CONSOLIDATION_DAYS, MASTERY_THRESHOLD
+from engine.config import CONSOLIDATION_DAYS
 
 
 def coverage_deadline(
@@ -98,7 +98,7 @@ class Pace:
 def subject_pace(subject: str, today: date | None = None) -> Pace:
     """Read the subject's current standing: coverage, mastery, and what today owes."""
     from engine import settings
-    from engine.analytics.readiness import concept_mastery
+    from engine.analytics.readiness import concept_mastery, mastery_bar
     from engine.db import dao
     from engine.scheduler import store
 
@@ -107,7 +107,7 @@ def subject_pace(subject: str, today: date | None = None) -> Pace:
     states = {c.id: store.get_or_create(c.id) for c in concepts}
     seen = sum(1 for c in concepts if states[c.id].reps > 0)
     mastered = sum(
-        1 for c in concepts if concept_mastery(c.id) >= MASTERY_THRESHOLD
+        1 for c in concepts if concept_mastery(c.id) >= mastery_bar(c.id, subject)
     )
     unseen = len(concepts) - seen
 

@@ -64,6 +64,13 @@ over a mastery threshold, which was never calibrated to the exam and reported a
 comfortable pass as a failure — and, when optimised, advised dropping material
 that a projected score shows is worth keeping.
 
+Built from [[measured-attempt]]s alone, in *both* its factors — accuracy and
+retention. The exam is sat unaided, so an answer given with a worked example in
+recent memory is evidence about a different task, and crediting it would report a
+readiness the sitting will not honour. Deliberately not the number that rewards
+effort: work done under guidance is real and is counted, but it is counted
+somewhere else.
+
 **Guessing floor** — the mark a pure guess earns on a multiple-choice paper. It is
 why an unstudied concept is worth more than nothing, and why abandoning a concept
 costs only the gap between studied and guessed rather than its whole weight. The
@@ -103,6 +110,101 @@ payable when the scheduled work has run out, aimed at the weakest concepts.
 Distinct from a review, which is a card falling *due*. A drill is not evidence
 the schedule can trust — the card was not due, so answering it correctly says
 little — but failing one is real evidence of forgetting.
+
+**Teaching stage** — how much of the answer an item shows before asking for it.
+*Study* shows this problem's own worked solution and asks the learner to
+reproduce it; *paired* shows a solved sibling problem and asks for a fresh one;
+*solo* shows nothing. Derived from the log each time an item is served, never
+stored, so it tracks the evidence rather than having to be kept in step with it.
+The distinction exists because a retrieval loop run on material that cannot yet
+be retrieved teaches surface pattern-matching, not the method.
+
+**Measured attempt** — a [[solo]]-stage answer: the only kind that counts toward
+accuracy, and so toward mastery, resting, drill targeting, the frontier, and the
+[[projected-score]]. A scaffolded answer came with a worked solution in recent
+memory; crediting it would report the learner's ability to copy one. The reason
+readiness can be trusted to fall when the ladder is doing its job.
+
+**Ascent** — how far a concept has climbed the [[teaching-stage]] ladder: which
+rung it stands on, plus how far it has come toward leaving that rung. The measure
+guided work moves, and the answer to "am I needing less help than I did". Distinct
+from [[projected-score]], which only unaided work moves — the two are separate
+because one number cannot honestly say both "you have worked through this" and
+"you would pass on Sunday". They are not permanently divorced: on the top rung a
+concept's remaining climb *is* its unaided accuracy against its bar, so ascent
+converges on readiness exactly as the help stops being needed. The exam-weighted
+mean over a subject is its ascent.
+
+**Stuck** — a concept another attempt will not help: either a run of consecutive
+misses, or many reps whose FSRS stability never leaves the floor. The second is
+the treadmill the ladder exists for — eighteen attempts that left stability at
+0.0 are eighteen answers that taught nothing. A stuck concept is remediated with
+a study trial rather than tested again.
+
+**Required accuracy** — the bar a concept must clear, raised by its downstream
+reach. A foundation carries every concept above it, so a gateway is held to a
+higher standard than a leaf: shaky conditional probability does not cost its own
+marks, it costs Bayes and conditional expectation too. Saturating, because past a
+few dependents a concept is already foundational.
+
+**Accuracy floor** — the level of unaided accuracy below which no new concept is
+introduced. The mirror of [[running-ahead]]: the same evidence read as a floor
+rather than a ceiling. Widening the syllabus for a learner who cannot answer what
+they already have widens the guessing.
+
+**Coverage backstop** — the accuracy floor's escape hatch. Coverage is the one
+part of readiness that cannot be repaired late, so the floor yields as the
+[[coverage-deadline]] approaches and introductions resume whatever accuracy says.
+Without it the floor would strand unseen material permanently for a learner whose
+accuracy never recovers.
+
+**Prerequisite repair** — re-testing the foundation a miss came from instead of
+the concept that exposed it, when that foundation is the weaker of the two. Depth
+one: following the chain down walks the session away from what the exam asks
+about, and the prerequisite's own miss opens the next step by itself.
+
+**Don't-know** — declining to answer rather than guessing at one. Counts as a
+miss, because it is one, but it is *stronger* evidence than a wrong answer:
+a wrong answer is ambiguous between a slip and ignorance, while this is
+unambiguous non-retrieval. So it demotes the concept a rung on its own, where a
+wrong answer needs a run of them. Pays nothing toward [[quota]] directly — the
+[[teaching-stage|study trial]] it earns pays, once the answer is reproduced — so
+admitting ignorance is the fast route to being taught and never a route out of
+the day's work.
+
+**Aided answer** — a [[teaching-stage|solo]] item answered with the concept
+explanation open. Not a [[measured-attempt]]: the problem was made easier than the
+exam will be, so counting it as unaided evidence is the same lie as counting a
+worked example — just one the learner tells rather than the system. Declared
+rather than detected, behind a confirmation that names the price, because the
+habit it guards against is reaching for the explanation without noticing. It costs
+the answer's XP and combo as well as its readiness credit, and still pays the
+[[quota]] and [[ascent]] — the currencies it forfeits are the ones that stand for
+unaided performance.
+
+**Reflection** — naming which step of the worked solution first went wrong, after
+a miss. What makes a shown solution a read one, and the only record of *where* a
+concept breaks rather than that it broke. "Not sure" is stored as its own answer:
+being unable to locate the break is the most informative thing the concept can
+report.
+
+**Slog** — a concept that costs disproportionate *time*, as distinct from a
+[[leech]], which costs disproportionate *attempts*. Answered correctly and always
+slowly, which is invisible to accuracy, to the schedule and to the
+[[projected-score]], all of which are indifferent to how long a right answer took.
+Read two ways, because the remedies differ: slow to *understand* blames the
+explanation, slow to *solve* blames the practice. Diagnostic only — it is
+reported, never acted on.
+
+**Leech** — a concept eating disproportionate *attempts*: forgotten and
+re-forgotten past a threshold of lapses. More reps demonstrably are not working,
+so it is owed a reformulation rather than another rep. The [[slog]]'s counterpart.
+
+**Guessing correction** — backing the luck out of a rate measured over answers
+that offered options, since one in every `n` of them is right without knowing
+anything. Applied to a rate, never to a single answer, and self-retiring: free
+response carries no guessing, so the correction shrinks to nothing as real answers
+replace the old ones.
 
 **Bare statement** — a question states the situation and what to find, and nothing
 else. Naming the tool ("using the law of total variance"), restating its closed

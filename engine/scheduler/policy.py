@@ -100,6 +100,83 @@ def _running_ahead(subject: str) -> bool:
     return accuracy is not None and accuracy >= AHEAD_ACCURACY
 
 
+def _coverage_backstop(subject: str) -> bool:
+    """Whether the coverage deadline is now close enough to override the floor.
+
+    The accuracy floor protects consolidation, but coverage is the one part of
+    readiness that cannot be repaired late (ADR-0007) — a concept never introduced
+    is worth only the guessing floor, and held-back introductions would quietly
+    become permanent for a learner whose accuracy never recovers. So the floor
+    yields inside `COVERAGE_BACKSTOP_DAYS` of the deadline and the deadline
+    resumes driving introductions regardless.
+    """
+    from engine.analytics.pace import coverage_deadline
+    from engine.config import COVERAGE_BACKSTOP_DAYS
+
+    deadline = coverage_deadline(dao.get_exam_date(subject))
+    if deadline is None:
+        return False
+    return (deadline - dao.study_today()).days <= COVERAGE_BACKSTOP_DAYS
+
+
+def _above_accuracy_floor(subject: str) -> bool:
+    """Whether recent unaided accuracy is high enough to take on new material.
+
+    Introducing a concept to a learner answering at 40% widens the surface of the
+    same guessing: every new concept becomes several near-term reviews competing
+    with the ones already not being retained, and the marks lost to that crowding
+    outweigh the marks a first exposure adds. The mirror of `_running_ahead` —
+    the same evidence, read as a floor rather than a ceiling.
+
+    Too little evidence reads as "no objection": a subject with a handful of
+    answers has not demonstrated a problem, and the frontier is how it gets any.
+    """
+    from engine.config import ACCURACY_FLOOR, AHEAD_WINDOW
+    accuracy = dao.recent_accuracy(subject, AHEAD_WINDOW)
+    return accuracy is None or accuracy >= ACCURACY_FLOOR
+
+
+def _may_introduce(subject: str) -> bool:
+    """Whether new concepts may be introduced for this subject at all today."""
+    return _above_accuracy_floor(subject) or _coverage_backstop(subject)
+
+
+def prereq_repair(concept: Concept) -> Concept | None:
+    """The prerequisite to re-test *before* re-testing the concept that missed.
+
+    A miss is often not about the concept on screen. Conditional expectation
+    fails because conditional probability is shaky, and another attempt at
+    conditional expectation practises the failure rather than the cause — which is
+    how a concept accumulates eighteen reps without its stability ever leaving the
+    floor (ADR-0013).
+
+    Depth one only. Following the chain down would walk the session away from the
+    material the exam actually asks about, and the prerequisite's own miss will
+    open the next step down on its own if it is really the problem.
+
+    Returns None unless some prerequisite is *weaker* than the concept that just
+    missed: if the foundation is the stronger of the two, the miss belongs to the
+    concept and re-testing the prereq is a detour.
+    """
+    from engine.analytics.readiness import concept_mastery
+
+    if not concept.prerequisites:
+        return None
+    suppressed = dao.suppressed_concept_ids()
+    here = concept_mastery(concept.id)
+    weakest: tuple[float, Concept] | None = None
+    for prereq_id in concept.prerequisites:
+        if prereq_id in suppressed:
+            continue
+        prereq = dao.get_concept(prereq_id)
+        if prereq is None or store.get_or_create(prereq_id).reps == 0:
+            continue  # never introduced: the frontier's job, not the repair's
+        mastery = concept_mastery(prereq_id)
+        if mastery < here and (weakest is None or mastery < weakest[0]):
+            weakest = (mastery, prereq)
+    return None if weakest is None else weakest[1]
+
+
 def _new_budget_left() -> bool:
     """Whether today's cap on newly introduced concepts still has room.
 
@@ -122,6 +199,9 @@ def select_next(subject: str) -> Selection | None:
     silently froze coverage: with early reinforcement capping intervals at a day,
     the seen concepts are due again every morning and the frontier is never reached
     (ADR-0007).
+
+    Introductions are additionally held under the accuracy floor (ADR-0013), which
+    outranks the deadline's own pace until the coverage backstop takes over.
     """
     concepts = dao.get_concepts(subject)
     states = {c.id: store.get_or_create(c.id) for c in concepts}
@@ -153,7 +233,7 @@ def select_next(subject: str) -> Selection | None:
         reach = downstream_reach(concepts)
         return max(frontier, key=lambda c: _frontier_key(c, reach))
 
-    can_introduce = frontier and _new_budget_left()
+    can_introduce = frontier and _new_budget_left() and _may_introduce(subject)
     if can_introduce and _intro_owed(subject) > 0:
         return Selection(best_new(), "new")
     if overdue:
@@ -231,6 +311,7 @@ def select_global(
     reviews: list[Concept] = []
     frontier: list[Concept] = []
     all_concepts: list[Concept] = []
+    may_introduce: dict[str, bool] = {}
     suppressed = dao.suppressed_concept_ids()
     suspended = dao.suspended_concept_ids()
     for subject in subjects:
@@ -247,7 +328,11 @@ def select_global(
                 continue
             cs = states[concept.id]
             if cs.reps == 0:
-                frontier.append(concept)
+                # The accuracy floor is per subject, so it is applied per subject
+                # here rather than to the merged pool: one subject going badly
+                # must not freeze the frontier of the others (ADR-0013).
+                if may_introduce.setdefault(subject, _may_introduce(subject)):
+                    frontier.append(concept)
             elif is_due(cs.reps, cs.due, now, suppressed=False):
                 reviews.append(concept)
 

@@ -20,10 +20,11 @@ USER_SETTINGS: dict[str, tuple[object, type, str, tuple[float, float]]] = {
         config.NEW_PER_DAY, int,
         "Max brand-new concepts introduced per day (0 = reviews only)", (0, 100),
     ),
-    "typed_answer_mastery": (
-        config.TYPED_ANSWER_MASTERY, float,
-        "Mastery above which generator problems switch to typed answers (1 disables)",
-        (0.0, 1.0),
+    # No typed-answer threshold: generator problems are always free response
+    # (ADR-0014), so there is no lever here to expose.
+    "accuracy_floor": (
+        config.ACCURACY_FLOOR, float,
+        "Unaided accuracy required before new concepts are introduced", (0.0, 1.0),
     ),
 }
 

@@ -23,7 +23,13 @@ class TestStudyLoop:
             sid = client.post("/api/session", json={"scope": "global"}).json()["session_id"]
             nxt = client.get(f"/api/session/{sid}/next").json()
             assert nxt["done"] is False
-            assert nxt["choices"] and nxt["question"]
+            assert nxt["question"]
+            # Generator problems are free response now (ADR-0014); only
+            # recall cards still carry options.
+            if nxt["mode"] == "recall":
+                assert nxt["choices"]
+            else:
+                assert nxt["choices"] == []
 
             # answer correctly using the server-side stored correct value
             correct = api._sessions[sid].items[nxt["item_id"]].correct

@@ -8,7 +8,9 @@ import type {
   Profile,
   Progress,
   Setting,
+  SlogRow,
   Subject,
+  SubjectAscent,
   SubjectProgress,
   UserCard,
 } from "./types";
@@ -36,8 +38,15 @@ export const api = {
   startSession: (scope: string) =>
     post<{ session_id: number; scope: string; dkt_active: boolean }>("/session", { scope }),
   next: (sessionId: number) => get<NextItem>(`/session/${sessionId}/next`),
-  answer: (sessionId: number, itemId: number, answer: string, elapsedMs: number) =>
+  answer: (
+    sessionId: number,
+    itemId: number,
+    answer: string,
+    elapsedMs: number,
+    aided = false,
+  ) =>
     post<AnswerResult>("/answer", {
+      aided,
       session_id: sessionId,
       item_id: itemId,
       answer,
@@ -45,6 +54,14 @@ export const api = {
     }),
   mnemonic: (conceptId: string, text: string) =>
     post<{ ok: boolean }>("/mnemonic", { concept_id: conceptId, text }),
+  ascent: (subject: string) => get<SubjectAscent>(`/ascent/${subject}`),
+  slogs: (subject: string) => get<SlogRow[]>(`/slogs/${subject}`),
+  reflect: (itemId: number, conceptId: string, stepIndex: number | null) =>
+    post<{ ok: boolean }>("/reflect", {
+      item_id: itemId,
+      concept_id: conceptId,
+      step_index: stepIndex,
+    }),
   stats: () => get<Profile>("/stats"),
   quests: () => get<DailyQuest[]>("/quests"),
   suspendConcept: (id: string) =>

@@ -81,19 +81,25 @@ def recent_accuracy(subject: str, window: int) -> float | None:
     Whether the learner is running ahead of the plan, measured across the subject
     rather than per concept: the question is how the studying is going overall,
     not whether one card happens to be easy.
+
+    Solo attempts only, for the same reason as `get_concept_accuracy`: this number
+    both opens the frontier past its deadline and closes it under the accuracy
+    floor, and scaffolded answers would push it in the wrong direction on both.
+    Guessing-corrected for the same reason too — an uncorrected 40% over a
+    multiple-choice history is really about 20%.
     """
     with get_connection() as conn:
         rows = conn.execute(
-            """
-            SELECT is_correct FROM interaction
-            WHERE subject = ? AND is_correct IS NOT NULL
+            f"""
+            SELECT is_correct, choices_n FROM interaction
+            WHERE subject = ? AND is_correct IS NOT NULL AND {MEASURED}
             ORDER BY id DESC LIMIT ?
             """,
             (subject, window),
         ).fetchall()
     if len(rows) < window:  # too little evidence to call anyone ahead
         return None
-    return sum(r["is_correct"] for r in rows) / len(rows)
+    return deguess(rows)
 
 
 def count_unseen_concepts(subject: str) -> int:
@@ -171,7 +177,7 @@ def session_results(session_id: int) -> list[dict]:
     with get_connection() as conn:
         rows = conn.execute(
             "SELECT i.is_correct, i.grade, COALESCE(c.exam_weight, 1) AS exam_weight, "
-            "i.subject FROM interaction i "
+            "i.subject, i.aided FROM interaction i "
             "LEFT JOIN concept c ON c.id = i.concept_id "
             "WHERE i.session_id = ? AND i.is_correct IS NOT NULL ORDER BY i.id",
             (session_id,),
@@ -210,6 +216,8 @@ def log_shown(
     params_json: str = "{}",
     correct_answer: str | None = None,
     reason: str | None = None,
+    stage: str = "solo",
+    choices_n: int = 0,
 ) -> int:
     """Record that a problem/card was served. Returns the interaction id.
 
@@ -217,6 +225,14 @@ def log_shown(
     persisted because one of those values changes what the answer means: a drill
     is an off-schedule attempt, so it must be kept out of the FSRS weight fit
     (ADR-0008).
+
+    `stage` is how much help the item came with (ADR-0013). It is persisted for
+    the same reason: a scaffolded answer is not evidence of unaided skill, so
+    every accuracy read filters on it.
+
+    `choices_n` is how many options were offered, 0 for free response (ADR-0014).
+    Persisted because it sets how much of a correct answer could have been luck,
+    which is what the guessing correction needs to undo.
     """
     now = datetime.now(UTC).isoformat()
     with get_connection() as conn:
@@ -224,11 +240,11 @@ def log_shown(
             """
             INSERT INTO interaction
                 (session_id, concept_id, subject, kind, seed, params_json,
-                 correct_answer, shown_at, reason)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 correct_answer, shown_at, reason, stage, choices_n)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (session_id, concept_id, subject, kind, seed, params_json,
-             correct_answer, now, reason or None),
+             correct_answer, now, reason or None, stage, choices_n),
         )
         return cur.lastrowid
 
@@ -239,14 +255,27 @@ def log_answered(
     is_correct: bool | None,
     grade: int,
     elapsed_ms: int = 0,
+    dont_know: bool = False,
+    aided: bool = False,
 ) -> None:
+    """Record the answer.
+
+    `dont_know` is stored in its own column rather than inferred from a null
+    answer: a blank submission and a deliberate "I don't know" look identical in
+    `user_answer`, and only one of them is evidence.
+
+    `aided` means the explanation was opened before answering. Without it a bare
+    item solved with the theory on screen is logged as unaided evidence, which is
+    the same lie as counting a worked example — just one the learner tells rather
+    than the system.
+    """
     now = datetime.now(UTC).isoformat()
     with get_connection() as conn:
         conn.execute(
             """
             UPDATE interaction
             SET user_answer = ?, is_correct = ?, grade = ?,
-                elapsed_ms = ?, answered_at = ?
+                elapsed_ms = ?, answered_at = ?, dont_know = ?, aided = ?
             WHERE id = ?
             """,
             (
@@ -255,25 +284,182 @@ def log_answered(
                 grade,
                 elapsed_ms,
                 now,
+                int(dont_know),
+                int(aided),
                 item_id,
             ),
         )
 
 
+#: What makes an attempt count toward readiness: served bare *and* answered without
+#: opening the explanation (ADR-0014). Written once and reused, because the failure
+#: mode here is a read that filters one condition and forgets the other — which is
+#: precisely how scaffolded retention survived the first pass at this.
+MEASURED = "stage = 'solo' AND aided = 0"
+
+#: The rung an attempt actually happened at. A bare item answered with the
+#: explanation open was not a bare attempt, so it is read as a guided one — which
+#: is what keeps it out of readiness while still crediting it toward ascent. The
+#: served stage stays in the log untouched; only the *reading* moves.
+EFFECTIVE_STAGE = "CASE WHEN aided = 1 THEN 'paired' ELSE stage END"
+
+
+def deguess(rows: list) -> float | None:
+    """Unaided skill behind a set of graded answers, with luck backed out.
+
+    An answer chosen from `choices_n` options is right with probability 1/n while
+    knowing nothing, so an observed *rate* over such answers overstates skill by
+    the guessing floor. `(observed - ḡ) / (1 - ḡ)` inverts that, where ḡ is the
+    mean guess probability across the very answers being measured.
+
+    Self-retiring by construction: free response carries ḡ = 0, so the correction
+    shrinks to nothing as real answers replace the multiple-choice history — no
+    flag day, and no second number to keep in step (ADR-0014).
+
+    A population correction applied to a small sample is an estimate, but it
+    replaces a *known-biased* estimate rather than a neutral one: leaving it out
+    asserts the guessing floor is zero, which is the one value it certainly is not.
+    """
+    if not rows:
+        return None
+    from engine.config import DEGUESS_HISTORY
+
+    observed = sum(r["is_correct"] for r in rows) / len(rows)
+    if not DEGUESS_HISTORY:
+        return observed
+    guess = sum(1.0 / n if (n := (r["choices_n"] or 0)) > 1 else 0.0 for r in rows)
+    g_bar = guess / len(rows)
+    if g_bar >= 1.0:
+        return observed
+    return max(0.0, min(1.0, (observed - g_bar) / (1.0 - g_bar)))
+
+
 def get_concept_accuracy(concept_id: str, window: int = 10) -> float | None:
-    """Recent fraction-correct for a concept over its last `window` graded items."""
+    """Recent unaided skill for a concept, over its last `window` solo items.
+
+    Solo attempts only (ADR-0013). A study trial is the worked solution being read
+    back, and a paired attempt came after seeing that solution worked through on a
+    sibling problem; counting either would report the learner's ability to copy.
+    This number feeds mastery, drill targeting, and the projected exam score, so
+    inflating it here would inflate every readiness signal at once.
+
+    Corrected for guessing (ADR-0014), because the historical log is entirely
+    four-option multiple choice and an uncorrected rate over it credits a quarter
+    of the wrong answers as knowledge.
+    """
     with get_connection() as conn:
         rows = conn.execute(
-            """
-            SELECT is_correct FROM interaction
+            f"""
+            SELECT is_correct, choices_n FROM interaction
+            WHERE concept_id = ? AND is_correct IS NOT NULL AND {MEASURED}
+            ORDER BY id DESC LIMIT ?
+            """,
+            (concept_id, window),
+        ).fetchall()
+    return deguess(rows)
+
+
+def stage_accuracy(concept_id: str, stage: str, window: int) -> float | None:
+    """Skill at one rung of the ladder — what promotion off that rung is judged on.
+
+    Promotion cannot wait on solo accuracy, because a concept held at `paired`
+    never produces a solo attempt, so the bar would be measured from evidence the
+    stage itself prevents. Measuring at the *current* rung makes promotion and
+    demotion the same comparison (ADR-0014).
+    """
+    with get_connection() as conn:
+        rows = conn.execute(
+            f"""
+            SELECT is_correct, choices_n FROM interaction
+            WHERE concept_id = ? AND is_correct IS NOT NULL
+              AND {EFFECTIVE_STAGE} = ?
+            ORDER BY id DESC LIMIT ?
+            """,
+            (concept_id, stage, window),
+        ).fetchall()
+    return deguess(rows)
+
+
+def recent_attempts(concept_id: str, window: int) -> list[tuple[str, bool, bool]]:
+    """The concept's last `window` attempts as (stage, correct, dont_know), newest
+    first. The evidence `teaching.stage_for` derives a concept's stage from,
+    returned as plain tuples so the teaching rules stay free of any database type.
+
+    The stage reported is the *effective* one, so an aided answer to a bare item
+    cannot be mistaken for unaided evidence by the rules that promote and demote.
+    """
+    with get_connection() as conn:
+        rows = conn.execute(
+            f"""
+            SELECT {EFFECTIVE_STAGE} AS stage, is_correct, dont_know
+            FROM interaction
             WHERE concept_id = ? AND is_correct IS NOT NULL
             ORDER BY id DESC LIMIT ?
             """,
             (concept_id, window),
         ).fetchall()
-    if not rows:
+    return [
+        (r["stage"] or "solo", bool(r["is_correct"]), bool(r["dont_know"]))
+        for r in rows
+    ]
+
+
+def solo_reps(concept_id: str) -> int:
+    """How many unaided attempts a concept has had.
+
+    The rep-confidence term in mastery asks "how much evidence is there", and a
+    guided rep is evidence of exposure, not of skill. Counting it would let a
+    concept read as well-evidenced while nothing unaided had been shown — which is
+    how mastery's third factor stayed scaffolded after its first two were fixed.
+    """
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM interaction "
+            f"WHERE concept_id = ? AND is_correct IS NOT NULL AND {MEASURED}",
+            (concept_id,),
+        ).fetchone()
+    return row["n"] if row else 0
+
+
+def last_solo_review(concept_id: str) -> datetime | None:
+    """When the concept was last answered unaided, or None if it never was.
+
+    Readiness decays from *this*, not from the last review of any kind. FSRS is
+    right to reset its clock on a guided review — the card was seen — but nothing
+    about unaided recall was demonstrated, so crediting it would let a run of
+    worked examples walk the projected score up on its own.
+    """
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT MAX(answered_at) AS t FROM interaction "
+            f"WHERE concept_id = ? AND is_correct IS NOT NULL AND {MEASURED}",
+            (concept_id,),
+        ).fetchone()
+    if row is None or row["t"] is None:
         return None
-    return sum(r["is_correct"] for r in rows) / len(rows)
+    return datetime.fromisoformat(row["t"])
+
+
+def stage_times(subject: str) -> dict[str, dict[str, list[float]]]:
+    """Per-concept elapsed seconds, split into scaffolded and unaided attempts.
+
+    Feeds the slog report only (ADR-0014) — never the schedule. Clamped by the
+    same ceiling the grader uses, so one abandoned tab cannot define a median.
+    """
+    from engine.config import MAX_ANSWER_MS
+
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT concept_id, stage, elapsed_ms FROM interaction "
+            "WHERE subject = ? AND is_correct IS NOT NULL AND elapsed_ms IS NOT NULL",
+            (subject,),
+        ).fetchall()
+    out: dict[str, dict[str, list[float]]] = {}
+    for row in rows:
+        bucket = "solve" if (row["stage"] or "solo") == "solo" else "understand"
+        entry = out.setdefault(row["concept_id"], {"solve": [], "understand": []})
+        entry[bucket].append(min(row["elapsed_ms"], MAX_ANSWER_MS) / 1000.0)
+    return out
 
 
 def subject_stats(subject: str) -> dict:
@@ -526,6 +712,42 @@ def pending_retries() -> list[str]:
     return [r["concept_id"] for r in rows]
 
 
+def record_reflection(
+    interaction_id: int, concept_id: str, step_index: int | None
+) -> None:
+    """Store which worked-solution step the learner says they first went wrong at.
+
+    `step_index` is None for an explicit "not sure", which is deliberately stored
+    rather than discarded: not being able to locate the break is itself the most
+    useful thing the concept can report about how well it is understood.
+    """
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO reflection "
+            "(interaction_id, concept_id, step_index, created_at) VALUES (?, ?, ?, ?)",
+            (interaction_id, concept_id, step_index, datetime.now(UTC).isoformat()),
+        )
+
+
+def step_breakdown(concept_id: str) -> dict[str, int]:
+    """How often each solution step was named as the break, plus "not sure".
+
+    The one signal the log never carried: *where* a concept fails, as opposed to
+    that it failed. A concept whose misses cluster on one step needs that step
+    taught; one whose misses scatter needs the whole concept re-taught.
+    """
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT step_index, COUNT(*) AS n FROM reflection "
+            "WHERE concept_id = ? GROUP BY step_index",
+            (concept_id,),
+        ).fetchall()
+    return {
+        ("unsure" if r["step_index"] is None else str(r["step_index"])): r["n"]
+        for r in rows
+    }
+
+
 def count_new_concepts_today(
     today: date | None = None, subject: str | None = None
 ) -> int:
@@ -759,6 +981,13 @@ def count_correct_today(subject: str | None = None, today: date | None = None) -
 
     Deliberately *not* count_answered_today: the gate is paid in work done, not
     attempts made, so twenty wrong answers cannot open it (ADR-0005).
+
+    Unfiltered by stage, unlike every accuracy read (ADR-0013): a completed study
+    trial is the work the ladder asks for on a concept that is not yet answerable,
+    and it is the *only* thing on offer for one in remediation. Excluding it would
+    make the quota unpayable on precisely the days the loop most needs to keep
+    running. It cannot be farmed — the ladder decides when a study trial is
+    served, and a failed one pays nothing even with the solution on screen.
     """
     start, end = local_day_bounds(today or _local_today())
     sql = (

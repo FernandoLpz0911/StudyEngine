@@ -17,10 +17,17 @@ The model is deliberately conservative in two places and honest in a third:
   term, which measures how much evidence there is rather than how good the
   learner is; folding it into the estimate marks down a concept for being
   lightly practised and then again for being uncertain.
-- practice is free response well below the mastery at which the real exam would
-  still be offering five options, so measured accuracy understates exam accuracy.
+- practice is free response and the sitting is five-option multiple choice, so
+  measured accuracy understates exam accuracy.
 - the guessing floor is credited, because a blank guess on five options really
   does score one in five.
+
+That second point used to be *false in the data* and quietly broke the third.
+Practice was gated behind a mastery threshold nothing reached, so the whole log
+was four-option multiple choice — which meant the guessing floor was baked into
+`accuracy` and then added again by `p_exam`, counting luck twice. Generator items
+are now always free response and historical rates are guessing-corrected in the
+DAO, so the floor is applied exactly once, to clean unaided evidence (ADR-0014).
 
 The arithmetic is pure; only `projected_score` reads the database.
 """
@@ -65,7 +72,7 @@ def concept_p_exam(concept_id: str, now=None) -> float:
     """
     from datetime import UTC, datetime
 
-    from engine.analytics.readiness import _retention_now
+    from engine.analytics.readiness import unaided_retention
     from engine.config import MASTERY_ACCURACY_WINDOW
     from engine.db import dao
     from engine.scheduler import store
@@ -75,7 +82,11 @@ def concept_p_exam(concept_id: str, now=None) -> float:
     if state.reps == 0:
         return p_exam(0.0)
     accuracy = dao.get_concept_accuracy(concept_id, window=MASTERY_ACCURACY_WINDOW)
-    return p_exam(p_skill(accuracy, _retention_now(state, now)))
+    # Both factors unaided (ADR-0014): accuracy is solo-only and guessing-
+    # corrected, and retention decays from the last solo answer rather than the
+    # last review of any kind. Filtering only the first left the second free to
+    # carry scaffolded credit into the headline number.
+    return p_exam(p_skill(accuracy, unaided_retention(concept_id, state, now)))
 
 
 @dataclass(frozen=True)

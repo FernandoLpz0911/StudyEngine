@@ -92,7 +92,8 @@ class StudyLoop:
         loop = cls(session_id, row["subject"], n=None)
         for r in dao.session_results(session_id):
             loop._fold_result(
-                bool(r["is_correct"]), r["grade"] or 0, r["exam_weight"], r["subject"]
+                bool(r["is_correct"]), r["grade"] or 0, r["exam_weight"],
+                r["subject"], aided=bool(r["aided"]),
             )
         loop.index = dao.count_shown(session_id)
         loop._init_live_state()
@@ -178,23 +179,41 @@ class StudyLoop:
         self.index += 1
         return Turn(item_id, item, mode)
 
-    def settle(self, item_id: int, raw_answer: str, elapsed_ms: int) -> AnswerOutcome:
+    def settle(
+        self, item_id: int, raw_answer: str, elapsed_ms: int, aided: bool = False
+    ) -> AnswerOutcome:
         """Grade and settle one answer, folding the session-local delta.
 
         The log-wide Settle (log, FSRS, quests, retry debt, record detection) lives
         in `service.settle_answer`; here we add the session-local framing — the
         in-session retry re-append, recent list, combo streak, best, and XP.
+
+        `aided` means the learner opened the explanation on a bare item. It costs
+        the XP and the combo for that answer: those are the currencies that stand
+        for unaided performance, and leaving them intact would make opening the
+        explanation free at the moment it is most tempting.
         """
         item = self.items[item_id]
-        res = service.settle_answer(item_id, item, raw_answer, elapsed_ms, self.tracker)
+        res = service.settle_answer(
+            item_id, item, raw_answer, elapsed_ms, self.tracker, aided=aided
+        )
 
         concept = dao.get_concept(item.concept_id)
         exam_weight = concept.exam_weight if concept else 1
         prev_streak = self.streak
         if not res.correct and item.reason != "retry":
+            # Repair the foundation before re-testing the roof: a miss caused by a
+            # weaker prerequisite is not fixed by another attempt at the concept
+            # that exposed it (ADR-0013). The prereq goes first in the queue, the
+            # concept itself still follows.
+            repair = policy.prereq_repair(concept) if concept else None
+            if repair is not None:
+                self.retry_queue.append((repair.id, self.index + 1))
             self.retry_queue.append((item.concept_id, self.index + RETRY_GAP))
-        self._fold_result(res.correct, res.grade, exam_weight, item.subject)
-        xp = res.grade * exam_weight if res.correct else 0
+        self._fold_result(
+            res.correct, res.grade, exam_weight, item.subject, aided=aided
+        )
+        xp = res.grade * exam_weight if res.correct and not aided else 0
         combo_break = "" if res.correct else combo_break_message(prev_streak, self.best)
         return AnswerOutcome(
             correct=res.correct,
@@ -209,17 +228,33 @@ class StudyLoop:
             next_review_days=res.next_review_days,
             why_wrong=res.why_wrong,
             ask_mnemonic=res.ask_mnemonic,
+            ask_reflection=res.ask_reflection,
+            stage=item.stage,
+            aided=res.aided,
         )
 
     def _fold_result(
-        self, correct: bool, grade: int, exam_weight: int, subject: str
+        self,
+        correct: bool,
+        grade: int,
+        exam_weight: int,
+        subject: str,
+        aided: bool = False,
     ) -> None:
         """The session-local reduction of one result — the single fold shared by
-        the live `settle` path and the `rebuild` replay."""
-        self.recent.append(correct)
-        self.streak = self.streak + 1 if correct else 0
+        the live `settle` path and the `rebuild` replay.
+
+        An aided answer folds as a non-success. Streak, XP and the pacing window
+        all stand for *unaided* performance, and a correct answer given with the
+        explanation open demonstrated none of it — which is the whole reason the
+        confirmation exists. `aided` is replayed from the log so a rebuilt session
+        cannot fold differently from the live one (ADR-0002).
+        """
+        earned = correct and not aided
+        self.recent.append(earned)
+        self.streak = self.streak + 1 if earned else 0
         self.best = max(self.best, self.streak)
-        if correct:
+        if earned:
             self.xp += grade * exam_weight
         self.last_subject = subject
         self.touched.add(subject)

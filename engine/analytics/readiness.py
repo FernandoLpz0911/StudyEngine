@@ -37,22 +37,68 @@ def mastery_score(
     return max(0.0, min(1.0, accuracy * retention * confidence))
 
 
-def _retention_now(cs: CardState, now: datetime) -> float:
-    """Current recall probability from FSRS; 0.5 prior before stability is known."""
-    if cs.stability and cs.last_review:
-        last = cs.last_review
-        if last.tzinfo is None:
-            last = last.replace(tzinfo=UTC)
-        elapsed = max(0.0, (now - last).total_seconds() / 86400)
+def _retention_now(cs: CardState, now: datetime, since: datetime | None = None) -> float:
+    """Current recall probability from FSRS; 0.5 prior before stability is known.
+
+    `since` overrides the decay origin. Readiness measures decay from the last
+    *unaided* answer (ADR-0014), not from the last review of any kind: FSRS is
+    right to reset its clock whenever a card is seen, but a guided review
+    demonstrated nothing about unaided recall, and crediting it let a run of
+    worked examples walk the projected score up on its own — +1.4 marks across
+    18 concepts, measured.
+    """
+    if cs.stability and (origin := (since or cs.last_review)):
+        if origin.tzinfo is None:
+            origin = origin.replace(tzinfo=UTC)
+        elapsed = max(0.0, (now - origin).total_seconds() / 86400)
         return retrievability(elapsed, cs.stability)
     return 0.5
 
 
+def unaided_retention(concept_id: str, cs: CardState, now: datetime) -> float:
+    """Recall probability credited only as far as the last unaided answer.
+
+    A concept never answered unaided has demonstrated nothing to decay from, so
+    it scores zero rather than the 0.5 prior — the prior exists for a card whose
+    stability is unknown, not for one whose learner has never been tested on it.
+    """
+    last_solo = dao.last_solo_review(concept_id)
+    if last_solo is None:
+        return 0.0
+    return _retention_now(cs, now, since=last_solo)
+
+
 def concept_mastery(concept_id: str, now: datetime | None = None) -> float:
+    """Measured competence, unaided in all three factors (ADR-0014).
+
+    Accuracy, retention *and* rep-confidence all read solo evidence only. Leaving
+    any one of them scaffolded makes mastery "unaided except in the term nobody is
+    looking at" — which is exactly how the retention hole survived the first pass.
+    Guided work is credited by [[ascent]] instead; mastery's whole job now is to
+    answer readiness questions (rest this concept? drill it? count it mastered?),
+    and every one of those must be answered by unaided evidence.
+    """
     now = now or datetime.now(UTC)
     cs = store.get_or_create(concept_id)
     accuracy = dao.get_concept_accuracy(concept_id, window=MASTERY_ACCURACY_WINDOW)
-    return mastery_score(cs.reps, accuracy, _retention_now(cs, now))
+    return mastery_score(
+        dao.solo_reps(concept_id), accuracy, unaided_retention(concept_id, cs, now)
+    )
+
+
+def mastery_bar(concept_id: str, subject: str) -> float:
+    """The mastery a concept must reach to count as mastered, given its reach.
+
+    Not one flat threshold for a leaf and a gateway alike: a foundation carries
+    every concept above it, so the standard scales with downstream reach the same
+    way the teaching ladder's accuracy bar does (ADR-0013). `MASTERY_THRESHOLD`
+    stays the floor, so nothing gets an easier bar than before.
+    """
+    from engine.service import concept_reach
+    from engine.teaching import required_accuracy
+
+    reach = concept_reach(subject).get(concept_id, 0)
+    return max(MASTERY_THRESHOLD, required_accuracy(reach))
 
 
 def subject_readiness(subject: str) -> dict:
@@ -100,7 +146,9 @@ def subject_readiness(subject: str) -> dict:
         "readiness": round(readiness, 3),
         "n_concepts": len(concepts),
         "seen": seen,
-        "mastered": sum(1 for r in rows if r["mastery"] >= MASTERY_THRESHOLD),
+        "mastered": sum(
+            1 for r in rows if r["mastery"] >= mastery_bar(r["id"], subject)
+        ),
         "due": sum(1 for r in rows if r["due"]),
         "answered": stats["answered"],
         "accuracy": stats["accuracy"],

@@ -11,7 +11,7 @@ import argparse
 import time
 
 import engine.subjects  # noqa: F401  (registers the problem generators)
-from engine import service, stats
+from engine import service, stats, teaching
 from engine.db import dao
 from engine.db.seed import load_all, load_subject
 from engine.loop import Done, StudyLoop, Turn
@@ -71,6 +71,38 @@ def _prompt(text: str) -> str:
         return ""
 
 
+def _print_example(item: service.StudyItem) -> None:
+    """Show the worked example the teaching stage attached, if any (ADR-0013).
+
+    At `study` it is this problem's own solution, so the framing says to work
+    through it and then reproduce the answer. At `paired` it is a solved sibling,
+    stated first so it is obvious the numbers are not the ones being asked about.
+    """
+    if not item.example:
+        return
+    if item.stage == teaching.STUDY:
+        print("   📘 Worked solution — follow it through, then give the answer:")
+    else:
+        print("   📘 Worked example (different numbers):")
+        print(f"      {item.example_statement}")
+    for step in item.example:
+        print(f"      · {step}")
+
+
+def _ask_reflection(item: service.StudyItem, item_id: int) -> None:
+    """After a miss, have the learner name the step it broke at.
+
+    Answering "where" is what makes the printed solution get read instead of
+    scrolled past, and it is the only record of where a concept fails.
+    """
+    print("   Which step first went wrong? (number, or Enter for 'not sure')")
+    raw = _prompt("   Step: ").strip()
+    step: int | None = None
+    if raw.isdigit() and 1 <= int(raw) <= len(item.explain):
+        step = int(raw) - 1
+    dao.record_reflection(item_id, item.concept_id, step)
+
+
 def _run_item(loop: StudyLoop, turn: Turn) -> service.AnswerOutcome:
     """Render one served Turn, read the answer, and settle it through the loop."""
     item = turn.item
@@ -89,23 +121,48 @@ def _run_item(loop: StudyLoop, turn: Turn) -> service.AnswerOutcome:
     from engine.analytics.readiness import concept_mastery
     from engine.config import COLD_START_MASTERY
     cold = concept_mastery(item.concept_id) < COLD_START_MASTERY
-    if (cold or leech) and item.theory:
+    # Only auto-shown where the explanation *is* the teaching. On a bare item it
+    # has to be asked for, and it costs (ADR-0014) — printing it unbidden would
+    # spend that cost on the learner's behalf.
+    if (cold or leech) and item.theory and item.stage != teaching.SOLO:
         print(f"   📖 Start here: {item.theory}")
     note = dao.get_mnemonic(item.concept_id)
     if note:
         print(f"   📝 your note: {note}")
+    _print_example(item)
     for letter, choice in zip(LETTERS, item.choices, strict=False):
         print(f"   {letter}) {choice}")
 
-    start = time.monotonic()
-    raw = _prompt("Your answer: " if typed else "Your answer (letter): ")
-    elapsed_ms = int((time.monotonic() - start) * 1000)
+    hint = "? = I don't know"
+    if item.theory and item.stage == teaching.SOLO:
+        hint += "  ·  e = show the explanation (costs the XP and the readiness credit)"
+    print(f"   ({hint})")
 
-    outcome = loop.settle(turn.item_id, raw, elapsed_ms)
+    aided = False
+    start = time.monotonic()
+    while True:
+        raw = _prompt("Your answer: " if typed else "Your answer (letter): ")
+        if raw.strip().lower() != "e" or not item.theory or item.stage != teaching.SOLO:
+            break
+        confirm = _prompt(
+            "   Open it? This answer won't count toward readiness, and earns no "
+            "XP. [y/N]: "
+        )
+        if confirm.strip().lower() == "y":
+            aided = True
+            print(f"   📖 {item.theory}")
+    elapsed_ms = int((time.monotonic() - start) * 1000)
+    if raw.strip() in {"?", "idk"}:
+        raw = service.DONT_KNOW
+
+    outcome = loop.settle(turn.item_id, raw, elapsed_ms, aided=aided)
     verdict = "✓ Correct" if outcome.correct else f"✗ Incorrect — answer: {item.correct}"
     print(f"{verdict}   [{GRADE_LABEL[outcome.grade]}, {elapsed_ms / 1000:.1f}s]")
-    for step in item.explain:
-        print(f"   · {step}")
+    # Numbered, because the reflection prompt asks which one broke.
+    for n, step in enumerate(item.explain, start=1):
+        print(f"   {n}. {step}")
+    if outcome.ask_reflection:
+        _ask_reflection(item, turn.item_id)
     if outcome.why_wrong:
         print(f"   ✗ {outcome.why_wrong}")
     # Surface the concept explanation right or wrong (skip if it was already shown
@@ -114,6 +171,8 @@ def _run_item(loop: StudyLoop, turn: Turn) -> service.AnswerOutcome:
         print(f"   📖 {item.theory}")
     for record in outcome.records:
         print(f"   {record}")
+    if outcome.aided:
+        print("   📖 Aided — no readiness credit, no XP for this one.")
     if outcome.next_review_days is not None:
         print(f"   ↩️  back in {outcome.next_review_days} day(s)")
 

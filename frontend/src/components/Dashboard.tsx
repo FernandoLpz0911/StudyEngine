@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import type { DailyQuest, Me, Progress, SubjectProgress } from "../types";
+import type { DailyQuest, Me, Progress, SlogRow, SubjectProgress } from "../types";
 
 const SUBJECT_ICON: Record<string, string> = {
   examp: "🎲",
@@ -68,6 +68,45 @@ function ranked(subjects: SubjectProgress[]): SubjectProgress[] {
     const sb = b.seen > 0 ? 1 : 0;
     return sb - sa || b.readiness - a.readiness;
   });
+}
+
+/** Concepts costing disproportionate time — an authoring diagnostic, not a nag.
+ *
+ *  A leech costs repeated *attempts*; a slog costs *time*, and until now nothing
+ *  reported it: a concept answered correctly but always slowly is invisible to
+ *  accuracy, to FSRS and to the projected score, all of which are indifferent to
+ *  how long a right answer took. Shown here rather than mid-question, because
+ *  telling someone they are slow while timing them changes the number. */
+function Slogs({ subject }: { subject: string }) {
+  const [rows, setRows] = useState<SlogRow[]>([]);
+  useEffect(() => {
+    api.slogs(subject).then(setRows).catch(() => {});
+  }, [subject]);
+
+  const flagged = rows.filter((r) => r.slow_to_solve || r.slow_to_understand);
+  if (!flagged.length) return null;
+  return (
+    <section className="card">
+      <h3>⏳ Slow concepts — {subject}</h3>
+      <p className="muted small">
+        Correct but costly. Slow to <em>understand</em> points at the explanation;
+        slow to <em>solve</em> points at needing more reps.
+      </p>
+      <ul className="slogs">
+        {flagged.map((r) => (
+          <li key={r.concept_id}>
+            <span className="slog-name">{r.name}</span>
+            {r.slow_to_understand && (
+              <span className="chip warn">📘 {r.understand_s}s to understand</span>
+            )}
+            {r.slow_to_solve && (
+              <span className="chip warn">✍️ {r.solve_s}s to solve</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 export default function Dashboard({ onStudy }: { onStudy: (scope: string) => void }) {
@@ -224,6 +263,11 @@ export default function Dashboard({ onStudy }: { onStudy: (scope: string) => voi
           })}
         </section>
       ))}
+      {p.subjects
+        .filter((s) => s.answered > 0)
+        .map((s) => (
+          <Slogs key={s.subject} subject={s.subject} />
+        ))}
     </div>
   );
 }

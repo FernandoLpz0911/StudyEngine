@@ -60,11 +60,23 @@ class AnswerIn(BaseModel):
     item_id: int
     answer: str = ""
     elapsed_ms: int = 0
+    #: The learner opened the concept explanation before answering this item.
+    #: Client-reported, because only the client knows whether it was opened —
+    #: which makes it an honesty mechanism, not an enforcement one.
+    aided: bool = False
 
 
 class MnemonicIn(BaseModel):
     concept_id: str
     text: str
+
+
+class ReflectionIn(BaseModel):
+    item_id: int
+    concept_id: str
+    #: Which numbered step of the worked solution first went wrong; None means
+    #: "not sure", stored as its own answer rather than discarded.
+    step_index: int | None = None
 
 
 class SettingIn(BaseModel):
@@ -149,7 +161,8 @@ def _serve_json(turn: Turn) -> dict:
         "subject": item.subject,
         "reason": item.reason,
         "mode": "generator" if is_generator else "recall",
-        # High-mastery generator concepts drop the options: typed recall, not recognition.
+        # Generator problems are always free response (ADR-0014); recall cards keep
+        # their options, having no computed answer to type.
         "input_mode": "typed" if is_generator and not item.choices else "choices",
         "question": fmt(item.question),
         "choices": item.choices,  # raw — compared on grade + echoed back as the answer
@@ -158,6 +171,12 @@ def _serve_json(turn: Turn) -> dict:
         "theory": item.theory,
         # Cold start: not yet learned → the UI opens the explanation up front.
         "cold": concept_mastery(item.concept_id) < COLD_START_MASTERY,
+        # The teaching ladder (ADR-0013). At `study` the worked solution below is
+        # this problem's own and is shown before answering; at `paired` it solves
+        # a sibling problem stated in `example_statement`.
+        "stage": item.stage,
+        "example": [fmt(s) for s in item.example],
+        "example_statement": fmt(item.example_statement) if item.example_statement else "",
     }
 
 
@@ -172,7 +191,9 @@ def submit_answer(body: AnswerIn) -> dict:
         # The client just asks for the next item on the same (rebuilt) session.
         raise HTTPException(404, "unknown item for this session")
 
-    outcome = loop.settle(body.item_id, body.answer, body.elapsed_ms)
+    outcome = loop.settle(
+        body.item_id, body.answer, body.elapsed_ms, aided=body.aided
+    )
 
     from engine.config import FATIGUE_THRESHOLD, FATIGUE_WINDOW
     window = loop.recent[-FATIGUE_WINDOW:]
@@ -198,7 +219,41 @@ def submit_answer(body: AnswerIn) -> dict:
         "why_wrong": outcome.why_wrong,
         "fatigued": fatigued,
         "ask_mnemonic": outcome.ask_mnemonic,
+        "ask_reflection": outcome.ask_reflection,
+        "stage": outcome.stage,
+        "aided": outcome.aided,
+        "item_id": body.item_id,  # the reflection posts back against this answer
     }
+
+
+@api.get("/ascent/{subject}")
+def get_ascent(subject: str) -> dict:
+    """How far the subject has climbed the teaching ladder — the number guided
+    work moves, kept separate from the projected score, which only unaided work
+    moves (ADR-0014)."""
+    from engine.analytics.ascent import subject_ascent
+    return subject_ascent(subject).as_dict()
+
+
+@api.get("/slogs/{subject}")
+def get_slogs(subject: str) -> list[dict]:
+    """Concepts costing disproportionate time, slowest first. Authoring
+    diagnostic — feeds no schedule, no accuracy and no projection."""
+    from engine.analytics.slog import subject_slogs
+    return [s.as_dict() for s in subject_slogs(subject)]
+
+
+@api.post("/reflect")
+def submit_reflection(body: ReflectionIn) -> dict:
+    """Record which worked-solution step the learner first went wrong at.
+
+    Self-explanation after a miss is what turns a shown solution into a read one:
+    naming the step forces the derivation to be worked through rather than
+    dismissed. It is also the only place the log learns *where* a concept breaks
+    rather than that it broke (ADR-0013).
+    """
+    dao.record_reflection(body.item_id, body.concept_id, body.step_index)
+    return {"ok": True}
 
 
 @api.post("/mnemonic")
